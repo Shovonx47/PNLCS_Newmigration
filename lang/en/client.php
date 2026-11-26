@@ -643,6 +643,13 @@ return [
         'return_to_admin' => 'Return to Admin',
         'viewing_as' => 'You are viewing as',
     ],
+    // A visit that arrived through a signed payment link and then went
+    // somewhere that link does not reach.
+    'direct_pay' => [
+        'invalid' => 'This payment link is not valid for that invoice.',
+        'no_login' => 'This invoice has no customer login to open.',
+        'ended' => 'The payment session has ended. Please sign in to continue.',
+    ],
     'emails' => [
         'back_to_emails' => 'Back to Email History',
         'none' => 'No emails have been sent to your account yet.',

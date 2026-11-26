@@ -1,0 +1,6 @@
+{
+    "name": "bhpanel",
+    "type": "server",
+    "class": "Modules\\Servers\\Bhpanel\\BhpanelModule",
+    "provider": "Modules\\Servers\\Bhpanel\\BhpanelServiceProvider"
+}

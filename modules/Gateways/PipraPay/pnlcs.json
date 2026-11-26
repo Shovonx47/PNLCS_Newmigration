@@ -1,0 +1,6 @@
+{
+    "name": "piprapay",
+    "type": "gateway",
+    "class": "Modules\\Gateways\\PipraPay\\PipraPayModule",
+    "provider": "Modules\\Gateways\\PipraPay\\PipraPayServiceProvider"
+}

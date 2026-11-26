@@ -1,0 +1,6 @@
+{
+    "name": "uddoktapay",
+    "type": "gateway",
+    "class": "Modules\\Gateways\\UddoktaPay\\UddoktaPayModule",
+    "provider": "Modules\\Gateways\\UddoktaPay\\UddoktaPayServiceProvider"
+}

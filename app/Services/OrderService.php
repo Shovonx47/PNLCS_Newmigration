@@ -531,6 +531,9 @@ class OrderService
                 // had none of them. A certificate is the exception: it waits
                 // for the customer's CSR and has its own mail for that below.
                 if (strtolower((string) $svc->product?->type) !== 'ssl') {
+                    if ((int) ($svc->product?->trial_days ?? 0) > 0) {
+                        $svc->update(['next_due_date' => now()->addDays((int) $svc->product->trial_days)->toDateString()]);
+                    }
                     event(new ServiceActivated($svc));
                 }
             }
@@ -912,6 +915,8 @@ class OrderService
     private function createServiceForOrder(Order $order, Client $client, array $item): Service
     {
         $billingCycle = $item['billing_cycle'] ?? 'Monthly';
+        $product = ! empty($item['product_id']) ? Product::find($item['product_id']) : null;
+        $trialDays = max(0, (int) ($product?->trial_days ?? 0));
 
         return Service::create([
             'client_id' => $client->id,
@@ -928,7 +933,9 @@ class OrderService
             'first_payment_amount' => $item['first_payment_amount'] ?? (($item['amount'] ?? 0) + ($item['setup_fee'] ?? 0)),
             'amount' => $item['amount'] ?? 0,
             'billing_cycle' => $billingCycle,
-            'next_due_date' => $this->calculateNextDueDate($billingCycle),
+            'next_due_date' => $trialDays > 0
+                ? now()->addDays($trialDays)->toDateString()
+                : $this->calculateNextDueDate($billingCycle),
             'registration_date' => now()->toDateString(),
             'status' => ServiceStatus::Pending->value,
             'username' => $item['username'] ?? null,

@@ -26,18 +26,41 @@ class AddonController extends Controller
     public function show(string $name, Request $request)
     {
         $addon = $this->manager->find($name);
-        if (!$addon) {
+        if (! $addon) {
             return back()->with('error', __('messages.error.addon_not_found'));
         }
 
-        if (!$this->manager->isActive($name)) {
+        if (! $this->manager->isActive($name)) {
             return back()->with('error', __('messages.error.addon_not_active'));
         }
 
+        // An addon with a screen of its own (balances, queues, logs) declares
+        // it in sidebar(). Linking it here saves the operator from hunting for
+        // it in the Extensions menu, and stops this page looking empty when the
+        // addon has little to configure.
+        $dashboardUrl = null;
+        try {
+            foreach ((array) $addon->sidebar() as $entry) {
+                $url = is_array($entry) ? ($entry['url'] ?? null) : null;
+                if ($url) {
+                    $dashboardUrl = $url;
+                    break;
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        if ($dashboardUrl && rtrim((string) parse_url($dashboardUrl, PHP_URL_PATH), '/') === '/admin/config/addons/modules/'.$name) {
+            $dashboardUrl = null;
+        }
+
         $output = $addon->output($request);
+
         return view('admin.config.addon-output', [
             'addon' => $addon,
             'output' => $output,
+            'dashboardUrl' => $dashboardUrl,
             'config' => $addon->config(),
             'settings' => $this->manager->settings($name),
             'name' => $name,
@@ -51,11 +74,11 @@ class AddonController extends Controller
     public function saveSettings(string $name, Request $request)
     {
         $addon = $this->manager->find($name);
-        if (!$addon) {
+        if (! $addon) {
             return back()->with('error', __('messages.error.addon_not_found'));
         }
 
-        if (!$this->manager->isActive($name)) {
+        if (! $this->manager->isActive($name)) {
             return back()->with('error', __('messages.error.addon_not_active'));
         }
 
@@ -66,6 +89,7 @@ class AddonController extends Controller
 
             if ($type === 'checkbox') {
                 $settings[$key] = $request->boolean($key) ? '1' : '0';
+
                 continue;
             }
 

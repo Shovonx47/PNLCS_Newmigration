@@ -14,7 +14,7 @@
     </div>
     @else
     <table class="data-table">
-        <thead><tr><th>{{ __('admin.client_groups.group_name') }}</th><th>{{ __('admin.client_groups.color') }}</th><th>{{ __('admin.client_groups.clients') }}</th><th>{{ __('admin.client_groups.discount_pct') }}</th><th style="text-align:right;">{{ __('common.table.actions') }}</th></tr></thead>
+        <thead><tr><th>{{ __('admin.client_groups.group_name') }}</th><th>{{ __('admin.client_groups.color') }}</th><th>{{ __('admin.client_groups.clients') }}</th><th>{{ __('admin.client_groups.discount_pct') }}</th><th>{{ 'Separate Invoices' }}</th><th style="text-align:right;">{{ __('common.table.actions') }}</th></tr></thead>
         <tbody>
         @foreach($groups as $group)
         <tr>
@@ -22,6 +22,7 @@
             <td><span style="display:inline-block;width:20px;height:20px;border-radius:3px;background:{{ $group->color ?? "#ccc" }};"></span></td>
             <td>{{ $group->clients_count ?? 0 }}</td>
             <td>{{ $group->discount_percent ?? 0 }}%</td>
+            <td><span class="badge {{ $group->separate_invoices ? 'badge-active' : 'badge-cancelled' }}">{{ $group->separate_invoices ? __('common.yes') : __('common.no') }}</span></td>
             <td style="text-align:right;">
                 <button type="button" onclick="openModal('edit-group-{{ $group->id }}')" class="btn btn-default btn-xs">{{ __('common.actions.edit') }}</button>
                 <form method="POST" action="{{ route("admin.config.client-groups.destroy", $group) }}" style="display:inline;" onsubmit="return pnConfirm(event, @js(__('admin.client_groups.confirm_delete')))">@csrf @method("DELETE")<button type="submit" class="btn btn-danger btn-xs">{{ __('common.actions.delete') }}</button></form>
@@ -43,6 +44,7 @@
         {{-- Read by auto-suspend and auto-terminate; no form set them. --}}
         <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="hidden" name="suspend_exempt" value="0"><input type="checkbox" name="suspend_exempt" value="1" @checked($group->suspend_exempt)> {{ __('admin.client_groups.suspend_exempt') }}</label>
         <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;"><input type="hidden" name="terminate_exempt" value="0"><input type="checkbox" name="terminate_exempt" value="1" @checked($group->terminate_exempt)> {{ __('admin.client_groups.terminate_exempt') }}</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;"><input type="hidden" name="separate_invoices" value="0"><input type="checkbox" name="separate_invoices" value="1" @checked($group->separate_invoices)> {{ 'Separate Renewal Invoices' }}</label>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
             <button type="button" onclick="closeModal('edit-group-{{ $group->id }}')" class="btn btn-default btn-sm">{{ __('common.actions.cancel') }}</button>
             <button type="submit" class="btn btn-primary btn-sm">{{ __('common.actions.save_changes') }}</button>
@@ -59,6 +61,7 @@
         <div class="form-group"><label class="form-label">{{ __('admin.client_groups.discount_pct') }}</label><input type="number" name="discount_percent" value="0" min="0" max="100" step="0.01" class="form-control"></div>
         <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="hidden" name="suspend_exempt" value="0"><input type="checkbox" name="suspend_exempt" value="1"> {{ __('admin.client_groups.suspend_exempt') }}</label>
         <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;"><input type="hidden" name="terminate_exempt" value="0"><input type="checkbox" name="terminate_exempt" value="1"> {{ __('admin.client_groups.terminate_exempt') }}</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;"><input type="hidden" name="separate_invoices" value="0"><input type="checkbox" name="separate_invoices" value="1"> {{ 'Separate Renewal Invoices' }}</label>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
             <button type="button" onclick="closeModal('add-group')" class="btn btn-default btn-sm">{{ __('common.actions.cancel') }}</button>
             <button type="submit" class="btn btn-primary btn-sm">{{ __('admin.client_groups.create_group') }}</button>

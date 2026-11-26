@@ -1,0 +1,6 @@
+{
+    "name": "softcents_sms_panel",
+    "type": "server",
+    "class": "Modules\\Servers\\SoftcentsSmsPanel\\SoftcentsSmsPanelModule",
+    "provider": "Modules\\Servers\\SoftcentsSmsPanel\\SoftcentsSmsPanelServiceProvider"
+}

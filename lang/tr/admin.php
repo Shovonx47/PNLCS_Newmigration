@@ -1448,6 +1448,8 @@ return [
         'amount_due' => 'Ödenecek tutar',
         'date' => 'Tarih',
         'description_placeholder' => 'Kalem açıklaması',
+        'direct_pay_help' => 'Bu bağlantıya sahip herkes oturum açmadan bu faturayı görüntüleyebilir ve ödeyebilir. Bunu hatırlatma, SMS veya WhatsApp iletisinde gönderebilirsiniz.',
+        'direct_pay_title' => 'Oturumsuz doğrudan ödeme bağlantısı',
         'download_pdf' => 'PDF İndir',
         'download_pdf_btn' => 'PDF İndir',
         'due_date' => 'Vade Tarihi',

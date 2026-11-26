@@ -71,6 +71,18 @@
                     <label class="form-label">{{ __('proxmox.product.title') }}</label>
                     <div style="font-size:12px;color:#555;background:#f1f5fb;border:1px solid #dbe5f3;border-radius:6px;padding:8px 10px;">{{ __('proxmox.product.create_hint') }}</div>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">{{ 'Free Trial Period' }}</label>
+                    <select name="trial_days" class="form-control">
+                        @foreach([0, 1, 3, 7, 15, 30, 90] as $td)
+                        <option value="{{ $td }}" @selected((int) old('trial_days', 0) === $td)>{{ $td === 0 ? 'Disabled (0 days)' : $td.' '.($td === 1 ? 'day' : 'days') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ 'Compare / Regular Price' }}</label>
+                    <input type="number" step="0.01" min="0" name="compare_price" value="{{ old('compare_price') }}" class="form-control">
+                </div>
                 <div class="form-group" style="grid-column:span 2;">@include('admin.products.partials.description-tabs', ['product' => null, 'value' => old('description'), 'translationLanguages' => $translationLanguages ?? collect(), 'rows' => 5])</div>
             </div>
         </div>

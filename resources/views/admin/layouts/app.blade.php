@@ -34,6 +34,7 @@
     @include('partials.dialog-boot')
 </head>
 <body>
+{!! hook_output('AdminAreaTopOutput', ['admin' => auth('admin')->user()]) !!}
 
 {{-- ═══════════════════════════════════════════════
      NAVIGATION BAR (WHMCS Blend exact structure)

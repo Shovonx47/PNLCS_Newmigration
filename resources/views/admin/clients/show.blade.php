@@ -51,6 +51,7 @@
             @endif
         </div>
         @endif
+        {!! hook_output('AdminAreaClientSummaryOutput', ['client' => $client]) !!}
     </div>
 </div>
 

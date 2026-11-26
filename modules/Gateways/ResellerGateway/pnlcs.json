@@ -1,0 +1,6 @@
+{
+    "name": "resellergateway",
+    "type": "gateway",
+    "class": "Modules\\Gateways\\ResellerGateway\\ResellerGatewayModule",
+    "provider": "Modules\\Gateways\\ResellerGateway\\ResellerGatewayServiceProvider"
+}

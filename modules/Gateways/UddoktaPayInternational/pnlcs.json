@@ -1,0 +1,6 @@
+{
+    "name": "uddoktapayinternational",
+    "type": "gateway",
+    "class": "Modules\\Gateways\\UddoktaPayInternational\\UddoktaPayInternationalModule",
+    "provider": "Modules\\Gateways\\UddoktaPayInternational\\UddoktaPayInternationalServiceProvider"
+}

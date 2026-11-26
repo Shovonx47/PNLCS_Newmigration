@@ -300,6 +300,7 @@
             </div>
         </div>
 
+        @if($st === 'paid' || $st === 'cancelled')
         <div class="panel">
             <div class="panel-heading panel-primary">{{ __('admin.invoices.actions') }}</div>
             <div class="panel-body" style="display:flex;flex-direction:column;gap:6px;">
@@ -309,6 +310,22 @@
                 @if($st === 'cancelled')
                 <div style="padding:8px;background:#f5f5f5;border:1px solid #ddd;border-radius:3px;text-align:center;color:#777;font-size:13px;">{{ __('admin.invoices.invoice_cancelled') }}</div>
                 @endif
+            </div>
+        </div>
+        @endif
+
+        @php($directPayUrl = \App\Support\DirectPayLink::url($invoice))
+        <div class="panel">
+            <div class="panel-heading">{{ __('admin.invoices.direct_pay_title') }}</div>
+            <div class="panel-body">
+                <p style="font-size:12px;color:#666;margin-bottom:8px;">
+                    {{ __('admin.invoices.direct_pay_help') }}
+                </p>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input type="text" id="direct-pay-url" class="form-control input-sm" readonly value="{{ $directPayUrl }}" onfocus="this.select()">
+                    <button type="button" class="btn btn-default btn-sm" data-copy-direct-pay data-label-copy="{{ __('common.actions.copy') }}">{{ __('common.actions.copy') }}</button>
+                    <a href="{{ $directPayUrl }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">{{ __('admin.addon_modules.open') }}</a>
+                </div>
             </div>
         </div>
 
@@ -334,6 +351,21 @@
     .inv-num { text-align: right; }
 </style>
 <script>
+document.querySelectorAll('[data-copy-direct-pay]').forEach(function (button) {
+    button.addEventListener('click', function () {
+        var field = document.getElementById('direct-pay-url');
+        if (! field) { return; }
+        var done = function () {
+            button.textContent = '✓';
+            setTimeout(function () { button.textContent = button.dataset.labelCopy || 'Copy'; }, 2000);
+        };
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(field.value).then(done, function () { field.select(); });
+        } else {
+            field.select();
+        }
+    });
+});
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.matches('[data-enter-submit]')) {
         e.preventDefault();

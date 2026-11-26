@@ -643,6 +643,11 @@ return [
         'return_to_admin' => 'Wróć do panelu administracyjnego',
         'viewing_as' => 'Przeglądasz jako',
     ],
+    'direct_pay' => [
+        'invalid' => 'Ten link do płatności nie jest ważny dla tej faktury.',
+        'no_login' => 'Ta faktura nie ma konta klienta do otwarcia.',
+        'ended' => 'Sesja płatności została zakończona. Zaloguj się, aby kontynuować.',
+    ],
     'emails' => [
         'back_to_emails' => 'Wróć do historii e-maili',
         'none' => 'Na Twoje konto nie wysłano jeszcze żadnych e-maili.',

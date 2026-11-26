@@ -52,7 +52,7 @@ function scannedViews(): array
             continue;
         }
 
-        $relative = str_replace(base_path().'/', '', $path);
+        $relative = str_replace('\\', '/', str_replace(str_replace('\\', '/', base_path()).'/', '', str_replace('\\', '/', $path)));
 
         if (str_starts_with($relative, 'resources/views/legal/')) {
             continue;

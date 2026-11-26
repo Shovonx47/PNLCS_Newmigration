@@ -5,31 +5,44 @@ namespace App\Http\Controllers\Client;
 use App\Enums\ClientStatus;
 use App\Http\Controllers\Concerns\ResolvesClient;
 use App\Http\Controllers\Controller;
+use App\Models\BannedEmail;
 use App\Models\Cart;
 use App\Models\Client;
 use App\Models\Currency;
+use App\Models\CustomField;
+use App\Models\DockerApp;
 use App\Models\Domain;
 use App\Models\DomainPricing;
-use App\Models\GatewaySettings;
+use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\ProductGroup;
-use App\Services\AddonService;
-use App\Services\CartService;
-use App\Services\ConfigOptionService;
-use App\Models\DockerApp;
 use App\Models\Server;
+use App\Models\Service;
+use App\Services\AddonService;
+use App\Services\BillingCycleHelper;
+use App\Services\CartService;
+use App\Services\ClientRegistrationService;
+use App\Services\ConfigOptionService;
+use App\Services\HostedDomainCheck;
 use App\Services\Module\ModuleRegistry;
+use App\Services\RecaptchaService;
+use App\Support\BillingIdentity;
+use App\Support\Countries;
 use App\Support\FreeSubdomains;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\Servers\Proxmox\ProxmoxModule;
+use Symfony\Component\HttpFoundation\Response;
 
 class CartController extends Controller
 {
     use ResolvesClient;
 
     public function __construct(private CartService $cartService) {}
-
 
     /**
      * The client when there is one, null for a visitor. The cart has always
@@ -76,7 +89,7 @@ class CartController extends Controller
         // form; every other product is unaffected and pays for nothing.
         $apps = $this->productLetsCustomerPickApp($product) ? $this->sellableApps($product) : [];
 
-        $productFields = \App\Models\CustomField::productFields($product->id)->where('admin_only', false)->get();
+        $productFields = CustomField::productFields($product->id)->where('admin_only', false)->get();
 
         return view('client.cart.configure', compact('product', 'cycles', 'currency', 'optionGroups', 'addons', 'apps', 'productFields'));
     }
@@ -99,7 +112,7 @@ class CartController extends Controller
             // A named cycle or a term of months (BillingCycleHelper::rule);
             // whether the product is actually sold on it is checked below, by
             // asking for its price.
-            'billing_cycle' => ['required', 'string', \App\Services\BillingCycleHelper::rule()],
+            'billing_cycle' => ['required', 'string', BillingCycleHelper::rule()],
             'domain' => 'nullable|string|max:255',
             'domain_option' => 'nullable|string|in:register,transfer,own,subdomain',
             'subdomain_parent' => 'nullable|string|max:253',
@@ -116,8 +129,8 @@ class CartController extends Controller
 
         // The product's own questions. Admin-only fields are staff's, not the
         // customer's to answer.
-        $productFields = \App\Models\CustomField::productFields($product->id)->where('admin_only', false)->get();
-        [$fieldRules, $fieldNames] = \App\Models\CustomField::rulesFor($productFields);
+        $productFields = CustomField::productFields($product->id)->where('admin_only', false)->get();
+        [$fieldRules, $fieldNames] = CustomField::rulesFor($productFields);
         $customFields = $fieldRules === [] ? [] : (array) ($request->validate($fieldRules, [], $fieldNames)['custom_fields'] ?? []);
 
         // What the customer buys is the hosting - memory, CPU, disk. Picking an
@@ -141,7 +154,7 @@ class CartController extends Controller
         // SSH keys for a virtual server, put on it when it is built.
         $sshKeys = null;
         if (strtolower((string) $product->server_type) === 'proxmox' && trim((string) $request->input('ssh_keys')) !== '') {
-            $sshKeys = \Modules\Servers\Proxmox\ProxmoxModule::normaliseSshKeys($request->input('ssh_keys'));
+            $sshKeys = ProxmoxModule::normaliseSshKeys($request->input('ssh_keys'));
             if ($sshKeys === null) {
                 throw ValidationException::withMessages(['ssh_keys' => __('proxmox.client.ssh_keys_invalid')]);
             }
@@ -168,7 +181,7 @@ class CartController extends Controller
         // A domain already set up on the servers this order would go to: setup
         // would refuse it and leave the service in Pending, so the customer
         // hears it now (#212).
-        if ($domain !== null && ($problem = \App\Services\HostedDomainCheck::problem($product, $domain))) {
+        if ($domain !== null && ($problem = HostedDomainCheck::problem($product, $domain))) {
             throw ValidationException::withMessages(['domain' => $problem]);
         }
 
@@ -356,17 +369,23 @@ class CartController extends Controller
                 ->with('error', __('messages.error.cart_is_empty'));
         }
 
+        foreach (run_hook('ClientAreaCheckoutRedirect', ['cart' => $cart, 'clientId' => $clientId]) as $redirectResponse) {
+            if ($redirectResponse instanceof Response) {
+                return $redirectResponse;
+            }
+        }
+
         $currency = Currency::getDefault();
         $paymentMethods = $this->getAvailablePaymentMethods();
         // Nothing in the cart will ever be billed: no payment method to choose.
         $freeOrder = $this->isFreeOrder($totals);
         $needsPhone = $this->needsPhone($cart);
         $needsBillingAddress = $this->needsBillingAddress($client, $needsPhone);
-        $countries = \App\Support\Countries::all();
+        $countries = Countries::all();
         // The account is opened on this page, so this is where the fields
         // flagged "show on order form" are asked. The flag was saved on the
         // admin screen and read by nothing.
-        $orderFields = $clientId ? collect() : \App\Models\CustomField::orderFields()->get();
+        $orderFields = $clientId ? collect() : CustomField::orderFields()->get();
 
         // The account balance is applied to the order invoice when it is
         // created, so show it and what is left to pay before the customer
@@ -437,33 +456,33 @@ class CartController extends Controller
             ]);
 
             // The same door as the register page, behind the same switch.
-            if (! app(\App\Services\RecaptchaService::class)->passes('signup', $request->input(\App\Services\RecaptchaService::FIELD), $request->ip())) {
+            if (! app(RecaptchaService::class)->passes('signup', $request->input(RecaptchaService::FIELD), $request->ip())) {
                 return back()
-                    ->withErrors([\App\Services\RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
+                    ->withErrors([RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
                     ->withInput($request->except(['password', 'password_confirmation']));
             }
 
-            if (\App\Models\BannedEmail::blocks($account['email'])) {
+            if (BannedEmail::blocks($account['email'])) {
                 return back()->withErrors(['email' => __('auth.email_not_accepted')])->withInput();
             }
 
             $billing = $this->validateBillingAddress($request, $this->needsPhone($this->cartService->getOrCreateCart(null)));
 
-            $orderFields = \App\Models\CustomField::orderFields()->get();
-            [$fieldRules, $fieldNames] = \App\Models\CustomField::rulesFor($orderFields);
+            $orderFields = CustomField::orderFields()->get();
+            [$fieldRules, $fieldNames] = CustomField::rulesFor($orderFields);
             $request->validate($fieldRules, [], $fieldNames);
 
             $guestCart = $this->cartService->getOrCreateCart(null);
 
-            [$user, $newClient] = app(\App\Services\ClientRegistrationService::class)
+            [$user, $newClient] = app(ClientRegistrationService::class)
                 ->register($account + $billing, $request);
 
-            \App\Models\CustomField::storeValues($newClient->id, $orderFields, (array) $request->input('custom_fields', []));
+            CustomField::storeValues($newClient->id, $orderFields, (array) $request->input('custom_fields', []));
 
             // The other door into an account, and it needs the same proof:
             // without this the visitor is stopped at the gate below holding a
             // verification page for a mail nobody sent.
-            \App\Http\Controllers\Client\EmailVerificationController::send($user);
+            EmailVerificationController::send($user);
 
             $guestCart->update(['user_id' => $newClient->id]);
 
@@ -498,7 +517,7 @@ class CartController extends Controller
         // was never proved means the invoice, the password reset and the
         // suspension notice all go to somebody who will never see them.
         // The marker sends them back here the moment they verify.
-        if ($request->user() && \App\Http\Controllers\Client\EmailVerificationController::required()
+        if ($request->user() && EmailVerificationController::required()
             && ! $request->user()->hasVerifiedEmail()) {
             $request->session()->put('checkout_after_verification', true);
 
@@ -512,6 +531,12 @@ class CartController extends Controller
         if (empty($totals['items'])) {
             return redirect()->route('client.cart.index')
                 ->with('error', __('messages.error.cart_is_empty'));
+        }
+
+        foreach (run_hook('ClientAreaCheckoutRedirect', ['cart' => $cart, 'clientId' => $clientId]) as $redirectResponse) {
+            if ($redirectResponse instanceof Response) {
+                return $redirectResponse;
+            }
         }
 
         // Paying the whole order from the balance needs no gateway, but it does
@@ -528,7 +553,7 @@ class CartController extends Controller
         // One order per press. A second submit while the first is still placing
         // (a double click, a reload of the spinning page) would place the same
         // basket again; it now finds the order on its way.
-        $lock = \Illuminate\Support\Facades\Cache::lock('checkout-cart-'.$cart->id, 120);
+        $lock = Cache::lock('checkout-cart-'.$cart->id, 120);
         if (! $lock->get()) {
             return redirect()->route('client.services.index')->with('info', __('messages.info.order_already_placing'));
         }
@@ -551,7 +576,7 @@ class CartController extends Controller
         // looking for a payment that was never due; they go to their services.
         // Only a zero total: a test account's order is settled without money
         // too (AutoApproveOrderEmails), and that one did cost something.
-        $invoice = $order->invoice_id ? \App\Models\Invoice::find($order->invoice_id) : null;
+        $invoice = $order->invoice_id ? Invoice::find($order->invoice_id) : null;
         if ($invoice && strtolower((string) $invoice->status) === 'paid'
             && $invoice->amountDue() <= 0.009
             && ((float) $invoice->total <= 0.009 || (float) $invoice->credit > 0.009)) {
@@ -560,12 +585,12 @@ class CartController extends Controller
             // its own path, so only a zero total or a credit payment lands here.
             $paidFromCredit = (float) $invoice->credit > 0.009;
             $awaitingReview = strtolower((string) $order->fresh()?->status) === 'pending'
-                && \App\Models\Service::where('order_id', $order->id)->where('status', 'pending')
+                && Service::where('order_id', $order->id)->where('status', 'pending')
                     ->whereHas('product', fn ($q) => $q->where('auto_setup', 'manual'))->exists();
 
             // Services being set up in the background (ProvisionOrderedService):
             // the customer is told they are on their way, and that mail follows.
-            $settingUp = ! $awaitingReview && \App\Models\Service::where('order_id', $order->id)->where('status', 'pending')
+            $settingUp = ! $awaitingReview && Service::where('order_id', $order->id)->where('status', 'pending')
                 ->whereHas('product', fn ($q) => $q->whereNotNull('server_type')->where('server_type', '!=', ''))->exists();
 
             $placedKey = $awaitingReview ? 'messages.success.order_placed_free_review'
@@ -591,13 +616,13 @@ class CartController extends Controller
      * Returns null when no screen can be opened, and the caller falls back to
      * the invoice page.
      */
-    private function cardPaymentScreen($order, string $method): ?\Illuminate\Http\RedirectResponse
+    private function cardPaymentScreen($order, string $method): ?RedirectResponse
     {
         if (strtolower(trim($method)) !== 'iyzico' || empty($order->invoice_id)) {
             return null;
         }
 
-        $invoice = \App\Models\Invoice::find($order->invoice_id);
+        $invoice = Invoice::find($order->invoice_id);
         if (! $invoice || $invoice->amountDue() <= 0) {
             return null;
         }
@@ -610,7 +635,7 @@ class CartController extends Controller
         $result = $module->capture($invoice, $invoice->amountDue());
 
         if (! ($result['success'] ?? false) || empty($result['payment_page_url'])) {
-            \Illuminate\Support\Facades\Log::warning('Card screen could not be opened after the order; sent to the invoice instead', [
+            Log::warning('Card screen could not be opened after the order; sent to the invoice instead', [
                 'order' => $order->order_num,
                 'invoice' => $invoice->id,
                 'reason' => $result['message'] ?? 'no payment page address returned',
@@ -661,7 +686,7 @@ class CartController extends Controller
         // A seller bound by the Turkish invoicing rules has to know which kind
         // of buyer this is and identify them accordingly. The same rules the
         // admin screens and the profile page read.
-        if (\App\Support\BillingIdentity::turkish()) {
+        if (BillingIdentity::turkish()) {
             // array_merge, not +: tax_id is already above as optional and the
             // union operator kept that, so a company could check out without
             // a tax number.
@@ -691,7 +716,7 @@ class CartController extends Controller
      */
     private function needsPhone(Cart $cart): bool
     {
-        return \App\Support\BillingIdentity::turkish() || $this->cartService->hasDomainOrder($cart);
+        return BillingIdentity::turkish() || $this->cartService->hasDomainOrder($cart);
     }
 
     private function needsBillingAddress(?Client $client, bool $needsPhone = false): bool

@@ -1458,6 +1458,8 @@ return [
         'amount_due' => 'Do zapłaty',
         'date' => 'Data',
         'description_placeholder' => 'Opis pozycji',
+        'direct_pay_help' => 'Każdy, kto posiada ten link, może otworzyć i opłacić tę fakturę bez logowania. Wyślij go w przypomnieniu, wiadomości SMS lub na WhatsApp.',
+        'direct_pay_title' => 'Bezpośredni link do płatności (bez logowania)',
         'download_pdf' => 'Pobierz PDF',
         'download_pdf_btn' => 'Pobierz PDF',
         'due_date' => 'Termin płatności',

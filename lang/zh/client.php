@@ -642,6 +642,11 @@ return [
         'return_to_admin' => '返回管理后台',
         'viewing_as' => '当前正以以下身份查看',
     ],
+    'direct_pay' => [
+        'invalid' => '此付款链接不适用于该发票。',
+        'no_login' => '该发票没有可登录的客户账户。',
+        'ended' => '付款会话已结束，请登录后继续。',
+    ],
     'emails' => [
         'back_to_emails' => '返回邮件记录',
         'none' => '您的账户尚未收到任何邮件。',

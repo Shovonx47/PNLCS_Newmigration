@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Promotion;
 use App\Models\Service;
 use App\Models\ServiceAddon;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ class InvoiceGenerationService
         // invoiced. The dedup guard used to be missing entirely despite what
         // this comment claimed, so calling this twice billed the customer
         // twice.
-        $services = Service::with('client', 'product')
+        $services = Service::with('client.group', 'product')
             ->where('status', 'active')
             // The customer turned renewal off; billing them anyway is what got
             // the account suspended for an invoice they never wanted.
@@ -143,7 +144,8 @@ class InvoiceGenerationService
                 continue;
             }
 
-            $batches = $this->separateRenewals()
+            $separate = $this->separateRenewals() || (bool) ($client->group?->separate_invoices ?? false);
+            $batches = $separate
                 ? $this->oneInvoicePerRenewal($clientServices, $clientAddons, $clientDomains, $clientCharges)
                 : [[$clientServices->all(), $clientAddons->all(), $clientDomains->all(), $clientCharges->all()]];
 
@@ -177,7 +179,7 @@ class InvoiceGenerationService
      */
     private function separateRenewals(): bool
     {
-        return (bool) (int) \App\Models\Setting::get('InvoiceRenewalsSeparately', 0);
+        return (bool) (int) Setting::get('InvoiceRenewalsSeparately', 0);
     }
 
     /**
@@ -236,8 +238,8 @@ class InvoiceGenerationService
     public function billingWindow(?Carbon $today = null): array
     {
         $today = ($today ?? now())->copy()->startOfDay();
-        $lead = max(0, (int) \App\Models\Setting::get('InvoiceDaysBeforeDue', 14));
-        $day = (int) \App\Models\Setting::get('ConsolidatedBillingDay', 0);
+        $lead = max(0, (int) Setting::get('InvoiceDaysBeforeDue', 14));
+        $day = (int) Setting::get('ConsolidatedBillingDay', 0);
 
         if ($day < 1 || $day > 28) {
             return [$today->copy()->addDays($lead)->endOfDay(), $lead];
@@ -797,7 +799,7 @@ class InvoiceGenerationService
         }
 
         $options = [
-            'due_date' => now()->addDays((int) \App\Models\Setting::get('InvoiceDueDays', 14))->toDateString(),
+            'due_date' => now()->addDays((int) Setting::get('InvoiceDueDays', 14))->toDateString(),
             'notes' => __('client.invoices.renewal_note', [], $client->language),
         ];
 

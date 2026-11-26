@@ -1,0 +1,6 @@
+{
+    "name": "bdpbx",
+    "type": "server",
+    "class": "Modules\\Servers\\Bdpbx\\BdpbxModule",
+    "provider": "Modules\\Servers\\Bdpbx\\BdpbxServiceProvider"
+}

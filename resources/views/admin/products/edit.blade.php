@@ -26,6 +26,24 @@
                 <div class="form-group"><label class="form-label">{{ __('admin.products.auto_setup') }}</label><select name="auto_setup" class="form-control"><option value="order" {{ $product->auto_setup=='order'?'selected':'' }}>{{ __('admin.products.auto_setup_order') }}</option><option value="payment" {{ $product->auto_setup=='payment'?'selected':'' }}>{{ __('admin.products.auto_setup_payment') }}</option><option value="manual" {{ $product->auto_setup=='manual'?'selected':'' }}>{{ __('admin.products.auto_setup_manual') }}</option></select></div>
                 <div class="form-group"><label class="form-label">{{ __('admin.products.suspend_after_days') }}</label><input type="number" name="suspend_after_days" min="0" max="365" value="{{ $product->suspend_after_days }}" placeholder="{{ \App\Console\Commands\SuspensionCommand::graceDays() }}" class="form-control"><div style="color:#777;font-size:12px;margin-top:4px;">{{ __('admin.products.suspend_after_days_hint', ['days' => \App\Console\Commands\SuspensionCommand::graceDays()]) }}</div></div>
                 <div class="form-group"><label class="form-label">{{ __('admin.products.terminate_after_days') }}</label><input type="number" name="terminate_after_days" min="1" max="3650" value="{{ $product->terminate_after_days }}" class="form-control"><div style="color:#777;font-size:12px;margin-top:4px;">{{ __('admin.products.terminate_after_days_hint') }}</div></div>
+                <div class="form-group">
+                    <label class="form-label">{{ 'Free Trial Period' }}</label>
+                    @php $trialChoices = [0, 1, 3, 7, 15, 30, 90]; $currentTrial = (int) ($product->trial_days ?? 0); @endphp
+                    <select name="trial_days" class="form-control">
+                        @foreach($trialChoices as $td)
+                        <option value="{{ $td }}" @selected($currentTrial === $td)>{{ $td === 0 ? 'Disabled (0 days)' : $td.' '.($td === 1 ? 'day' : 'days') }}</option>
+                        @endforeach
+                        @if(! in_array($currentTrial, $trialChoices, true))
+                        <option value="{{ $currentTrial }}" selected>{{ $currentTrial.' days' }}</option>
+                        @endif
+                    </select>
+                    <div style="color:#777;font-size:12px;margin-top:4px;">{{ 'Shifts the initial due date on activation when > 0.' }}</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ 'Compare / Regular Price' }}</label>
+                    <input type="number" step="0.01" min="0" name="compare_price" value="{{ $product->compare_price !== null && (float) $product->compare_price > 0 ? $product->compare_price : '' }}" class="form-control">
+                    <div style="color:#777;font-size:12px;margin-top:4px;">{{ 'Optional crossed-out regular price shown above the sale price in the store.' }}</div>
+                </div>
                 <div class="form-group" x-show="type !== 'ssl'"><label class="form-label">{{ __('admin.products.server_module') }}</label>
                     <select name="server_type" class="form-control">
                         <option value="">{{ __('admin.products.server_module_none') }}</option>
@@ -144,6 +162,7 @@
 
     @php $cfg = is_string($product->config_options) ? (json_decode($product->config_options, true) ?: []) : ($product->config_options ?? []); @endphp
     @include('admin.products.partials.proxmox')
+    @include('admin.products.partials.module-config')
     <div class="card" data-module-card="panelica" style="margin-bottom:15px;">
         <div class="card-header"><strong>{{ __('admin.products.panelica_resources') }}</strong> <span style="font-size:11px;color:#888;">&mdash; {{ __('admin.products.panelica_resources_hint') }}</span></div>
         <div class="card-body">
@@ -334,9 +353,14 @@
             panelica.querySelectorAll('input,select,textarea').forEach(function (f) { f.disabled = !on; });
         }
         if (window.pnlcsProxmoxCard) { window.pnlcsProxmoxCard.show(m === 'proxmox'); }
-        // Proxmox has no plans on the server: its resources are set in its own card.
+        document.querySelectorAll('[data-custom-module-card]').forEach(function (card) {
+            var active = ! isSsl && card.getAttribute('data-custom-module-card') === m;
+            card.style.display = active ? '' : 'none';
+            card.querySelectorAll('input,select,textarea').forEach(function (f) { f.disabled = !active; });
+        });
+        // Proxmox and BDPBX configure resources in their own cards rather than a remote plan dropdown.
         var pkg = document.getElementById('package-group');
-        if (pkg) { pkg.style.display = m === 'proxmox' ? 'none' : ''; }
+        if (pkg) { pkg.style.display = (m === 'proxmox' || m === 'bdpbx') ? 'none' : ''; }
     }
     if (moduleSelect) { moduleSelect.addEventListener('change', showCards); }
     if (typeSelect) { typeSelect.addEventListener('change', showCards); }

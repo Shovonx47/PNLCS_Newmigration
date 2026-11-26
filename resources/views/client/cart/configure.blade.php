@@ -125,6 +125,9 @@
                                         <div class="cycle-price">{{ __('common.billing.free') }}</div>
                                         @if(count($pricedCycles) > 1)<div class="cycle-label">{{ $cycle }}</div>@endif
                                     @else
+                                        @if($loop->first && $product->compare_price !== null && (float) $product->compare_price > (float) $cyclePrice)
+                                            <div style="font-size:11.5px;color:var(--muted);text-decoration:line-through;">{{ display_money_fmt((float) $product->compare_price) }}</div>
+                                        @endif
                                         <div class="cycle-price">{{ display_money_fmt($cyclePrice) }}</div>
                                         <div class="cycle-label">{{ $cycle }}</div>
                                     @endif

@@ -1458,6 +1458,8 @@ return [
         'amount_due' => 'Amount due',
         'date' => 'Date',
         'description_placeholder' => 'Item description',
+        'direct_pay_help' => 'Anyone holding this link can open this invoice and pay it without signing in. Send it in a reminder, an SMS or a WhatsApp message.',
+        'direct_pay_title' => 'Direct pay link (no login)',
         'download_pdf' => 'Download PDF',
         'download_pdf_btn' => 'Download PDF',
         'due_date' => 'Due Date',

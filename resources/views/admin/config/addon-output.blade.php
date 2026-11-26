@@ -9,15 +9,20 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:12px;color:var(--pn-muted);">{{ __('admin.appearance.theme_by', ['version' => $addon->getVersion(), 'author' => $addon->getAuthor()]) }}</span>
+        @if($dashboardUrl)
+            <a href="{{ $dashboardUrl }}" class="btn btn-sm btn-primary">{{ __('admin.addon_modules.open') }} {{ $addon->getDisplayName() }}</a>
+        @endif
         <a href="{{ route('admin.config.addons.modules') }}" class="btn btn-sm btn-outline">{{ __('admin.nav.back') }}</a>
     </div>
 </div>
 
+@if(trim((string) $output) !== '')
 <div class="card">
     <div class="card-body" style="padding:16px;">
         {!! $output !!}
     </div>
 </div>
+@endif
 
 @if(!empty($config))
 <div class="card" style="margin-top:16px;">

@@ -637,6 +637,11 @@ return [
         'return_to_admin' => 'Torna all\'amministrazione',
         'viewing_as' => 'Stai visualizzando come',
     ],
+    'direct_pay' => [
+        'invalid' => 'Questo link di pagamento non è valido per quella fattura.',
+        'no_login' => 'Questa fattura non ha un account cliente da aprire.',
+        'ended' => 'La sessione di pagamento è terminata. Accedi per continuare.',
+    ],
     'emails' => [
         'back_to_emails' => 'Torna allo storico email',
         'none' => 'Nessuna email è stata ancora inviata al tuo account.',

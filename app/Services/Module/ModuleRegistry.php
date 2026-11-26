@@ -39,6 +39,10 @@ class ModuleRegistry
         'proxmox' => 'Proxmox VE',
         'gogetssl' => 'GoGetSSL',
         'panelicalicense' => 'Panelica Licenses',
+        'bdpbx' => 'BDPBX Cloud PBX',
+        'bhpanel' => 'BHPanel (cPanel)',
+        'softcents_sms_panel' => 'Softcents Bulk SMS',
+        'softcents_vsms' => 'Softcents Voice SMS',
     ];
 
     /** The interface each module type must implement, keyed by manifest type. */
@@ -253,7 +257,7 @@ class ModuleRegistry
     {
         return match (self::key((string) $type)) {
             'cpanel', 'panelica', 'plesk', 'proxmox', 'vultr', 'aapanel' => 'token',
-            'directadmin', 'hestiacp' => 'either',
+            'directadmin', 'hestiacp', 'bdpbx', 'bhpanel', 'softcents_sms_panel', 'softcents_vsms' => 'either',
             default => 'none',
         };
     }

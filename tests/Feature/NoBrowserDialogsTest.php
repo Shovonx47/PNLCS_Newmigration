@@ -13,7 +13,7 @@ test('no view or script uses the browser\'s alert, confirm or prompt', function 
     foreach ($roots as $root) {
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
         foreach ($files as $file) {
-            if (! preg_match('/\.(php|js)$/', $file->getFilename()) || str_ends_with($file->getPathname(), 'resources/js/dialogs.js')) {
+            if (! preg_match('/\.(php|js)$/', $file->getFilename()) || str_ends_with(str_replace('\\', '/', $file->getPathname()), 'resources/js/dialogs.js')) {
                 continue;
             }
             foreach (file($file->getPathname()) as $n => $line) {

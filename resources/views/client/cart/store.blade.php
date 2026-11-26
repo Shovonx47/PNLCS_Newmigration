@@ -48,7 +48,13 @@
                     {{-- A free product says so, not "$0.00 /monthly". --}}
                     <div class="pn-product-price">{{ __('common.billing.free') }}</div>
                 @elseif($startingPrice !== null)
+                    @if($product->compare_price !== null && (float) $product->compare_price > (float) $startingPrice)
+                        <div style="font-size:13px;color:var(--muted);text-decoration:line-through;margin-bottom:2px;">{{ display_money_fmt((float) $product->compare_price) }}</div>
+                    @endif
                     <div class="pn-product-price">{{ display_money_fmt($startingPrice) }} <span class="cycle">/{{ $startingCycle }}</span></div>
+                    @if((int) ($product->trial_days ?? 0) > 0)
+                        <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:4px;">{{ $product->trial_days.'-day free trial' }}</div>
+                    @endif
                 @else
                     <div class="pn-product-price">{{ __('client.store.contact_us') }}</div>
                 @endif

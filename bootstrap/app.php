@@ -3,6 +3,7 @@
 use App\Http\Middleware\AdminAuthenticate;
 use App\Http\Middleware\AdminTwoFactorVerify;
 use App\Http\Middleware\AffiliateTracking;
+use App\Http\Middleware\LockToInvoice;
 use App\Http\Middleware\LocaleUrlPrefix;
 use App\Http\Middleware\ApiKeyAuth;
 use App\Http\Middleware\BlockBannedIp;
@@ -86,6 +87,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', MaintenanceMode::class);
         // A password change signs every other session of that login out.
         $middleware->appendToGroup('web', \App\Http\Middleware\EndSessionAfterPasswordChange::class);
+        // A session opened by a signed payment link may only see its invoice;
+        // any other page ends it (LockToInvoice). A no-op for everybody else.
+        $middleware->appendToGroup('web', LockToInvoice::class);
         // Before the auth middleware looks at who is signed in, or it lets
         // the request through for a session this one is about to end.
         $middleware->prependToPriorityList(
@@ -106,6 +110,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.permission' => CheckAdminPermission::class,
             'client.permission' => \App\Http\Middleware\CheckClientPermission::class,
             'client.confirm' => \App\Http\Middleware\ConfirmSensitiveAction::class,
+            'invoice.only' => LockToInvoice::class,
         ]);
 
         $middleware->redirectGuestsTo(function ($request) {

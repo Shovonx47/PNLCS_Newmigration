@@ -2,7 +2,11 @@
 
 use App\Models\Currency;
 use App\Models\Setting;
+use App\Services\BillingCycleHelper;
+use App\Services\Module\ModuleRegistry;
+use App\Support\CustomerCurrency;
 use App\Support\InlineMarkup;
+use App\Support\SocialProfiles;
 use Illuminate\Support\HtmlString;
 
 if (! function_exists('money_fmt')) {
@@ -74,6 +78,14 @@ if (! function_exists('payment_method_label')) {
             return Lang::get($key);
         }
 
+        try {
+            $gw = app(ModuleRegistry::class)->getGatewayModule($method);
+            if ($gw) {
+                return $gw->getModuleName();
+            }
+        } catch (Throwable) {
+        }
+
         return ucwords(str_replace('_', ' ', $method));
     }
 }
@@ -89,9 +101,9 @@ if (! function_exists('status_label')) {
      * in any case and with spaces, hyphens or underscores, and a status with
      * no translation yet is shown as before.
      */
-    function status_label(\BackedEnum|string|null $status): string
+    function status_label(BackedEnum|string|null $status): string
     {
-        $status = $status instanceof \BackedEnum ? (string) $status->value : (string) $status;
+        $status = $status instanceof BackedEnum ? (string) $status->value : (string) $status;
         $word = strtolower(trim($status));
 
         if ($word === '') {
@@ -134,7 +146,7 @@ if (! function_exists('cycle_label')) {
             return Lang::get('common.billing.'.$named[$word], [], $locale);
         }
 
-        $months = \App\Services\BillingCycleHelper::months($word);
+        $months = BillingCycleHelper::months($word);
 
         if ($months !== null && Lang::has('common.billing.months', $locale)) {
             return trans_choice('common.billing.months', $months, ['count' => $months], $locale);
@@ -381,7 +393,7 @@ if (! function_exists('display_price')) {
      */
     function display_price(float|int|string|null $amount): float
     {
-        return \App\Support\CustomerCurrency::convert($amount);
+        return CustomerCurrency::convert($amount);
     }
 }
 
@@ -395,11 +407,11 @@ if (! function_exists('display_money_fmt')) {
      */
     function display_money_fmt(float|int|string|null $amount): string
     {
-        if (! \App\Support\CustomerCurrency::converting()) {
+        if (! CustomerCurrency::converting()) {
             return money_fmt($amount);
         }
 
-        $currency = \App\Support\CustomerCurrency::current();
+        $currency = CustomerCurrency::current();
         $prefix = (string) ($currency->prefix ?? '');
         $suffix = (string) ($currency->suffix ?? '');
 
@@ -421,17 +433,17 @@ if (! function_exists('display_currency_affixes')) {
      */
     function display_currency_affixes(): array
     {
-        $currency = \App\Support\CustomerCurrency::current();
+        $currency = CustomerCurrency::current();
         $prefix = (string) ($currency->prefix ?? '');
         $suffix = (string) ($currency->suffix ?? '');
 
-        if (\App\Support\CustomerCurrency::converting() && $prefix === '' && $suffix === '') {
+        if (CustomerCurrency::converting() && $prefix === '' && $suffix === '') {
             $suffix = ' '.strtoupper((string) $currency->code);
         }
 
         // The page's own script writes running totals; it needs the same
         // decimal mark and thousands separator the server writes with.
-        [$decimal, $thousands] = \App\Models\Currency::FORMATS[(int) ($currency->format ?? 1)] ?? \App\Models\Currency::FORMATS[1];
+        [$decimal, $thousands] = Currency::FORMATS[(int) ($currency->format ?? 1)] ?? Currency::FORMATS[1];
 
         return ['prefix' => $prefix, 'suffix' => $suffix, 'decimal' => $decimal, 'thousands' => $thousands];
     }
@@ -464,7 +476,7 @@ if (! function_exists('kb_enabled')) {
     {
         try {
             return (string) Setting::get('KnowledgeBaseEnabled', '1') !== '0';
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return true;
         }
     }
@@ -763,6 +775,6 @@ if (! function_exists('social_profiles')) {
      */
     function social_profiles(): array
     {
-        return \App\Support\SocialProfiles::all();
+        return SocialProfiles::all();
     }
 }

@@ -309,16 +309,26 @@
 (function(){
     function set(id,val,sub){var c=document.getElementById(id);if(!c)return;c.style.display='';var v=c.querySelector('[data-v]');if(v)v.innerHTML=val;var s=c.querySelector('[data-sub]');if(s&&sub!=null)s.textContent=sub;}
     function bar(id,pct){var c=document.getElementById(id);if(!c)return;var b=c.querySelector('[data-bar]');if(!b)return;pct=Math.min(100,Math.max(0,pct));b.style.width=pct+'%';if(pct>=90)b.style.background='var(--danger)';else if(pct>=75)b.style.background='var(--warning)';}
+    // A server that reports nothing must not leave an ellipsis on the page
+    // forever: say so plainly instead.
+    function notReported(){
+        ['m-disk','m-bw'].forEach(function(id){
+            var c=document.getElementById(id);if(!c)return;
+            var v=c.querySelector('[data-v]');if(v)v.textContent='Not reported';
+            var s=c.querySelector('[data-sub]');if(s)s.textContent='';
+            c.style.opacity='.7';
+        });
+    }
     fetch("{{ route('client.services.usage', $service) }}",{headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){return r.json();}).then(function(u){
-        if(!u||!u.available)return;
+        if(!u||!u.available){notReported();return;}
         if(u.cpu){set('m-cpu',(u.cpu.percent||0).toFixed(2));bar('m-cpu',u.cpu.percent||0);}
         if(u.ram){set('m-ram',(u.ram.used_mb||0).toLocaleString(),'/ '+(u.ram.limit_mb||0).toLocaleString()+' MB');bar('m-ram',u.ram.percent||0);}
         if(u.disk){var q=u.disk.quota_mb||0,us=u.disk.used_mb||0;set('m-disk',us.toLocaleString()+' <small>/ '+(q>0?q.toLocaleString()+' MB':'&infin;')+'</small>');if(q>0)bar('m-disk',us/q*100);}
         if(u.bandwidth)set('m-bw',(u.bandwidth.used_mb||0).toLocaleString());
         // Shown when the module lists the sites; HestiaCP and aaPanel do not.
         if(u.domains&&u.domains.length)set('m-sites',u.domains.length);
-      }).catch(function(){});
+      }).catch(notReported);
 })();
 </script>
 @endif

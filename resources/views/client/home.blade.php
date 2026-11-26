@@ -158,4 +158,11 @@
 </div>
 @endif
 
+@php($homePanels = hook_output('ClientAreaHomePagePanels', ['user' => auth()->user()]))
+@if(trim($homePanels) !== '')
+{{-- Addon panels that belong on the dashboard (recharge, WhatsApp, Telegram).
+     They used to be printed after the page footer, below the copyright. --}}
+<div style="display:flex;flex-direction:column;gap:16px;margin-top:16px;">{!! $homePanels !!}</div>
+@endif
+
 @endsection

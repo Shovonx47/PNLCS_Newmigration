@@ -354,14 +354,15 @@
     @if(($textDirection ?? 'ltr') === 'rtl')
     <link rel="stylesheet" href="{{ asset('css/rtl.css') }}">
     @endif
-    {!! hook_output('ClientAreaHeadOutput', ['user' => auth()->user()]) !!}
+    {!! hook_output('ClientAreaHeadOutput', ['user' => auth('web')->user()]) !!}
     @include('partials.dialog-boot')
     @include('partials.locale-alternates')
 </head>
 <body>
+{!! hook_output('ClientAreaTopOutput', ['user' => auth('web')->user()]) !!}
 @if(session('impersonating_admin_id'))
 <div style="background:#f59e0b;color:#000;padding:8px 16px;text-align:center;font-weight:600;font-size:13px;position:sticky;top:0;z-index:9999;">
-    {{ __("client.impersonation.viewing_as") }} {{ auth()->user()->full_name ?? auth()->user()->email }}.
+    {{ __("client.impersonation.viewing_as") }} {{ auth('web')->user()?->full_name ?? auth('web')->user()?->email }}.
     <a href="{{ route('admin.clients.stop-impersonation') }}" style="color:#000;text-decoration:underline;margin-left:10px;">
         &larr; {{ __("client.impersonation.return_to_admin") }}
     </a>
@@ -439,6 +440,14 @@
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         {{ __('client.nav.add_funds') }}
                     </a>
+                    @auth('web')
+                    @if(\App\Models\Setting::get('addon_recharge_requests_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.recharge'))
+                    <a href="{{ route("client.recharge") }}">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                        {{ 'Recharge IP Number' }}
+                    </a>
+                    @endif
+                    @endauth
                     <div class="sep"></div>
                     <a href="{{ route("client.quotes.index") }}">
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -455,7 +464,7 @@
                 </div>
             </div>
             <div class="pn-nav-item">
-                <button type="button" class="pn-nav-link {{ request()->routeIs("client.tickets.*") || request()->routeIs("client.kb.*") || request()->routeIs("client.announcements.*") || request()->routeIs("client.contact") || request()->routeIs("client.downloads.*") ? "active" : "" }}">{{ __('client.nav.support') }}
+                <button type="button" class="pn-nav-link {{ request()->routeIs("client.tickets.*") || request()->routeIs("client.kb.*") || request()->routeIs("client.announcements.*") || request()->routeIs("client.contact") || request()->routeIs("client.downloads.*") || request()->routeIs("client.unblock-ip.*") ? "active" : "" }}">{{ __('client.nav.support') }}
                     <svg class="pn-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div class="pn-dropdown">
@@ -482,10 +491,18 @@
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
                         {{ __('client.nav.network_status') }}
                     </a>
+                    @auth('web')
+                    @if(\App\Models\Setting::get('addon_unblock_ip_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.unblock-ip.index'))
+                    <a href="{{ route("client.unblock-ip.index") }}">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        {{ 'Unblock IP Address' }}
+                    </a>
+                    @endif
+                    @endauth
                 </div>
             </div>
             <div class="pn-nav-item">
-                <button type="button" class="pn-nav-link {{ request()->routeIs("client.account.*") ? "active" : "" }}">{{ __('client.nav.account') }}
+                <button type="button" class="pn-nav-link {{ request()->routeIs("client.account.*") || request()->routeIs("client.kyc.*") ? "active" : "" }}">{{ __('client.nav.account') }}
                     <svg class="pn-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div class="pn-dropdown">
@@ -501,7 +518,7 @@
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         {{ __('client.nav.contacts') }}
                     </a>
-                    @if(\App\Support\ClientPermissions::ownsActiveAccount(auth()->user()))
+                    @if(\App\Support\ClientPermissions::ownsActiveAccount(auth('web')->user()))
                     <a href="{{ route("client.account.users") }}">
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                         {{ __('client.nav.account_users') }}
@@ -511,6 +528,26 @@
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         {{ __('client.nav.security') }}
                     </a>
+                    @auth('web')
+                    @if(\App\Models\Setting::get('addon_advanced_client_verification_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.kyc.index'))
+                    <a href="{{ route("client.kyc.index") }}">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ 'Identity Verification' }}
+                    </a>
+                    @endif
+                    @if(\App\Models\Setting::get('addon_reseller_center_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.reseller.index') && \Illuminate\Support\Facades\Schema::hasTable('resellers'))
+                        @php
+                            $navResellerClientId = session('active_client_id') ?: auth('web')->user()?->clients()->value('clients.id');
+                            $isActiveResellerNav = $navResellerClientId ? \Modules\Addons\ResellerCenter\Models\Reseller::where('client_id', $navResellerClientId)->where('status', 'active')->exists() : false;
+                        @endphp
+                        @if($isActiveResellerNav)
+                        <a href="{{ route("client.reseller.index") }}">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            {{ 'Reseller Portal' }}
+                        </a>
+                        @endif
+                    @endif
+                    @endauth
                     <div class="sep"></div>
                     <a href="{{ route("client.affiliates.index") }}">
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
@@ -529,15 +566,18 @@
                     <i class="ri-moon-line" id="darkIcon"></i>
                 </button>
                 @endif
-            @auth
+            @auth('web')
             <div class="pn-nav-item">
                 <a class="pn-user-btn pn-nav-link">
-                    <div class="pn-avatar">{{ initial(auth()->user()->first_name, "U") }}</div>
-                    <span class="pn-user-name">{{ auth()->user()->first_name }}</span>
+                    <div class="pn-avatar">{{ initial(auth('web')->user()->first_name, "U") }}</div>
+                    <span class="pn-user-name">{{ auth('web')->user()->first_name }}</span>
                     <svg class="pn-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                 </a>
                 <div class="pn-dropdown" style="right:0;left:auto;min-width:180px;">
                     <a href="{{ route("client.account.profile") }}">{{ __('client.nav.my_profile') }}</a>
+                    @if(\App\Models\Setting::get('addon_advanced_client_verification_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.kyc.index'))
+                    <a href="{{ route("client.kyc.index") }}">{{ 'Identity Verification' }}</a>
+                    @endif
                     <div class="sep"></div>
                     <a href="{{ route("client.funds.index") }}">{{ __('client.nav.add_funds') }}</a>
                     <div class="sep"></div>
@@ -562,7 +602,7 @@
     </div>
 
     <div id="pnMobileMenu" class="pn-mobile-menu">
-        @guest
+        @guest('web')
         <div class="pn-mobile-guest">
             <a href="{{ route("client.login") }}" class="btn btn-outline btn-sm">{{ __('common.actions.login') }}</a>
             <a href="{{ route("client.register") }}" class="btn btn-primary btn-sm">{{ __('client.nav.get_started') }}</a>
@@ -575,6 +615,11 @@
         <div class="pn-mobile-sec">{{ __('client.nav.billing') }}</div>
         <a href="{{ route("client.invoices.index") }}" style="padding-left:36px">{{ __('client.nav.invoices') }}</a>
         <a href="{{ route("client.funds.index") }}" style="padding-left:36px">{{ __('client.nav.add_funds') }}</a>
+        @auth('web')
+        @if(\App\Models\Setting::get('addon_recharge_requests_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.recharge'))
+        <a href="{{ route("client.recharge") }}" style="padding-left:36px">{{ 'Recharge IP Number' }}</a>
+        @endif
+        @endauth
         <div class="pn-mobile-sec">{{ __('client.nav.support') }}</div>
         <a href="{{ route("client.tickets.create") }}" style="padding-left:36px">{{ __('client.nav.open_ticket') }}</a>
         <a href="{{ route("client.tickets.index") }}" style="padding-left:36px">{{ __('client.nav.my_tickets') }}</a>
@@ -582,11 +627,24 @@
         <a href="{{ route("client.kb.index") }}" style="padding-left:36px">{{ __('client.nav.knowledge_base') }}</a>
         @endif
         <a href="{{ route("client.announcements.index") }}" style="padding-left:36px">{{ __('client.nav.announcements') }}</a>
+        @auth('web')
+        @if(\App\Models\Setting::get('addon_unblock_ip_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.unblock-ip.index'))
+        <a href="{{ route("client.unblock-ip.index") }}" style="padding-left:36px">{{ 'Unblock IP Address' }}</a>
+        @endif
+        @endauth
         <div class="pn-mobile-sec">{{ __('client.nav.account') }}</div>
         <a href="{{ route("client.account.profile") }}" style="padding-left:36px">{{ __('client.nav.profile') }}</a>
         <a href="{{ route("client.account.password") }}" style="padding-left:36px">{{ __('client.nav.password') }}</a>
         <a href="{{ route("client.account.contacts") }}" style="padding-left:36px">{{ __('client.nav.contacts') }}</a>
-        @auth
+        @auth('web')
+        @if(\App\Models\Setting::get('addon_advanced_client_verification_active', '0') === '1' && \Illuminate\Support\Facades\Route::has('client.kyc.index'))
+        <a href="{{ route("client.kyc.index") }}" style="padding-left:36px">{{ 'Identity Verification' }}</a>
+        @endif
+        @if(($isActiveResellerNav ?? false) && \Illuminate\Support\Facades\Route::has('client.reseller.index'))
+        <a href="{{ route("client.reseller.index") }}" style="padding-left:36px">{{ 'Reseller Portal' }}</a>
+        @endif
+        @endauth
+        @auth('web')
         <div style="padding:12px 24px 8px;">
             <form method="POST" action="{{ route("client.logout") }}" style="margin:0;">
                 @csrf

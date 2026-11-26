@@ -32,8 +32,13 @@ class ProvisioningService
             $result = $module->create($service);
 
             if ($result['success'] ?? false) {
+                $wasPending = strtolower((string) $service->status) === ServiceStatus::Pending->value;
                 $service->status = ServiceStatus::Active->value;
                 $service->registration_date = $service->registration_date ?? now();
+                $trialDays = (int) ($service->product?->trial_days ?? 0);
+                if ($wasPending && $trialDays > 0) {
+                    $service->next_due_date = now()->addDays($trialDays)->toDateString();
+                }
                 $service->save();
                 $this->settleQueue($service, 'create');
                 run_hook('AfterModuleCreate', ['service' => $service, 'result' => $result]);

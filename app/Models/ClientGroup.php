@@ -11,21 +11,22 @@ class ClientGroup extends Model
     use HasFactory;
 
     protected $fillable = [
-        "name", "color", "discount_percent",
-        "suspend_exempt", "terminate_exempt",
+        'name', 'color', 'discount_percent',
+        'suspend_exempt', 'terminate_exempt', 'separate_invoices',
     ];
 
     protected function casts(): array
     {
         return [
-            "discount_percent" => "decimal:2",
-            "suspend_exempt" => "boolean",
-            "terminate_exempt" => "boolean",
+            'discount_percent' => 'decimal:2',
+            'suspend_exempt' => 'boolean',
+            'terminate_exempt' => 'boolean',
+            'separate_invoices' => 'boolean',
         ];
     }
 
     public function clients(): HasMany
     {
-        return $this->hasMany(Client::class, "group_id");
+        return $this->hasMany(Client::class, 'group_id');
     }
 }

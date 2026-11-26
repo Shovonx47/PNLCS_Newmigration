@@ -3,21 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Currency;
 use App\Models\InvoiceProduct;
 use App\Models\Pricing;
 use App\Models\Product;
-use App\Models\Service;
 use App\Models\ProductGroup;
+use App\Models\ProductTerm;
 use App\Models\Server;
 use App\Models\ServerGroup;
+use App\Models\Service;
 use App\Models\Setting;
 use App\Models\TaxRule;
 use App\Services\Module\ModuleRegistry;
+use App\Services\ProductCreator;
 use App\Support\ContentTranslations;
 use App\Support\UniqueSlug;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Modules\Servers\Proxmox\ProxmoxOrderOptions;
+use Modules\Servers\Proxmox\ProxmoxPlan;
 
 class ProductController extends Controller
 {
@@ -36,7 +44,7 @@ class ProductController extends Controller
      * The rates offered when pricing a catalog product, narrowed to the
      * company's own country.
      *
-     * @return \Illuminate\Support\Collection<int, TaxRule>
+     * @return Collection<int, TaxRule>
      */
     private function taxRateOptions()
     {
@@ -108,7 +116,7 @@ class ProductController extends Controller
             return back()->with('error', __('admin.messages.product_group_has_history'));
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($group, $deleted) {
+        DB::transaction(function () use ($group, $deleted) {
             $deleted->each->forceDelete();
             $group->delete();
         });
@@ -232,13 +240,13 @@ class ProductController extends Controller
             'options.*.choices.*.price' => 'nullable|numeric|min:0|max:100000',
         ]);
 
-        $group = \Modules\Servers\Proxmox\ProxmoxOrderOptions::create($product, (array) $request->input('options'));
-        \App\Models\ActivityLog::log("Order options created for Proxmox product #{$product->id} (group #{$group->id})", auth('admin')->user()?->full_name ?: 'admin');
+        $group = ProxmoxOrderOptions::create($product, (array) $request->input('options'));
+        ActivityLog::log("Order options created for Proxmox product #{$product->id} (group #{$group->id})", auth('admin')->user()?->full_name ?: 'admin');
 
         return response()->json([
             'success' => true,
             'message' => __('proxmox.product.opt_created'),
-            'linked' => \Modules\Servers\Proxmox\ProxmoxOrderOptions::linked($product->fresh()),
+            'linked' => ProxmoxOrderOptions::linked($product->fresh()),
         ]);
     }
 
@@ -276,10 +284,10 @@ class ProductController extends Controller
         ]);
 
         if ($v['pve_type'] === 'lxc' && blank($v['pve_ostemplate'] ?? null)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['pve_ostemplate' => __('proxmox.error.no_ostemplate')]);
+            throw ValidationException::withMessages(['pve_ostemplate' => __('proxmox.error.no_ostemplate')]);
         }
         if ($v['pve_type'] === 'qemu' && blank($v['pve_template'] ?? null) && blank($v['pve_iso'] ?? null)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['pve_template' => __('proxmox.error.no_template')]);
+            throw ValidationException::withMessages(['pve_template' => __('proxmox.error.no_template')]);
         }
 
         $names = (array) $request->input('pve_os_names', []);
@@ -312,7 +320,7 @@ class ProductController extends Controller
             'pve_ciupgrade' => $request->boolean('pve_ciupgrade') ? 1 : 0,
             'pve_nameserver' => (string) ($v['pve_nameserver'] ?? ''),
             'pve_os_choices' => collect($v['pve_os_choices'] ?? [])
-                ->map(fn ($id) => ['id' => (string) $id, 'name' => trim((string) ($names[$id] ?? '')) ?: \Modules\Servers\Proxmox\ProxmoxPlan::imageName((string) $id)])
+                ->map(fn ($id) => ['id' => (string) $id, 'name' => trim((string) ($names[$id] ?? '')) ?: ProxmoxPlan::imageName((string) $id)])
                 ->values()->all(),
         ];
     }
@@ -337,9 +345,9 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate(\App\Services\ProductCreator::rules());
+        $validated = $request->validate(ProductCreator::rules());
 
-        $product = app(\App\Services\ProductCreator::class)->create(
+        $product = app(ProductCreator::class)->create(
             $validated,
             (array) $request->input('pricing', []),
             $request->filled('package_name') ? (string) $request->input('package_name') : null,
@@ -386,6 +394,23 @@ class ProductController extends Controller
             }
         }
 
+        $moduleProductSchemas = [];
+        foreach (array_keys(app(ModuleRegistry::class)->serverModuleNames()) as $modKey) {
+            try {
+                $modInstance = app(ModuleRegistry::class)->getServerModule($modKey);
+                if ($modInstance && method_exists($modInstance, 'productConfigFields')) {
+                    $modServer = strtolower((string) $product->server_type) === $modKey
+                        ? Server::where('type', $modKey)->where('active', true)->first()
+                        : null;
+                    $fields = $modInstance->productConfigFields($modServer);
+                    if (is_array($fields) && $fields !== []) {
+                        $moduleProductSchemas[$modKey] = $fields;
+                    }
+                }
+            } catch (\Throwable) {
+            }
+        }
+
         return view('admin.products.edit', [
             'product' => $product,
             'groups' => $groups,
@@ -394,6 +419,7 @@ class ProductController extends Controller
             'panelicaPlans' => $panelicaPlans,
             'panelicaTemplates' => $panelicaTemplates,
             'serverModules' => app(ModuleRegistry::class)->serverModuleNames(),
+            'moduleProductSchemas' => $moduleProductSchemas,
             'sslModules' => app(ModuleRegistry::class)->sslModuleNames(),
             'serverGroups' => ServerGroup::orderBy('name')->get(),
             'packageList' => $this->packagesFor($product->server_type),
@@ -405,7 +431,7 @@ class ProductController extends Controller
                 ->orderBy('group_id')->orderBy('name')->get(['id', 'name', 'group_id', 'hidden', 'retired']),
             'selectedUpgrades' => $product->upgradeProducts()->pluck('products.id')->map(fn ($id) => (int) $id)->all(),
             'proxmoxServers' => Server::where('type', 'proxmox')->orderByDesc('active')->orderBy('name')->get(['id', 'name', 'active']),
-            'pveOrderOptions' => strtolower((string) $product->server_type) === 'proxmox' ? \Modules\Servers\Proxmox\ProxmoxOrderOptions::linked($product) : [],
+            'pveOrderOptions' => strtolower((string) $product->server_type) === 'proxmox' ? ProxmoxOrderOptions::linked($product) : [],
             'selectedPackage' => (string) ($this->productConfig($product)['package_name']
                 ?? $this->productConfig($product)['panelica_plan_id']
                 ?? $this->productConfig($product)['cpanel_package']
@@ -429,6 +455,8 @@ class ProductController extends Controller
             // Empty: the general Automation settings apply.
             'suspend_after_days' => 'nullable|integer|min:0|max:365',
             'terminate_after_days' => 'nullable|integer|min:1|max:3650',
+            'trial_days' => 'nullable|integer|min:0|max:365',
+            'compare_price' => 'nullable|numeric|min:0',
             // Only a module this installation actually has: it used to be free
             // text, so a typo left the product unprovisionable and silent.
             'server_type' => ['nullable', Rule::in(array_keys(app(ModuleRegistry::class)->serverModuleNames()))],
@@ -480,6 +508,14 @@ class ProductController extends Controller
         $validated['hidden'] = $request->boolean('hidden');
         $validated['retired'] = $request->boolean('retired');
         $validated['is_featured'] = $request->boolean('is_featured');
+        if ($request->has('trial_days')) {
+            $validated['trial_days'] = max(0, (int) $request->input('trial_days', 0));
+        }
+        if ($request->has('compare_price')) {
+            $validated['compare_price'] = $request->filled('compare_price') && (float) $request->input('compare_price') > 0
+                ? round((float) $request->input('compare_price'), 2)
+                : null;
+        }
         $product->update($validated);
 
         ContentTranslations::save($product->translations(), (array) $request->input('translations', []), ['description']);
@@ -520,6 +556,29 @@ class ProductController extends Controller
 
         if ($proxmoxConfig !== null) {
             $product->update(['config_options' => array_merge($this->productConfig($product->fresh()), $proxmoxConfig)]);
+        }
+
+        // Persist custom discovered server module productConfigFields() if applicable.
+        $chosenServerType = strtolower((string) ($validated['server_type'] ?? $product->server_type));
+        if ($request->boolean('custom_module_config_section') && $chosenServerType !== '') {
+            $modInstance = app(ModuleRegistry::class)->getServerModule($chosenServerType);
+            if ($modInstance && method_exists($modInstance, 'productConfigFields')) {
+                $declared = $modInstance->productConfigFields();
+                $postedCfg = (array) $request->input('module_cfg', []);
+                $merged = $this->productConfig($product->fresh());
+                foreach ($declared as $field) {
+                    $fName = (string) ($field['name'] ?? '');
+                    if ($fName === '' || ! array_key_exists($fName, $postedCfg)) {
+                        continue;
+                    }
+                    $rawVal = trim((string) $postedCfg[$fName]);
+                    if (($field['type'] ?? '') === 'password' && $rawVal === '') {
+                        continue;
+                    }
+                    $merged[$fName] = $rawVal;
+                }
+                $product->update(['config_options' => $merged]);
+            }
         }
 
         // Panelica managed resources -> merged into config_options (preserves
@@ -675,7 +734,7 @@ class ProductController extends Controller
         // And at the same prices for the terms no cycle is named after: a
         // seven-month licence package copied without them would arrive sold
         // on nothing but its named cycles.
-        $product->terms()->get()->each(function (\App\Models\ProductTerm $term) use ($copy) {
+        $product->terms()->get()->each(function (ProductTerm $term) use ($copy) {
             $clone = $term->replicate();
             $clone->product_id = $copy->id;
             $clone->save();

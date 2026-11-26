@@ -83,8 +83,17 @@ class SuspensionCommand extends Command
             ->when(
                 self::invoicedOnly(),
                 fn ($q) => $q->owingOverdue($least),
-                fn ($q) => $q->whereHas('client', function ($q) use ($least) {
-                    $q->whereHas('invoices', fn ($iq) => $iq->overduePastGrace($least));
+                fn ($q) => $q->where(function ($sub) use ($least) {
+                    $sub->whereHas('client', function ($cq) use ($least) {
+                        $cq->whereHas('invoices', fn ($iq) => $iq->overduePastGrace($least));
+                    })->orWhere(function ($tq) {
+                        $tq->whereHas('product', fn ($pq) => $pq->where('trial_days', '>', 0))
+                            ->whereNotNull('next_due_date')
+                            ->whereDate('next_due_date', '<', today())
+                            ->whereHas('client.invoices', fn ($iq) => $iq
+                                ->whereIn('status', ['unpaid', 'overdue'])
+                                ->whereHas('items', fn ($it) => $it->where('type', 'Hosting')->whereColumn('rel_id', 'services.id')));
+                    });
                 }),
             )
             ->get();

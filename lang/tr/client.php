@@ -642,6 +642,11 @@ return [
         'return_to_admin' => 'Yöneticiye Dön',
         'viewing_as' => 'Şu kullanıcı olarak görüntülüyorsunuz:',
     ],
+    'direct_pay' => [
+        'invalid' => 'Bu ödeme bağlantısı o fatura için geçerli değil.',
+        'no_login' => 'Bu faturanın açılabilecek bir müşteri hesabı yok.',
+        'ended' => 'Ödeme oturumu sona erdi. Devam etmek için giriş yapın.',
+    ],
     'emails' => [
         'back_to_emails' => 'E-posta Geçmişine Dön',
         'none' => 'Hesabınıza henüz e-posta gönderilmedi.',

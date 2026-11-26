@@ -3,15 +3,20 @@
 namespace App\Http\Controllers\Client;
 
 use App\Enums\ClientStatus;
-use App\Events\ClientCreated;
 use App\Http\Controllers\Controller;
-use App\Http\Middleware\AffiliateTracking;
 use App\Models\BannedEmail;
-use App\Models\Client;
+use App\Models\Cart;
+use App\Models\Language;
+use App\Models\Setting;
 use App\Models\User;
-use App\Services\AffiliateService;
+use App\Services\ClientRegistrationService;
 use App\Services\LoginRecorder;
+use App\Services\PasswordResetSender;
+use App\Services\RecaptchaService;
 use App\Services\TwoFactorService;
+use App\Support\Countries;
+use App\Support\GeoLocale;
+use App\Support\PasswordHistory;
 use App\Support\QrCode;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -42,9 +47,9 @@ class AuthController extends Controller
 
         // Checked before the password is tried, so a bot cannot use the form
         // to test passwords when the operator has switched the challenge on.
-        if (! app(\App\Services\RecaptchaService::class)->passes('login', $request->input(\App\Services\RecaptchaService::FIELD), $request->ip())) {
+        if (! app(RecaptchaService::class)->passes('login', $request->input(RecaptchaService::FIELD), $request->ip())) {
             return back()
-                ->withErrors([\App\Services\RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
+                ->withErrors([RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
                 ->onlyInput('email');
         }
 
@@ -80,7 +85,7 @@ class AuthController extends Controller
             if ($guestCartId) {
                 $client = $user->clients()->first();
                 if ($client) {
-                    \App\Models\Cart::whereKey($guestCartId)->whereNull('user_id')
+                    Cart::whereKey($guestCartId)->whereNull('user_id')
                         ->update(['user_id' => $client->id]);
                     session()->forget('guest_cart_id');
                 }
@@ -243,9 +248,9 @@ class AuthController extends Controller
     public function showRegister(Request $request)
     {
         return view('client.auth.register', [
-            'countries' => \App\Support\Countries::all(),
-            'detectedCountry' => \App\Support\GeoLocale::country($request) ?: \App\Models\Setting::get('Country') ?: \App\Support\GeoLocale::countryFromBrowser($request),
-            'languages' => \App\Models\Language::getActiveLanguages(),
+            'countries' => Countries::all(),
+            'detectedCountry' => GeoLocale::country($request) ?: Setting::get('Country') ?: GeoLocale::countryFromBrowser($request),
+            'languages' => Language::getActiveLanguages(),
         ]);
     }
 
@@ -273,9 +278,29 @@ class AuthController extends Controller
             'tos' => 'required|accepted',
         ]);
 
-        if (! app(\App\Services\RecaptchaService::class)->passes('signup', $request->input(\App\Services\RecaptchaService::FIELD), $request->ip())) {
+        // An addon may refuse the registration. The SMS OTP gate does (Phase
+        // 3): a hook returns the message to show on the form, and nothing is
+        // created until the number it names has been verified.
+        // A hook may return one message or a list of them (WHMCS hooks return
+        // arrays), so both are flattened into the form's errors.
+        $hookErrors = [];
+        foreach (run_hook('ClientDetailsValidation', ['data' => $validated, 'request' => $request]) as $result) {
+            foreach ((array) $result as $message) {
+                if (is_string($message) && trim($message) !== '') {
+                    $hookErrors[] = $message;
+                }
+            }
+        }
+
+        if ($hookErrors !== []) {
             return back()
-                ->withErrors([\App\Services\RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
+                ->withErrors(['phone_number' => $hookErrors[0]])
+                ->withInput($request->except(['password', 'password_confirmation']));
+        }
+
+        if (! app(RecaptchaService::class)->passes('signup', $request->input(RecaptchaService::FIELD), $request->ip())) {
+            return back()
+                ->withErrors([RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
                 ->withInput($request->except(['password', 'password_confirmation']));
         }
 
@@ -288,16 +313,16 @@ class AuthController extends Controller
         }
 
         // Checkout opens accounts too now; one implementation for both doors.
-        [$user] = app(\App\Services\ClientRegistrationService::class)->register($validated, $request);
+        [$user] = app(ClientRegistrationService::class)->register($validated, $request);
 
         // Whoever typed this address has to prove it is theirs before we send
         // them an invoice, a password reset or a suspension notice.
-        \App\Http\Controllers\Client\EmailVerificationController::send($user);
+        EmailVerificationController::send($user);
 
         Auth::login($user);
 
         return redirect()->route(
-            \App\Http\Controllers\Client\EmailVerificationController::required()
+            EmailVerificationController::required()
                 ? 'client.verification.notice'
                 : 'client.home'
         );
@@ -323,15 +348,15 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        if (! app(\App\Services\RecaptchaService::class)->passes('password', $request->input(\App\Services\RecaptchaService::FIELD), $request->ip())) {
+        if (! app(RecaptchaService::class)->passes('password', $request->input(RecaptchaService::FIELD), $request->ip())) {
             return back()
-                ->withErrors([\App\Services\RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
+                ->withErrors([RecaptchaService::FIELD => __('client.contact.recaptcha_failed')])
                 ->onlyInput('email');
         }
 
         // Whether or not an account exists, the answer is the same: the form
         // must not tell a stranger which addresses have logins.
-        app(\App\Services\PasswordResetSender::class)->send((string) $request->email);
+        app(PasswordResetSender::class)->send((string) $request->email);
 
         return back()->with('success', __('messages.success.if_an_account_exists_with_that_email_a_password_re'));
     }
@@ -365,9 +390,9 @@ class AuthController extends Controller
 
         // The reset link is the third door onto a password, and the same rule
         // stands at all three.
-        if (\App\Support\PasswordHistory::isReused($user, $request->password)) {
+        if (PasswordHistory::isReused($user, $request->password)) {
             return back()->withErrors([
-                'password' => __('client.password.recently_used', ['count' => \App\Support\PasswordHistory::KEEP]),
+                'password' => __('client.password.recently_used', ['count' => PasswordHistory::KEEP]),
             ]);
         }
 
@@ -388,7 +413,7 @@ class AuthController extends Controller
             $user->email_verified_at = now();
         }
         $user->save();
-        \App\Support\PasswordHistory::remember($user, $previousHash);
+        PasswordHistory::remember($user, $previousHash);
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
         return redirect()->route('client.login')->with('success', __('messages.success.password_reset_successfully_please_log_in'));

@@ -1458,6 +1458,8 @@ return [
         'amount_due' => 'Zahlbar',
         'date' => 'Datum',
         'description_placeholder' => 'Beschreibung der Position',
+        'direct_pay_help' => 'Jeder mit diesem Link kann diese Rechnung ohne Anmeldung öffnen und bezahlen. Senden Sie ihn in einer Zahlungserinnerung, per SMS oder über WhatsApp.',
+        'direct_pay_title' => 'Direktzahlungslink (ohne Anmeldung)',
         'download_pdf' => 'PDF herunterladen',
         'download_pdf_btn' => 'PDF herunterladen',
         'due_date' => 'Fälligkeitsdatum',

@@ -51,7 +51,7 @@ class {$folder}Module implements AddonModuleInterface
 PHP);
     File::put($dir.'/hooks.php', "<?php\n\n\$GLOBALS['{$name}_loaded'] = true;\n");
 
-    return $dir.'/hooks.php';
+    return str_replace('\\', '/', $dir).'/hooks.php';
 }
 
 function freshHookedManager(): AddonManager
@@ -81,7 +81,9 @@ test('an active addon\'s hooks file is found by the addon\'s own name', function
     $file = writeZzHookedAddon();
     Setting::set('addon_zz_hooked_active', '1', 'addons');
 
-    expect(freshHookedManager()->activeHookFiles())->toBe(['zz_hooked' => $file]);
+    $files = array_map(fn (string $path): string => str_replace('\\', '/', $path), freshHookedManager()->activeHookFiles());
+
+    expect($files)->toBe(['zz_hooked' => str_replace('\\', '/', $file)]);
 });
 
 test('the folder name does not make an addon active', function () {

@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\EmailTemplate;
+use App\Models\Service;
 use App\Models\SslOrder;
+use App\Services\Module\ModuleScreens;
+use App\Support\DirectPayLink;
 
 /**
  * The email templates screen edits 19 templates with merge fields, a disable
@@ -173,6 +176,11 @@ class EmailTemplateService
                     'invoice_num' => $model->invoice_num ?? $model->id,
                     'invoice_total' => number_format((float) $model->total, 2),
                     'invoice_due_date' => $model->due_date?->format(date_fmt()) ?? '',
+                    // What the legacy install replaced invoice_link with: a
+                    // signed link that opens the invoice without a login. A
+                    // template written against either name gets the same URL.
+                    'invoice_link' => DirectPayLink::url($model),
+                    'direct_pay_url' => DirectPayLink::url($model),
                 ],
                 'service' => $vars += [
                     'service_domain' => $model->domain ?? '',
@@ -185,10 +193,10 @@ class EmailTemplateService
                     'service_product' => $model->product->name ?? '',
                     // The templates say {product_name}.
                     'product_name' => $model->product->name ?? '',
-                ] + ($model instanceof \App\Models\Service
+                ] + ($model instanceof Service
                     // What the service's module has to say: a license key, an
                     // install command. The fields above win a name clash.
-                    ? \App\Services\Module\ModuleScreens::for($model)->mergeFields()
+                    ? ModuleScreens::for($model)->mergeFields()
                     : []),
                 // An SSL order is not a shop order: it has no order number and
                 // no total, and reading those off it would put "#" and "0.00"

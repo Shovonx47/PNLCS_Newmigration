@@ -642,6 +642,11 @@ return [
         'return_to_admin' => 'Zurück zur Administration',
         'viewing_as' => 'Ansicht als',
     ],
+    'direct_pay' => [
+        'invalid' => 'Dieser Zahlungslink ist für diese Rechnung nicht gültig.',
+        'no_login' => 'Zu dieser Rechnung gibt es kein Kundenkonto.',
+        'ended' => 'Die Zahlungssitzung ist beendet. Bitte melden Sie sich an, um fortzufahren.',
+    ],
     'emails' => [
         'back_to_emails' => 'Zurück zum E-Mail-Verlauf',
         'none' => 'Es wurden noch keine E-Mails an Ihr Konto gesendet.',

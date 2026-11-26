@@ -37,6 +37,25 @@ class PaymentReminderCommand extends Command
         ['key' => 'late30', 'days' => 30, 'before' => false],
     ];
 
+    /**
+     * Map each stage key to the hook name and the 'type' string passed in $vars.
+     *
+     * InvoicePaymentReminder  → pre-due reminders (due7 / due3 / due1)
+     * InvoicePaymentReminderFirst  → 1 day overdue  (late1)
+     * InvoicePaymentReminderSecond → 3 days overdue (late3)
+     * InvoicePaymentReminderThird  → 7 days overdue (late7)
+     * late30 fires no named hook of its own (treat as a final / silent stage).
+     */
+    private const STAGE_HOOKS = [
+        'due7'   => ['hook' => 'InvoicePaymentReminder',       'type' => 'reminder'],
+        'due3'   => ['hook' => 'InvoicePaymentReminder',       'type' => 'reminder'],
+        'due1'   => ['hook' => 'InvoicePaymentReminder',       'type' => 'reminder'],
+        'late1'  => ['hook' => 'InvoicePaymentReminderFirst',  'type' => 'firstoverdue'],
+        'late3'  => ['hook' => 'InvoicePaymentReminderSecond', 'type' => 'secondoverdue'],
+        'late7'  => ['hook' => 'InvoicePaymentReminderThird',  'type' => 'thirdoverdue'],
+        'late30' => ['hook' => null,                           'type' => 'final'],
+    ];
+
     public function handle(): int
     {
         $invoices = Invoice::with('client')
@@ -65,6 +84,19 @@ class PaymentReminderCommand extends Command
             try {
                 Mail::to($invoice->client->billingEmail())->queue(new PaymentReminderMail($invoice, $days));
                 $invoice->update(['reminder_stage' => $stage['key'], 'reminder_sent_at' => now()]);
+
+                // Fire the addon hook so SMS / WhatsApp modules can react.
+                $hookMeta = self::STAGE_HOOKS[$stage['key']] ?? null;
+                if ($hookMeta && $hookMeta['hook'] !== null) {
+                    $hookVars = [
+                        'invoice' => $invoice,
+                        'client'  => $invoice->client,
+                        'days'    => $days,
+                        'type'    => $hookMeta['type'],
+                    ];
+                    run_hook($hookMeta['hook'], $hookVars);
+                }
+
                 $sent++;
             } catch (\Throwable $e) {
                 Log::error("Payment reminder failed for invoice #{$invoice->id}: {$e->getMessage()}");

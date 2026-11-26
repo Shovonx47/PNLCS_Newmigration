@@ -24,6 +24,8 @@
 </head>
 <body x-data="{ mobileMenu: false }">
 
+    {!! hook_output('ClientAreaTopOutput', ['user' => auth('web')->user()]) !!}
+
     {{-- Fixed sections: topbar + navigation --}}
     @include('sections.topbar')
     @include('sections.navigation', ['apps' => $apps ?? []])

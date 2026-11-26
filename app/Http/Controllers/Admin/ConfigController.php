@@ -61,6 +61,7 @@ use App\Models\TicketSpamFilter;
 use App\Models\TicketStatus;
 use App\Models\TodoItem;
 use App\Models\Transaction;
+use App\Rules\EmailList;
 use App\Services\Module\ModuleRegistry;
 use App\Services\NotificationService;
 use App\Services\ServerAccountSync;
@@ -71,6 +72,7 @@ use App\Support\CustomerCurrency;
 use App\Support\IpAllowList;
 use App\Support\ModuleSettings;
 use App\Support\ServerAddress;
+use App\Support\TaxNotice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -651,7 +653,7 @@ class ConfigController extends Controller
             ])
             ->values();
 
-        return view('admin.config.tax', ['groups' => $groups, 'taxEnabled' => $taxEnabled, 'taxInclusive' => $taxInclusive, 'taxNotice' => \App\Support\TaxNotice::text()]);
+        return view('admin.config.tax', ['groups' => $groups, 'taxEnabled' => $taxEnabled, 'taxInclusive' => $taxInclusive, 'taxNotice' => TaxNotice::text()]);
     }
 
     public function storeTax(Request $request)
@@ -1538,7 +1540,7 @@ class ConfigController extends Controller
     // Email Templates
     public function updateEmailTemplate(Request $request, EmailTemplate $template)
     {
-        $validated = $request->validate(['type' => 'nullable|string', 'name' => 'nullable|string', 'subject' => 'nullable|string', 'message' => 'nullable|string', 'from_name' => 'nullable|string', 'from_email' => 'nullable|email', 'copy_to' => ['nullable', 'string', 'max:255', new \App\Rules\EmailList], 'disabled' => 'boolean']);
+        $validated = $request->validate(['type' => 'nullable|string', 'name' => 'nullable|string', 'subject' => 'nullable|string', 'message' => 'nullable|string', 'from_name' => 'nullable|string', 'from_email' => 'nullable|email', 'copy_to' => ['nullable', 'string', 'max:255', new EmailList], 'disabled' => 'boolean']);
 
         // Only a changed body makes the template the operator's own, which is
         // what lets their wording replace the built-in email. The form always
@@ -2437,14 +2439,14 @@ class ConfigController extends Controller
 
     public function storeClientGroup(Request $request)
     {
-        ClientGroup::create($request->validate(['name' => 'required', 'color' => 'nullable|string|max:7', 'discount_percent' => 'nullable|numeric|min:0|max:100', 'suspend_exempt' => 'sometimes|boolean', 'terminate_exempt' => 'sometimes|boolean']));
+        ClientGroup::create($request->validate(['name' => 'required', 'color' => 'nullable|string|max:7', 'discount_percent' => 'nullable|numeric|min:0|max:100', 'suspend_exempt' => 'sometimes|boolean', 'terminate_exempt' => 'sometimes|boolean', 'separate_invoices' => 'sometimes|boolean']));
 
         return back()->with('success', __('admin.messages.client_group_created'));
     }
 
     public function updateClientGroup(Request $request, ClientGroup $group)
     {
-        $group->update($request->validate(['name' => 'required', 'color' => 'nullable|string|max:7', 'discount_percent' => 'nullable|numeric|min:0|max:100', 'suspend_exempt' => 'sometimes|boolean', 'terminate_exempt' => 'sometimes|boolean']));
+        $group->update($request->validate(['name' => 'required', 'color' => 'nullable|string|max:7', 'discount_percent' => 'nullable|numeric|min:0|max:100', 'suspend_exempt' => 'sometimes|boolean', 'terminate_exempt' => 'sometimes|boolean', 'separate_invoices' => 'sometimes|boolean']));
 
         return back()->with('success', __('admin.messages.client_group_updated'));
     }

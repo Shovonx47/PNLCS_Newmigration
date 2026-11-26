@@ -1,0 +1,6 @@
+{
+    "name": "softcents_vsms",
+    "type": "server",
+    "class": "Modules\\Servers\\SoftcentsVsms\\SoftcentsVsmsModule",
+    "provider": "Modules\\Servers\\SoftcentsVsms\\SoftcentsVsmsServiceProvider"
+}

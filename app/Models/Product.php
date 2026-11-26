@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\BillingCycleHelper;
+use App\Services\ProductCreator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -11,11 +12,11 @@ class Product extends Model
 {
     use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
-    protected $fillable = ['type', 'group_id', 'name', 'slug', 'description', 'hidden', 'show_domain_options', 'free_domain', 'free_domain_tlds', 'free_domain_cycles', 'is_featured', 'retired', 'allow_upgrades', 'pay_type', 'auto_setup', 'suspend_after_days', 'terminate_after_days', 'server_type', 'server_group_id', 'stock_control', 'stock_qty', 'welcome_email_template', 'sort_order', 'config_options', 'tax', 'ssl_module', 'overage_enabled', 'overage_disk_rate', 'overage_bw_rate'];
+    protected $fillable = ['type', 'group_id', 'name', 'slug', 'description', 'hidden', 'show_domain_options', 'free_domain', 'free_domain_tlds', 'free_domain_cycles', 'is_featured', 'retired', 'allow_upgrades', 'pay_type', 'auto_setup', 'suspend_after_days', 'terminate_after_days', 'trial_days', 'compare_price', 'server_type', 'server_group_id', 'stock_control', 'stock_qty', 'welcome_email_template', 'sort_order', 'config_options', 'tax', 'ssl_module', 'overage_enabled', 'overage_disk_rate', 'overage_bw_rate'];
 
     protected function casts(): array
     {
-        return ['free_domain' => 'boolean', 'hidden' => 'boolean', 'is_featured' => 'boolean', 'retired' => 'boolean', 'allow_upgrades' => 'boolean', 'stock_control' => 'boolean', 'tax' => 'boolean', 'overage_enabled' => 'boolean', 'overage_disk_rate' => 'decimal:4', 'overage_bw_rate' => 'decimal:4', 'config_options' => 'array', 'suspend_after_days' => 'integer', 'terminate_after_days' => 'integer'];
+        return ['free_domain' => 'boolean', 'hidden' => 'boolean', 'is_featured' => 'boolean', 'retired' => 'boolean', 'allow_upgrades' => 'boolean', 'stock_control' => 'boolean', 'tax' => 'boolean', 'overage_enabled' => 'boolean', 'overage_disk_rate' => 'decimal:4', 'overage_bw_rate' => 'decimal:4', 'config_options' => 'array', 'suspend_after_days' => 'integer', 'terminate_after_days' => 'integer', 'trial_days' => 'integer', 'compare_price' => 'decimal:2'];
     }
 
     public function group()
@@ -76,7 +77,7 @@ class Product extends Model
      */
     public function heldServices(): int
     {
-        return \App\Models\Service::where('product_id', $this->id)
+        return Service::where('product_id', $this->id)
             ->whereNotIn('status', ['terminated', 'cancelled', 'fraud'])
             ->count();
     }
@@ -227,7 +228,7 @@ class Product extends Model
     {
         $byMonths = [];
 
-        foreach (\App\Services\ProductCreator::CYCLES as $cycle) {
+        foreach (ProductCreator::CYCLES as $cycle) {
             $price = $this->priceFor($cycle, $currencyId);
 
             if ($price !== null) {

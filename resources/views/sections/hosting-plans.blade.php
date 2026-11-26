@@ -55,7 +55,13 @@
                 <div class="plan-card__subtitle">{{ Str::limit($product->descriptionText(), 160) }}</div>
                 <div class="plan-card__pricing">
                     @if($monthlyPrice !== null)
+                        @if($product->compare_price !== null && (float) $product->compare_price > (float) $monthlyPrice)
+                            <div style="font-size:13px;opacity:.65;text-decoration:line-through;margin-bottom:2px;">{{ display_money_fmt((float) $product->compare_price) }}</div>
+                        @endif
                         <div class="plan-card__price">{{ display_money_fmt($monthlyPrice) }}<small>/{{ $priceCycle === 'monthly' ? 'mo' : $priceCycle }}</small></div>
+                        @if((int) ($product->trial_days ?? 0) > 0)
+                            <div style="font-size:12px;font-weight:600;color:var(--theme-welcome-accent,#10b981);margin-top:4px;">{{ $product->trial_days.'-day free trial' }}</div>
+                        @endif
                     @else
                         <div class="plan-card__price">{{ __('client.store.contact_us') }}</div>
                     @endif

@@ -42,6 +42,14 @@ Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestF
     Route::post('gateway/tpay/webhook', [GatewayWebhookController::class, 'tpay'])->name('gateway.tpay.webhook');
 });
 
+// ===== Login-free signed invoice link =====
+// /pay/12?sig=... proves the holder was sent invoice 12 (the signature covers
+// the invoice and its owner) and opens a session that may see nothing else.
+// Throttled: a wrong signature is a guess, and guessing costs a request.
+Route::get('pay/{invoice}', App\Http\Controllers\DirectPayController::class)
+    ->middleware('throttle:20,1')
+    ->name('pay.invoice');
+
 // ===== Legal documents and corporate pages =====
 // Public and readable without an account on purpose: a visitor has to be able
 // to read the terms before opening one, and a crawler has to be able to index

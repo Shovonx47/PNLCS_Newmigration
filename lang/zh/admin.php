@@ -1458,6 +1458,8 @@ return [
         'amount_due' => '应付金额',
         'date' => '日期',
         'description_placeholder' => '项目说明',
+        'direct_pay_help' => '持有此链接的任何人无需登录即可打开并支付此账单。可通过催款通知、短信或 WhatsApp 发送。',
+        'direct_pay_title' => '免登录直接付款链接',
         'download_pdf' => '下载 PDF',
         'download_pdf_btn' => '下载 PDF',
         'due_date' => '到期日期',

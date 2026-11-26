@@ -31,6 +31,8 @@ class ProductCreator
             'server_type' => ['nullable', Rule::in(array_keys(app(ModuleRegistry::class)->serverModuleNames()))],
             'ssl_module' => 'nullable|string|max:100',
             'server_group_id' => 'nullable|exists:server_groups,id',
+            'trial_days' => 'nullable|integer|min:0|max:365',
+            'compare_price' => 'nullable|numeric|min:0',
             // A price is a number, or -1 for "not sold on this cycle". Anything
             // else used to go straight to the database and come back as an error page.
             'pricing' => 'nullable|array',
@@ -59,6 +61,10 @@ class ProductCreator
         if (array_key_exists('auto_setup', $validated) && $validated['auto_setup'] === null) {
             unset($validated['auto_setup']);
         }
+        $validated['trial_days'] = max(0, (int) ($validated['trial_days'] ?? 0));
+        $validated['compare_price'] = isset($validated['compare_price']) && (float) $validated['compare_price'] > 0
+            ? round((float) $validated['compare_price'], 2)
+            : null;
         $validated['slug'] = UniqueSlug::for(Product::class, $validated['name'], 'product');
 
         // The plan lives on the panel; the product records which one it sells.
