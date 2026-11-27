@@ -1,4 +1,4 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.hosting.'.$runtime.'.title'))
 @section('content')
 

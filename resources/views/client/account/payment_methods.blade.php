@@ -1,4 +1,4 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.payment_methods.title'))
 @section('content')
 <div class='container' style='max-width:800px;margin:40px auto;padding:0 20px'>

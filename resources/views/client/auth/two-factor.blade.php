@@ -8,7 +8,7 @@
     @include('client.auth.partials.theme-head')
     <style>
         * { box-sizing: border-box; }
-        body { margin:0; padding:0; font-family:Inter,-apple-system,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg, #f4f6f9); }
+        body { margin:0; padding:0; font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg, #f4f6f9); }
         .card { width:100%; max-width:400px; background:var(--card-bg, #fff); border-radius:12px; padding:32px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
         .card h2 { text-align:center; font-size:20px; margin:0 0 4px; color:var(--heading, #1e293b); }
         .card p.sub { text-align:center; color:var(--muted, #888); font-size:14px; margin:0 0 24px; }

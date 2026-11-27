@@ -1,21 +1,19 @@
-@extends("client.layouts.app")
-@section("title", __("client.edit_profile"))
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', __('client.edit_profile'))
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">{{ __('client.profile.edit_profile') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.profile.edit_subtitle') }}</p>
-    </div>
-</div>
+@section('page_subheading')
+    {{ __('client.profile.edit_subtitle') }}
+@endsection
+
+@section('content')
 
 @if(($accounts ?? collect())->count() > 1)
-<div class="pn-card" style="margin-bottom:16px;">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.account.accounts') }}</span></div>
-    <div class="pn-card-body">
-        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">{{ __('client.account.accounts_hint') }}</p>
+<div class="card">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.account.accounts') }}</h3>
+        <p class="text-muted">{{ __('client.account.accounts_hint') }}</p>
         @foreach($accounts as $account)
-            <form method="POST" action="{{ route('client.account.switch', $account) }}" style="display:inline-block;margin:0 8px 8px 0;">
+            <form method="POST" action="{{ route('client.account.switch', $account) }}" class="d-inline-block mr-2 mb-2">
                 @csrf
                 <button type="submit" class="btn {{ $client && $client->id === $account->id ? 'btn-primary' : 'btn-default' }} btn-sm" @disabled($client && $client->id === $account->id)>
                     {{ trim($account->first_name.' '.$account->last_name) ?: $account->email }}
@@ -25,176 +23,175 @@
     </div>
 </div>
 @endif
+
 @if(session('fatura_sonrasi_odeme'))
-{{-- Musteri siparis verirken buraya dustu; sayfanin neden acildigi ve
-     kaydettikten sonra ne olacagi yazili olmazsa siparisi birakip gidiyor. --}}
-<div class="pn-alert pn-alert-info" style="margin-bottom:16px;">
-    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    <span>{{ __('client.cart.billing_identity_required') }}</span>
-</div>
+<div class="alert alert-info" role="alert">{{ __('client.cart.billing_identity_required') }}</div>
 @endif
-<div class="pn-card">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.profile.personal_info') }}</span></div>
-    <div class="pn-card-body">
+
+<div class="card">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.profile.personal_info') }}</h3>
+
         @if($errors->any())
-        <div class="pn-alert pn-alert-error">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+        <div class="alert alert-danger" role="alert">
+            @foreach($errors->all() as $validationError)
+                <div>{{ $validationError }}</div>
+            @endforeach
         </div>
         @endif
 
-        <form method="POST" action="{{ route("client.account.update") }}">
+        <form method="POST" action="{{ route('client.account.update') }}">
             @csrf
-            @method("PUT")
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="first_name">{{ __('common.form.first_name') }}<span class="req">*</span></label>
-                    <input type="text" id="first_name" name="first_name" value="{{ old("first_name", $user->first_name) }}" required class="form-control">
+            @method('PUT')
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="first_name">{{ __('common.form.first_name') }}<span class="text-danger">*</span></label>
+                    <input type="text" id="first_name" name="first_name" value="{{ old('first_name', $user->first_name) }}" required class="form-control">
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="last_name">{{ __('common.form.last_name') }}<span class="req">*</span></label>
-                    <input type="text" id="last_name" name="last_name" value="{{ old("last_name", $user->last_name) }}" required class="form-control">
+                <div class="form-group col-md-6">
+                    <label for="last_name">{{ __('common.form.last_name') }}<span class="text-danger">*</span></label>
+                    <input type="text" id="last_name" name="last_name" value="{{ old('last_name', $user->last_name) }}" required class="form-control">
                 </div>
             </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="email">{{ __('common.form.email_address') }}<span class="req">*</span></label>
-                    <input type="email" id="email" name="email" value="{{ old("email", $user->email) }}" required class="form-control"
-                        data-giris-epostasi="{{ $user->email }}">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="email">{{ __('common.form.email_address') }}<span class="text-danger">*</span></label>
+                    <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}" required class="form-control"
+                           data-giris-epostasi="{{ $user->email }}">
                 </div>
-                {{-- Yalnizca giris e-postasi degistirilirse sorulur. Siparis
-                     akisi fatura kimligi icin bu sayfaya dusuyor; oraya gelen
-                     musteri hicbir sifre alani gormemeli. --}}
-                <div class="form-group" data-eposta-onay @unless($errors->has('current_password')) hidden @endunless>
-                    <label class="form-label" for="current_password">{{ __('client.account.current_password') }}<span class="req">*</span></label>
-                    <input type="password" id="current_password" name="current_password"
-                        value="" autocomplete="off" readonly data-oto-doldurma-yok
-                        class="form-control">
-                    <div style="color:var(--muted);font-size:12px;margin-top:4px;">{{ __('client.account.email_change_needs_password') }}</div>
-                    @error('current_password')<div style="color:#c00;font-size:12px;margin-top:4px;">{{ $message }}</div>@enderror
+                {{-- Asked only when the login email changes. --}}
+                <div class="form-group col-md-6" data-eposta-onay @unless($errors->has('current_password')) hidden @endunless>
+                    <label for="current_password">{{ __('client.account.current_password') }}<span class="text-danger">*</span></label>
+                    <input type="password" id="current_password" name="current_password" value="" autocomplete="off" readonly data-oto-doldurma-yok class="form-control">
+                    <small class="text-muted">{{ __('client.account.email_change_needs_password') }}</small>
+                    @error('current_password')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
             </div>
-            <div class="form-group">
-                {{-- Fatura kimligi: sirketse unvan/vergi dairesi/vergi no,
-                     sahissa TC kimlik. Siparis verebilmek icin zorunlu. --}}
-                <div data-musteri-tipi>
-                <label class="form-label">{{ __('client.form.client_type') }}<span style="color:#c43c35;">*</span></label>
-                <div style="display:flex;gap:18px;margin-bottom:12px;">
-                    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;">
-                        <input type="radio" name="client_type" value="individual" @checked(old('client_type', $client?->client_type ?: 'individual') === 'individual') required>
-                        {{ __('client.form.client_type_individual') }}
-                    </label>
-                    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;">
-                        <input type="radio" name="client_type" value="company" @checked(old('client_type', $client?->client_type) === 'company')>
-                        {{ __('client.form.client_type_company') }}
-                    </label>
-                </div>
-                @error('client_type') <span style="color:#c43c35;font-size:12px;">{{ $message }}</span> @enderror
 
-                <div data-mt="individual" style="margin-bottom:12px;">
-                    <label class="form-label" for="national_id">{{ __('client.form.national_id') }}<span style="color:#c43c35;">*</span></label>
-                    <input type="text" id="national_id" name="national_id" value="{{ old('national_id', $client?->national_id) }}" inputmode="numeric" maxlength="20" class="form-control">
-                    @error('national_id') <span style="color:#c43c35;font-size:12px;">{{ $message }}</span> @enderror
+            <div data-musteri-tipi>
+                <div class="form-group">
+                    <label>{{ __('client.form.client_type') }}<span class="text-danger">*</span></label>
+                    <div class="d-flex gap-8 mb-2">
+                        <label class="mr-3"><input type="radio" name="client_type" value="individual" @checked(old('client_type', $client?->client_type ?: 'individual') === 'individual') required> {{ __('client.form.client_type_individual') }}</label>
+                        <label><input type="radio" name="client_type" value="company" @checked(old('client_type', $client?->client_type) === 'company')> {{ __('client.form.client_type_company') }}</label>
+                    </div>
+                    @error('client_type') <div class="text-danger small">{{ $message }}</div> @enderror
                 </div>
 
-                <div data-mt="company" style="margin-bottom:12px;">
-                    <label class="form-label" for="company_name">{{ __('client.form.company_title') }}<span style="color:#c43c35;">*</span></label>
-                    <input type="text" id="company_name" name="company_name" value="{{ old("company_name", $client?->company_name) }}" class="form-control">
-                    @error('company_name') <span style="color:#c43c35;font-size:12px;">{{ $message }}</span> @enderror
-                    <div class="form-row" style="margin-top:12px;">
-                        <div class="form-group" id="tax-office-row" style="{{ strtoupper((string) old('country', $client->country)) === 'TR' ? '' : 'display:none;' }}">
-                            <label class="form-label" for="tax_office">{{ __('client.form.tax_office') }}</label>
+                <div class="row" data-mt="individual">
+                    <div class="form-group col-md-6">
+                        <label for="national_id">{{ __('client.form.national_id') }}<span class="text-danger">*</span></label>
+                        <input type="text" id="national_id" name="national_id" value="{{ old('national_id', $client?->national_id) }}" inputmode="numeric" maxlength="20" class="form-control">
+                        @error('national_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+
+                <div data-mt="company">
+                    <div class="row">
+                        <div class="form-group col-md-6">
+                            <label for="company_name">{{ __('client.form.company_title') }}<span class="text-danger">*</span></label>
+                            <input type="text" id="company_name" name="company_name" value="{{ old('company_name', $client?->company_name) }}" class="form-control">
+                            @error('company_name') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="form-group col-md-6" id="tax-office-row" style="{{ strtoupper((string) old('country', $client->country)) === 'TR' ? '' : 'display:none;' }}">
+                            <label for="tax_office">{{ __('client.form.tax_office') }}</label>
                             <input type="text" id="tax_office" name="tax_office" value="{{ old('tax_office', $client?->tax_office) }}" class="form-control">
-                            @error('tax_office') <span style="color:#c43c35;font-size:12px;">{{ $message }}</span> @enderror
+                            @error('tax_office') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
                     </div>
                 </div>
-                </div>
             </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="billing_email">{{ __('common.form.billing_email') }}</label>
-                    <input type="email" id="billing_email" name="billing_email" value="{{ old("billing_email", $client?->billing_email) }}" class="form-control">
-                    <div style="color:var(--muted);font-size:12px;margin-top:4px;">{{ __('client.account.billing_email_hint') }}</div>
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="billing_email">{{ __('common.form.billing_email') }}</label>
+                    <input type="email" id="billing_email" name="billing_email" value="{{ old('billing_email', $client?->billing_email) }}" class="form-control">
+                    <small class="text-muted">{{ __('client.account.billing_email_hint') }}</small>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="phone_number">{{ __('common.form.phone_number') }}</label>
-                    <div style="display:flex;gap:6px;">
-                        <select name="phone_prefix" id="phone_prefix" class="form-control" style="width:110px !important;flex-shrink:0;">
+                <div class="form-group col-md-6">
+                    <label for="phone_prefix">{{ __('common.form.phone_number') }}</label>
+                    <div class="input-group">
+                        <select name="phone_prefix" id="phone_prefix" class="form-control" style="max-width:130px">
                             @foreach(\App\Support\Countries::PHONE_PREFIXES as $code => $prefix)
                             <option value="{{ $prefix }}" {{ old('phone_prefix', $client?->phone_prefix) == $prefix ? 'selected' : '' }}>{{ $code }} {{ $prefix }}</option>
                             @endforeach
                         </select>
-                        <input type="text" id="phone_number" name="phone_number" value="{{ old("phone_number", $client?->phone_number) }}" class="form-control" style="flex:1;min-width:0;">
+                        <input type="text" id="phone_number" name="phone_number" value="{{ old('phone_number', $client?->phone_number) }}" class="form-control">
                     </div>
                 </div>
             </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="country">{{ __('common.form.country') }}</label>
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="country">{{ __('common.form.country') }}</label>
                     <select id="country" name="country" class="form-control">
                         <option value="">{{ __('common.form.select_country') }}</option>
                         @if(isset($countries))
                             @foreach($countries as $code => $name)
-                            <option value="{{ $code }}" {{ old("country", $client?->country) == $code ? "selected" : "" }}>{{ $name }}</option>
+                            <option value="{{ $code }}" {{ old('country', $client?->country) == $code ? 'selected' : '' }}>{{ $name }}</option>
                             @endforeach
                         @endif
                     </select>
                 </div>
                 @if(isset($languages) && $languages->isNotEmpty())
-                <div class="form-group">
-                    <label class="form-label" for="language">{{ __('common.form.language') }}</label>
+                <div class="form-group col-md-6">
+                    <label for="language">{{ __('common.form.language') }}</label>
                     <select id="language" name="language" class="form-control">
                         @foreach($languages as $lang)
-                        <option value="{{ $lang->code }}" {{ old("language", $client?->language) == $lang->code ? "selected" : "" }}>{{ $lang->native_name ?? $lang->name }}</option>
+                        <option value="{{ $lang->code }}" {{ old('language', $client?->language) == $lang->code ? 'selected' : '' }}>{{ $lang->native_name ?? $lang->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 @endif
             </div>
+
             <div class="form-group">
-                <label class="form-label" for="address1">{{ __('common.form.street_address') }}</label>
-                <input type="text" id="address1" name="address1" value="{{ old("address1", $client?->address1) }}" class="form-control" placeholder="{{ __('common.form.street_address_placeholder') }}">
+                <label for="address1">{{ __('common.form.street_address') }}</label>
+                <input type="text" id="address1" name="address1" value="{{ old('address1', $client?->address1) }}" class="form-control" placeholder="{{ __('common.form.street_address_placeholder') }}">
             </div>
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="city">{{ __('common.form.city') }}</label>
-                    <input type="text" id="city" name="city" value="{{ old("city", $client?->city) }}" class="form-control">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="city">{{ __('common.form.city') }}</label>
+                    <input type="text" id="city" name="city" value="{{ old('city', $client?->city) }}" class="form-control">
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="postcode">{{ __('common.form.postcode') }}</label>
-                    <input type="text" id="postcode" name="postcode" value="{{ old("postcode", $client?->postcode) }}" class="form-control">
+                <div class="form-group col-md-6">
+                    <label for="postcode">{{ __('common.form.postcode') }}</label>
+                    <input type="text" id="postcode" name="postcode" value="{{ old('postcode', $client?->postcode) }}" class="form-control">
                 </div>
             </div>
-            {{-- Both are printed on the invoice and both were only editable
-                 from the admin side: a company could not correct the tax
-                 number their own invoices carry. --}}
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="state">{{ __('common.form.state') }}</label>
-                    <input type="text" id="state" name="state" value="{{ old("state", $client?->state) }}" class="form-control">
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <label for="state">{{ __('common.form.state') }}</label>
+                    <input type="text" id="state" name="state" value="{{ old('state', $client?->state) }}" class="form-control">
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="tax_id">{{ __('common.form.tax_id') }}</label>
-                    <input type="text" id="tax_id" name="tax_id" value="{{ old("tax_id", $client?->tax_id) }}" class="form-control">
+                <div class="form-group col-md-6">
+                    <label for="tax_id">{{ __('common.form.tax_id') }}</label>
+                    <input type="text" id="tax_id" name="tax_id" value="{{ old('tax_id', $client?->tax_id) }}" class="form-control">
                     <small class="text-muted">{{ __('common.form.tax_id_hint') }}</small>
                 </div>
             </div>
+
             @if(isset($customFields) && $customFields->isNotEmpty())
-            <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border,#e5e5e5);">
-                <div style="font-size:13px;font-weight:600;margin-bottom:12px;">{{ __('client.profile.custom_fields') }}</div>
-                @include('client.partials.custom-fields', ['fields' => $customFields, 'clientId' => $client?->id])
-            </div>
+            <hr>
+            <h4 class="mb-3">{{ __('client.profile.custom_fields') }}</h4>
+            @include('client.partials.custom-fields', ['fields' => $customFields, 'clientId' => $client?->id])
             @endif
+
             @if($client)
-            <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border,#e5e5e5);">
+            <hr>
+            <div class="form-group">
                 <input type="hidden" name="marketing_section" value="1">
-                <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;">
-                    <input type="checkbox" name="marketing_emails" value="1" @checked(old('marketing_emails', \App\Models\MarketingConsent::optedIn($client))) style="margin-top:2px;flex-shrink:0;">
+                <label class="d-flex align-items-start gap-8">
+                    <input type="checkbox" name="marketing_emails" value="1" @checked(old('marketing_emails', \App\Models\MarketingConsent::optedIn($client)))>
                     <span>{{ __('client.marketing.profile_box') }}<br><small class="text-muted">{{ __('client.marketing.profile_hint') }}</small></span>
                 </label>
             </div>
             @endif
+
             <button type="submit" class="btn btn-primary">{{ session('fatura_sonrasi_odeme') ? __('client.cart.save_and_continue') : __('common.actions.save_changes') }}</button>
         </form>
     </div>
@@ -202,16 +199,7 @@
 
 @endsection
 
-{{-- The page's scripts. Outside a section they were printed before the
-     layout's <!DOCTYPE>: the page opened in quirks mode and they ran before
-     the form existed, so the current password field never opened and stayed
-     read-only (#210). Both client layouts print the "scripts" section. --}}
-@section("scripts")
-{{--
-     Musteri turu secimi. Alpine yerine duz JS: musteri paneli iskeletinde
-     Alpine yuklu degil ve x-cloak ile gizlenen iki blok bir daha hic
-     acilmazdi. Bu haliyle CDN'e de bagli degil.
---}}
+@section('scripts')
 <script>
 (function () {
     function baglaMusteriTipi(kok) {
@@ -266,11 +254,6 @@
 })();
 </script>
 
-{{--
-     Mevcut sifre yalnizca giris e-postasi degistiginde gerekiyor; alan da
-     ancak o zaman aciliyor. Profil sayfasi siparis akisinda fatura kimligi
-     icin de kullaniliyor ve orada sifre alani gormek istemiyoruz.
---}}
 <script>
 (function () {
     var eposta = document.querySelector('[data-giris-epostasi]');
@@ -295,10 +278,6 @@
 })();
 </script>
 
-{{--
-     Keep the browser's password manager out of the password fields. They
-     arrive empty from the server; it is the browser that fills them in.
---}}
 <script>
 (function () {
     function serbestBirak(e) {
@@ -310,7 +289,6 @@
         function (alan) {
             alan.value = '';
             alan.addEventListener('focus', serbestBirak, { once: true });
-            // Dokunmatik cihazlarda odak yerine once tiklama geliyor.
             alan.addEventListener('mousedown', serbestBirak, { once: true });
         }
     );

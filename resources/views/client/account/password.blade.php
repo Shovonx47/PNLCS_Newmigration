@@ -1,4 +1,4 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.account.change_password"))
 @section("styles")
 <style>
@@ -11,17 +11,17 @@
 
 <div class="pn-page-header">
     <div>
-        <h1 class="pn-page-title">{{ __('client.password.page_title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.password.page_subtitle') }}</p>
+        <h1 class="h1 mb-0">{{ __('client.password.page_title') }}</h1>
+        <p class="text-muted">{{ __('client.password.page_subtitle') }}</p>
     </div>
 </div>
 
 @include('client.partials.aside-grid-style')
-<div class="pn-aside-grid" style="--aside:380px"><div class="pn-card">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.password.update_password') }}</span></div>
-    <div class="pn-card-body">
+<div class="pn-aside-grid" style="--aside:380px"><div class="card">
+    <div class="card-header"><span class="card-title">{{ __('client.password.update_password') }}</span></div>
+    <div class="card-body">
         @if($errors->any())
-        <div class="pn-alert pn-alert-error">
+        <div class="alert alert-warning alert-danger">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
         </div>
@@ -51,9 +51,9 @@
 
 </div>
 <div>
-<div class="pn-card">
-<div class="pn-card-header"><span class="pn-card-title">{{ __('client.password.tips_title') }}</span></div>
-<div class="pn-card-body">
+<div class="card">
+<div class="card-header"><span class="card-title">{{ __('client.password.tips_title') }}</span></div>
+<div class="card-body">
 <ul style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:10px;">
 <li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">1</span> {{ __('client.password.tip_1') }}</li>
 <li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">2</span> {{ __('client.password.tip_2') }}</li>
@@ -63,8 +63,8 @@
 </ul>
 </div>
 </div>
-<div class="pn-card" style="margin-top:16px">
-<div class="pn-card-body" style="text-align:center;padding:20px">
+<div class="card" style="margin-top:16px">
+<div class="card-body" style="text-align:center;padding:20px">
 <div style="font-size:32px;margin-bottom:8px">&#128274;</div>
 <div style="font-size:13px;color:var(--muted)">{{ __('client.password.last_changed') }}<br><strong style="color:var(--text)">{{ __('client.password.never') }}</strong></div>
 </div>

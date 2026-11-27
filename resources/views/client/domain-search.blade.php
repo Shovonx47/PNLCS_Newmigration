@@ -1,7 +1,7 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.domain_search.title"))
 @section("content")
-<div class="pn-page-header"><div><h1 class="pn-page-title">{{ __('client.domain_search.heading') }}</h1><p class="pn-page-subtitle">{{ __('client.domain_search.subtitle') }}</p></div></div>
+<div class="pn-page-header"><div><h1 class="h1 mb-0">{{ __('client.domain_search.heading') }}</h1><p class="text-muted">{{ __('client.domain_search.subtitle') }}</p></div></div>
 <div style="max-width:100%;padding:0;">
 
     <div style="text-align:center;margin-bottom:32px;">

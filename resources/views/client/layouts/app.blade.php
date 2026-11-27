@@ -16,7 +16,7 @@
     @vite(["resources/css/app.css", "resources/js/app.js"])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @if(!empty($customFavicon))
     <link rel="icon" href="{{ $customFavicon }}" type="image/png">
     @endif
@@ -47,7 +47,7 @@
         /* The page is a column the full height of the window, and the content
            stretches to fill it - so on a short page the footer sits at the
            bottom of the screen instead of floating mid-page under the form. */
-        body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+        body{font-family:"Plus Jakarta Sans","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;font-size:14px;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 
         /* ─── NAVBAR ─── */
         .pn-navbar{background:var(--card);border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,0.06);position:sticky;top:0;z-index:1000}

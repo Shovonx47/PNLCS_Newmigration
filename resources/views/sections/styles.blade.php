@@ -3,7 +3,7 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
             color: var(--theme-text-color, #1e293b);
             background: var(--theme-body-bg, #f7f9fc);
             line-height: 1.6; font-size: 16px;

@@ -462,11 +462,15 @@ class SoftcentsFullImporter
             if ($name === '') {
                 continue;
             }
-            $isFull = str_contains(strtolower($name), 'full');
+            $lowerName = strtolower($name);
+            $isFull = str_contains($lowerName, 'full')
+                || str_contains($lowerName, 'developer')
+                || str_contains($lowerName, 'super');
             $role = AdminRole::updateOrCreate(
                 ['name' => $name],
                 [
                     'is_full_admin' => $isFull,
+                    'permissions' => $isFull ? ($fullRole->permissions ?? []) : ($fullRole->permissions ?? []),
                     'system_emails' => ! empty($roleRow['systememails']),
                     'account_emails' => ! empty($roleRow['accountemails']),
                     'support_emails' => ! empty($roleRow['supportemails']),

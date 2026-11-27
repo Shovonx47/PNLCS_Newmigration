@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <title>{{ __('client.marketing.unsubscribe_title') }} - {{ company_name() }}</title>
     <style>
-        body { margin:0; font-family:Inter,-apple-system,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg, #f4f6f9); color:var(--text, #1e293b); }
+        body { margin:0; font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg, #f4f6f9); color:var(--text, #1e293b); }
         .card { width:100%; max-width:420px; background:var(--card, #fff); border-radius:12px; padding:32px; box-shadow:0 2px 12px rgba(0,0,0,.08); text-align:center; margin:16px; }
         h1 { font-size:20px; margin:0 0 10px; }
         p { color:var(--muted, #666); font-size:14px; line-height:1.5; }

@@ -1,37 +1,37 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.affiliates.title"))
 @section("content")
 
 <div class="pn-page-header">
     <div>
-        <h1 class="pn-page-title">{{ __('client.affiliates.page_title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.affiliates.page_subtitle') }}</p>
+        <h1 class="h1 mb-0">{{ __('client.affiliates.page_title') }}</h1>
+        <p class="text-muted">{{ __('client.affiliates.page_subtitle') }}</p>
     </div>
 </div>
 
 <div class="pn-aff-grid mb-24">
-    <div class="pn-card pn-aff-stat">
+    <div class="card pn-aff-stat">
         <div class="pn-aff-val">{{ $stats["referrals"] ?? 0 }}</div>
         <div class="pn-aff-lbl">{{ __('client.affiliates.total_referrals_stat') }}</div>
     </div>
-    <div class="pn-card pn-aff-stat">
+    <div class="card pn-aff-stat">
         <div class="pn-aff-val">{{ $stats["signups"] ?? 0 }}</div>
         <div class="pn-aff-lbl">{{ __('client.affiliates.signups') }}</div>
     </div>
-    <div class="pn-card pn-aff-stat">
+    <div class="card pn-aff-stat">
         <div class="pn-aff-val" style="color:var(--success)">{{ money_fmt($stats["earnings"] ?? 0) }}</div>
         <div class="pn-aff-lbl">{{ __('client.affiliates.total_earnings') }}</div>
     </div>
-    <div class="pn-card pn-aff-stat">
+    <div class="card pn-aff-stat">
         <div class="pn-aff-val" style="color:var(--warning)">{{ money_fmt($stats["pending"] ?? 0) }}</div>
         <div class="pn-aff-lbl">{{ __('client.affiliates.pending') }}</div>
     </div>
 </div>
 
 @if($affiliate)
-<div class="pn-card mb-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.affiliates.referral_link') }}</span></div>
-    <div class="pn-card-body">
+<div class="card mb-24">
+    <div class="card-header"><span class="card-title">{{ __('client.affiliates.referral_link') }}</span></div>
+    <div class="card-body">
         <p class="text-muted text-sm mb-16">{{ __('client.affiliates.referral_share_desc') }}</p>
         <div style="display:flex;gap:8px;max-width:520px">
             <input type="text" id="refLink" class="form-control" value="{{ $referralLink }}" readonly style="background:var(--bg);font-size:13px">
@@ -51,9 +51,9 @@
 </div>
 
 @if(($affiliate->balance ?? 0) > 0)
-<div class="pn-card mb-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.affiliates.withdraw') }}</span></div>
-    <div class="pn-card-body">
+<div class="card mb-24">
+    <div class="card-header"><span class="card-title">{{ __('client.affiliates.withdraw') }}</span></div>
+    <div class="card-body">
         <p class="text-muted text-sm mb-16">
             {{ __('client.affiliates.withdraw_desc', ['minimum' => money_fmt(\App\Models\Setting::get('AffiliateMinPayout', 25))]) }}
         </p>
@@ -84,9 +84,9 @@
 </div>
 @endif
 @else
-<div class="pn-card mb-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.affiliates.join_title') }}</span></div>
-    <div class="pn-card-body">
+<div class="card mb-24">
+    <div class="card-header"><span class="card-title">{{ __('client.affiliates.join_title') }}</span></div>
+    <div class="card-body">
         <p class="text-muted text-sm mb-16">{{ __('client.affiliates.join_desc') }}</p>
         <form method="POST" action="{{ route('client.affiliates.activate') }}">
             @csrf
@@ -96,10 +96,10 @@
 </div>
 @endif
 
-<div class="pn-card">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.affiliates.commission_history') }}</span></div>
-    <div class="pn-card-body-flush">
-        <table class="pn-table">
+<div class="card">
+    <div class="card-header"><span class="card-title">{{ __('client.affiliates.commission_history') }}</span></div>
+    <div class="card-body p-0">
+        <table class="table table-list">
             <thead>
                 <tr>
                     <th>{{ __('common.table.date') }}</th>

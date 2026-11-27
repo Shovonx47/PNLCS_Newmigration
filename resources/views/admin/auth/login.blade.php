@@ -7,7 +7,7 @@
     @vite(["resources/css/app.css"])
     @include('admin.auth.partials.head')
 </head>
-<body style="margin:0;padding:0;background:#f6f6f6;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+<body style="margin:0;padding:0;background:#f6f6f6;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">
 
 <div style="width:100%;max-width:400px;padding:20px;">
     <!-- Logo / Header -->

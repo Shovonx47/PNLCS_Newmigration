@@ -1,52 +1,70 @@
-@extends("client.layouts.app")
-@section("title", __("client.announcements.title"))
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', __('client.announcements.title'))
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">{{ __('client.announcements.page_title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.announcements.page_subtitle') }}</p>
-    </div>
-    <a href="{{ route('client.announcements.rss') }}" class="btn btn-outline">{{ __('client.announcements.rss_feed') }}</a>
-</div>
+@section('page_heading', __('client.announcements.page_title'))
+@section('page_subheading', __('client.announcements.page_subtitle'))
+
+@section('content')
 
 @if(count($categories ?? []) > 1)
-<nav class="flex gap-8" style="flex-wrap:wrap;margin-bottom:12px;" aria-label="{{ __('admin.announcements.category') }}">
-    <a href="{{ route('client.announcements.index') }}" class="btn btn-sm {{ $category ? 'btn-outline' : 'btn-primary' }}">{{ __('client.announcements.all_categories') }}</a>
+<div class="btn-group btn-group-sm mb-3" role="group" aria-label="{{ __('admin.announcements.category') }}">
+    <a href="{{ route('client.announcements.index') }}" class="btn {{ $category ? 'btn-default' : 'btn-primary' }}">{{ __('client.announcements.all_categories') }}</a>
     @foreach($categories as $c)
-    <a href="{{ route('client.announcements.index', ['category' => $c]) }}" class="btn btn-sm {{ $category === $c ? 'btn-primary' : 'btn-outline' }}">{{ $c }}</a>
+        <a href="{{ route('client.announcements.index', ['category' => $c]) }}" class="btn {{ $category === $c ? 'btn-primary' : 'btn-default' }}">{{ $c }}</a>
     @endforeach
-</nav>
+</div>
 @endif
 
-@if($announcements->isEmpty())
-<div class="pn-card">
-    <div class="pn-empty">
-        <div class="pn-empty-icon">&#128227;</div>
-        <p>{{ __('client.announcements.no_announcements') }}</p>
+<div class="card">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.announcements.title') }}</h3>
+
+        <div class="announcements">
+            @forelse($announcements as $announcement)
+                <div class="announcement">
+                    <h1>
+                        <a href="{{ route('client.announcements.show', $announcement) }}">{{ $announcement->title }}</a>
+                    </h1>
+
+                    <ul class="list-inline">
+                        <li class="list-inline-item text-muted pr-3">
+                            <i class="far fa-calendar-alt fa-fw"></i>
+                            {{ $announcement->created_at->format('jS F Y') }}
+                        </li>
+                        @if($announcement->category)
+                        <li class="list-inline-item text-muted pr-3">
+                            <i class="far fa-folder fa-fw"></i>
+                            {{ $announcement->category }}
+                        </li>
+                        @endif
+                    </ul>
+
+                    <article>
+                        @if(strlen(strip_tags((string) $announcement->announcement)) < 350)
+                            {!! nl2br(e($announcement->announcement)) !!}
+                        @else
+                            {{ \Illuminate\Support\Str::limit(strip_tags((string) $announcement->announcement), 350) }}
+                        @endif
+                    </article>
+
+                    <a href="{{ route('client.announcements.show', $announcement) }}" class="btn btn-default btn-sm">
+                        {{ __('client.announcements.read_more') }}
+                        <i class="far fa-arrow-right"></i>
+                    </a>
+                </div>
+            @empty
+                <div class="alert alert-info text-center" role="alert">{{ __('client.announcements.no_announcements') }}</div>
+            @endforelse
+        </div>
     </div>
 </div>
-@else
-<div style="display:flex;flex-direction:column;gap:12px">
-    @foreach($announcements as $announcement)
-    <a href="{{ route("client.announcements.show", $announcement) }}" style="text-decoration:none;color:inherit">
-        <div class="pn-card" style="padding:20px 24px;transition:all 0.2s;display:flex;align-items:flex-start;gap:18px">
-            <div style="width:44px;height:44px;background:var(--primary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <svg width="20" height="20" fill="none" stroke="var(--primary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-            </div>
-            <div style="flex:1;min-width:0">
-                @if($announcement->category)<div style="font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">{{ $announcement->category }}</div>@endif
-                <div style="font-size:14.5px;font-weight:700;color:var(--primary);margin-bottom:5px">{{ $announcement->title }}</div>
-                <div style="font-size:13px;color:var(--muted);line-height:1.55;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">
-                    {{ strip_tags($announcement->announcement) }}
-                </div>
-            </div>
-            <time style="font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;margin-top:2px">{{ $announcement->created_at->format(date_fmt()) }}</time>
-        </div>
-    </a>
-    @endforeach
-</div>
-<div class="mt-16">{{ $announcements->links() }}</div>
+
+@if($announcements instanceof \Illuminate\Pagination\LengthAwarePaginator && $announcements->hasPages())
+    <div class="mt-3">{{ $announcements->links() }}</div>
 @endif
+
+<p class="text-right">
+    <a href="{{ route('client.announcements.rss') }}" class="btn btn-default btn-sm"><i class="fas fa-rss fa-fw"></i> {{ __('client.announcements.rss_feed') }}</a>
+</p>
 
 @endsection

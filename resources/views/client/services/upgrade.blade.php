@@ -1,27 +1,39 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.services.upgrade_downgrade_title'))
 @section('content')
 
-<div class="page-header">
+<div class="pn-page-header">
     <h1>{{ __('client.services.upgrade_downgrade') }}</h1>
     <a href="{{ route('client.services.show', $service) }}" class="btn btn-outline btn-sm">&larr; {{ __('client.services.back_to_service') }}</a>
 </div>
 
 @if(!isset($upgrades) || $upgrades->isEmpty())
-<div class="pn-card">
-    <div class="pn-card-body" style="text-align:center; padding:40px; color:var(--muted);">
+<div class="card">
+    <div class="card-body" style="text-align:center; padding:40px; color:var(--muted);">
         <p style="margin:0 0 16px;">{{ __('client.services.no_upgrades') }}</p>
         <a href="{{ route('client.services.show', $service) }}" class="btn btn-outline btn-sm">&larr; {{ __('client.services.back_to_service') }}</a>
     </div>
 </div>
 @else
-<div style="background:#d9edf7; border:1px solid #bce8f1; color:#31708f; padding:12px 16px; border-radius:4px; font-size:13px; margin-bottom:20px;">
-    {{ __('client.services.currently_on') }}: <strong>{{ $service->product?->name ?? 'Service' }}</strong> &mdash; {{ display_money_fmt($service->amount) }}/{{ cycle_label($service->billing_cycle) }}
+<div class="card">
+    <div class="card-header">{{ 'Current Configuration' }}</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-sm-6">
+                <h5>{{ __('client.cart.product') }}</h5>
+                <span>{{ $service->product?->name ?? 'Service' }}</span>
+            </div>
+            <div class="col-sm-6">
+                <h5>{{ __('common.table.billing_cycle') }}</h5>
+                <span>{{ display_money_fmt($service->amount) }} / {{ cycle_label($service->billing_cycle) }}</span>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-header">{{ __('client.services.select_new_plan') }}</div>
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-header">{{ __('client.services.select_new_plan') }}</div>
+    <div class="card-body">
         <form method="POST" action="{{ route('client.services.upgrade.process', $service) }}">
             @csrf
             @if($errors->any())
@@ -31,7 +43,17 @@
                 </ul>
             </div>
             @endif
-            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+            <div class="table-container clearfix mb-4">
+            <table class="table table-list">
+                <thead>
+                    <tr>
+                        <th>{{ __('client.cart.product') }}</th>
+                        <th>{{ __('common.table.description') }}</th>
+                        <th class="text-right">{{ __('common.table.price') }}</th>
+                        <th class="text-center">{{ __('client.services.select_new_plan') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
                 @foreach($upgrades as $product)
                 @php
                     // The price for the term this customer is on, worked out
@@ -44,33 +66,37 @@
                     $fit = $packageFits[$product->id] ?? ['problems' => [], 'warnings' => []];
                     $blocked = $fit['problems'] !== [];
                 @endphp
-                <div class="pn-upgrade-option" style="border:1px solid var(--border); border-radius:4px;">
-                <label style="display:flex; align-items:center; gap:12px; padding:14px; cursor:{{ $blocked ? 'not-allowed' : 'pointer' }};{{ $blocked ? ' opacity:.6;' : '' }}">
-                    <input type="radio" name="new_product_id" value="{{ $product->id }}" required style="margin:0;" @disabled($blocked)>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:500; font-size:13px; color:#1a4d80;">{{ $product->name }}</div>
+                <tr class="pn-upgrade-option" style="{{ $blocked ? 'opacity:.6;' : '' }}">
+                    <td><strong>{{ $product->name }}</strong></td>
+                    <td>
                         @if($product->hasDescription())
-                        <div style="font-size:12px; color:var(--muted); margin-top:3px;">{{ Str::limit($product->descriptionText(), 100) }}</div>
+                            <span class="text-muted">{{ Str::limit($product->descriptionText(), 100) }}</span>
                         @endif
-                    </div>
-                    @if($price)
-                    <div style="text-align:right; white-space:nowrap;">
-                        <div style="font-weight:600; font-size:14px;">{{ display_money_fmt($price) }}</div>
-                        <div style="font-size:11px; color:var(--muted);">{{ __('client.services.per_cycle', ['cycle' => $cycle]) }}</div>
-                    </div>
-                    @endif
-                </label>
-                @if($blocked)
-                <div class="pn-alert pn-alert-danger" role="note" style="display:block; margin:0 14px 14px; font-size:12.5px;">
-                    <div style="font-weight:600; margin-bottom:4px;">{{ __('client.services.package_fit_intro') }}</div>
-                    <ul style="margin:0; padding-left:18px;">@foreach($fit['problems'] as $problem)<li>{{ $problem }}</li>@endforeach</ul>
-                </div>
-                @endif
-                @foreach($fit['warnings'] as $warning)
-                <div class="pn-alert pn-alert-warning" role="note" style="margin:0 14px 14px; font-size:12.5px;">{{ $warning }}</div>
+                        @if($blocked)
+                        <div class="alert alert-danger" role="note" style="margin:8px 0 0; font-size:12.5px;">
+                            <div style="font-weight:600; margin-bottom:4px;">{{ __('client.services.package_fit_intro') }}</div>
+                            <ul style="margin:0; padding-left:18px;">@foreach($fit['problems'] as $problem)<li>{{ $problem }}</li>@endforeach</ul>
+                        </div>
+                        @endif
+                        @foreach($fit['warnings'] as $warning)
+                        <div class="alert alert-warning" role="note" style="margin:8px 0 0; font-size:12.5px;">{{ $warning }}</div>
+                        @endforeach
+                    </td>
+                    <td class="text-right">
+                        @if($price)
+                            <strong>{{ display_money_fmt($price) }}</strong><br>
+                            <small>{{ __('client.services.per_cycle', ['cycle' => $cycle]) }}</small>
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        <input type="radio" name="new_product_id" value="{{ $product->id }}" required style="margin:0; cursor:{{ $blocked ? 'not-allowed' : 'pointer' }};" @disabled($blocked)>
+                    </td>
+                </tr>
                 @endforeach
-                </div>
-                @endforeach
+                </tbody>
+            </table>
             </div>
             <div style="display:flex; gap:8px;">
                 <button type="submit" class="btn btn-primary">{{ __('client.services.request_change') }}</button>
@@ -83,9 +109,9 @@
 
 @if(($optionGroups ?? collect())->flatMap->options->filter(fn ($o) => $o->subs->isNotEmpty())->isNotEmpty())
 {{-- Raise the options on this same package: more RAM, a bigger disk. Charged for the days left in the cycle. --}}
-<div class="pn-card" style="margin-top:16px;">
-    <div class="pn-card-header">{{ __('client.services.options_title') }}</div>
-    <div class="pn-card-body">
+<div class="card" style="margin-top:16px;">
+    <div class="card-header">{{ __('client.services.options_title') }}</div>
+    <div class="card-body">
         <p style="font-size:13px; color:var(--muted); margin-top:0;">{{ __('client.services.options_hint') }}</p>
         <form method="POST" action="{{ route('client.services.options.upgrade', $service) }}">
             @csrf

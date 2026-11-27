@@ -32,7 +32,7 @@
     // The menu's own links: text, the menu they sit in, and where they go.
     function fold(s) { return (s || '').toLocaleLowerCase('tr').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i'); }
     var pages = [], seen = {};
-    document.querySelectorAll('.navbar-collapse .dropdown-menu a[href]').forEach(function (a) {
+    document.querySelectorAll('.navigation .dropdown-menu a[href], .navigation .drop-icons a[href]').forEach(function (a) {
         var href = a.getAttribute('href');
         var title = a.textContent.replace(/\s+/g, ' ').trim();
         if (!title || !href || href === '#' || href.indexOf('javascript:') === 0 || seen[href]) return;

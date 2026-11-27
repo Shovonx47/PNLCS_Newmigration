@@ -1,16 +1,16 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.email_verify.title"))
 @section("content")
 
 <div class="pn-page-header">
     <div>
-        <h1 class="pn-page-title">{{ __('client.email_verify.title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.email_verify.subtitle') }}</p>
+        <h1 class="h1 mb-0">{{ __('client.email_verify.title') }}</h1>
+        <p class="text-muted">{{ __('client.email_verify.subtitle') }}</p>
     </div>
 </div>
 
-<div class="pn-card" style="max-width:640px;">
-    <div class="pn-card-body">
+<div class="card" style="max-width:640px;">
+    <div class="card-body">
         {{-- The address is spelled out: a typo in it is the single most common
              reason the mail never arrives, and the customer cannot spot one
              they were never shown. --}}
@@ -21,7 +21,7 @@
         </p>
 
         @if($errors->has('code'))
-        <div class="pn-alert pn-alert-error">{{ $errors->first('code') }}</div>
+        <div class="alert alert-warning alert-danger">{{ $errors->first('code') }}</div>
         @endif
 
         <form method="POST" action="{{ route('client.verification.code') }}" style="margin:0 0 14px;">

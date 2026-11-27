@@ -1,20 +1,20 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.account_users.title'))
 @section('content')
 
-<div class="page-header">
+<div class="pn-page-header">
     <h1>{{ __('client.account_users.title') }}</h1>
 </div>
 <p style="color:var(--muted); font-size:13px; margin:-6px 0 16px;">{{ __('client.account_users.intro') }}</p>
 
 @if($errors->any())
-<div class="pn-alert pn-alert-error"><ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+<div class="alert alert-warning alert-danger"><ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
 @endif
 
-<div class="pn-card" style="margin-bottom:16px;">
-    <div class="pn-card-header">{{ __('client.account_users.logins') }}</div>
-    <div class="pn-card-body" style="padding:0;">
-        <table class="pn-table">
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">{{ __('client.account_users.logins') }}</div>
+    <div class="card-body" style="padding:0;">
+        <table class="table table-list">
             <thead><tr><th>{{ __('common.form.email') }}</th><th>{{ __('client.account_users.permissions') }}</th><th></th></tr></thead>
             <tbody>
                 @foreach($logins as $login)
@@ -55,10 +55,10 @@
 </div>
 
 @if($invites->isNotEmpty())
-<div class="pn-card" style="margin-bottom:16px;">
-    <div class="pn-card-header">{{ __('client.account_users.pending') }}</div>
-    <div class="pn-card-body" style="padding:0;">
-        <table class="pn-table">
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">{{ __('client.account_users.pending') }}</div>
+    <div class="card-body" style="padding:0;">
+        <table class="table table-list">
             <tbody>
                 @foreach($invites as $invite)
                 <tr>
@@ -78,9 +78,9 @@
 </div>
 @endif
 
-<div class="pn-card">
-    <div class="pn-card-header">{{ __('client.account_users.invite') }}</div>
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-header">{{ __('client.account_users.invite') }}</div>
+    <div class="card-body">
         <form method="POST" action="{{ route('client.account.users.invite') }}">
             @csrf
             <div class="form-group">

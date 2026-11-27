@@ -1,12 +1,12 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.domains.transfer_domain"))
+
+@section("page_subheading")
+    {{ __('client.domains.transfer_subtitle') }}
+@endsection
 
 @section("styles")
 <style>
-    /* Same shape as the cart's configure screen: the work on the left, the
-       orientation on the right, one grid holding them level. */
-    .transfer-layout { display:grid; grid-template-columns: 1fr 340px; gap:24px; max-width:960px; margin:0 auto; align-items:start; }
-    @media (max-width: 900px) { .transfer-layout { grid-template-columns: 1fr; } }
     .transfer-steps { list-style:none; counter-reset: step; padding:0; margin:0; }
     .transfer-steps li { counter-increment: step; display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13.5px; line-height:1.55; color:var(--text); }
     .transfer-steps li:last-child { border-bottom:none; }
@@ -15,17 +15,11 @@
 @endsection
 
 @section("content")
-<div class="pn-page-header" style="max-width:960px;margin-left:auto;margin-right:auto;">
-    <div>
-        <h1 class="pn-page-title">{{ __('client.domains.transfer_heading') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.domains.transfer_subtitle') }}</p>
-    </div>
-</div>
-
-<div class="transfer-layout">
-    <div class="pn-card">
-        <div class="pn-card-header">{{ __('client.domains.transfer_domain') }}</div>
-        <div class="pn-card-body">
+<div class="row">
+    <div class="col-sm-7">
+    <div class="card">
+        <div class="card-header">{{ __('client.domains.transfer_domain') }}</div>
+        <div class="card-body">
             <form method="POST" action="{{ route('client.cart.add-domain') }}">
                 @csrf
                 <input type="hidden" name="type" value="transfer">
@@ -53,15 +47,16 @@
             </form>
         </div>
     </div>
+    </div>
 
-    <div>
+    <div class="col-sm-5">
         {{-- The person on this page is mid-move between two companies, and the
              step that stalls is always the same one: getting the code out of
              the old registrar. Saying the whole path out loud is what makes
              the form feel safe to submit. --}}
-        <div class="pn-card">
-            <div class="pn-card-header">{{ __('client.domains.transfer_how_title') }}</div>
-            <div class="pn-card-body" style="padding:18px 22px;">
+        <div class="card">
+            <div class="card-header">{{ __('client.domains.transfer_how_title') }}</div>
+            <div class="card-body" style="padding:18px 22px;">
                 <ol class="transfer-steps">
                     <li>{{ __('client.domains.transfer_step_unlock') }}</li>
                     <li>{{ __('client.domains.transfer_step_epp') }}</li>
@@ -69,7 +64,7 @@
                 </ol>
             </div>
         </div>
-        <div class="pn-alert pn-alert-info" style="margin-top:16px;font-size:13px;line-height:1.55;">
+        <div class="alert alert-warning alert-info" style="margin-top:16px;font-size:13px;line-height:1.55;">
             {{ __('client.domains.transfer_duration') }}
         </div>
     </div>

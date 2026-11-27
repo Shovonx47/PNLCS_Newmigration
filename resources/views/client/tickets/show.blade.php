@@ -1,138 +1,205 @@
-@extends("client.layouts.app")
-@section("title", "#". $ticket->tid ." - ". $ticket->title)
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', $ticket->title)
+@section('page_heading', 'View Ticket #' . $ticket->tid)
 
-<a href="{{ route("client.tickets.index") }}" class="pn-back">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    {{ __('client.tickets.back_to_tickets') }}
-</a>
+@php
+    $isClosed = strtolower((string) $ticket->status) === 'closed';
+    $requestorLabel = $isClosed ? 'Closed' : 'Open';
+@endphp
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">#{{ $ticket->tid }} &mdash; {{ $ticket->title }}</h1>
-        <p class="pn-page-subtitle">
+@section('content')
+
+@if($isClosed)
+    <div class="alert alert-warning text-center" role="alert">{{ __('client.tickets.ticket_closed') }}</div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger" role="alert">
+        @foreach($errors->all() as $validationError)
+            <div>{{ $validationError }}</div>
+        @endforeach
+    </div>
+@endif
+
+<div class="card view-ticket">
+    <div class="card-body p-3">
+        <h3 class="card-title">
+            {{ 'View Ticket' }} #{{ $ticket->tid }}
+            <div class="ticket-actions float-sm-right mt-3 mt-sm-0">
+                <button id="ticketReply" type="button" class="btn btn-default btn-sm"
+                        onclick="document.getElementById('ticketReplyContainer').scrollIntoView({behavior:'smooth'});">
+                    <i class="fas fa-pencil-alt fa-fw"></i>
+                    Reply
+                </button>
+                @if($isClosed)
+                    <button class="btn btn-danger btn-sm" disabled="disabled">
+                        <i class="fas fa-times fa-fw"></i>
+                        {{ 'Closed' }}
+                    </button>
+                @else
+                    <button class="btn btn-danger btn-sm" type="button"
+                            onclick="document.getElementById('close-ticket-form').submit();">
+                        <i class="fas fa-times fa-fw"></i>
+                        {{ __('client.tickets.close_ticket') }}
+                    </button>
+                    <form id="close-ticket-form" method="POST" action="{{ route('client.tickets.close', $ticket) }}" class="d-none">@csrf</form>
+                @endif
+            </div>
+        </h3>
+
+        <p>
+            {{ __('common.form.subject') }}:
+            <strong>{{ $ticket->title }}</strong>
+        </p>
+        <p class="small text-muted mb-0">
             {{ $ticket->department->name ?? __('client.tickets.general_dept') }}
-            &nbsp;&middot;&nbsp; {{ __('client.tickets.opened') }} {{ $ticket->created_at->timezone(display_tz())->format(datetime_fmt()) }}
-            @if($ticket->last_reply) &nbsp;&middot;&nbsp; {{ __('client.tickets.last_reply') }} {{ $ticket->last_reply->diffForHumans() }} @endif
+            &middot; {{ __('client.tickets.opened') }} {{ $ticket->created_at->timezone(display_tz())->format(datetime_fmt()) }}
+            @if($ticket->last_reply) &middot; {{ __('client.tickets.last_reply') }} {{ $ticket->last_reply->diffForHumans() }}@endif
+            &middot; {{ __('client.tickets.priority') }}: {{ $ticket->priority ?? 'Medium' }}
         </p>
     </div>
-    <div class="flex gap-8 items-center">
-        <span class="badge badge-{{ strtolower(str_replace(" ", "-", $ticket->status)) }}" style="font-size:12.5px;padding:4px 12px">{{ __('client.status.' . strtolower(str_replace(' ', '-', $ticket->status))) }}</span>
-        <span class="badge badge-{{ strtolower($ticket->priority ?? "medium") }}" style="font-size:12.5px;padding:4px 12px">{{ __('client.status.' . strtolower($ticket->priority ?? 'medium')) }}</span>
+
+    {{-- The opening message, then every reply, in the posted-by / message shape
+         the theme gives a ticket: gray author strip, white body. --}}
+    <div class="card-body">
+        <div class="ticket-reply markdown-content">
+            <div class="posted-by">
+                <i class="far fa-user fa-fw"></i>
+                Posted by <span class="posted-by-name">{{ $ticket->name ?? auth()->user()->full_name }}</span> on <span class="posted-on">{{ $ticket->created_at->timezone(display_tz())->format(datetime_fmt()) }}</span>
+                <span class="label requestor-badge requestor-type-client float-md-right">{{ 'Client' }}</span>
+            </div>
+            <div class="message p-3">
+                {!! nl2br(e($ticket->message)) !!}
+                @if($ticket->attachment)
+                    <hr>
+                    <i class="far fa-paperclip fa-fw"></i>
+                    <a href="{{ route('client.tickets.attachment', $ticket) }}">{{ __('client.tickets.download_attachment') }}</a>
+                @endif
+            </div>
+        </div>
     </div>
+
+    @foreach($ticket->replies as $reply)
+    <div class="card-body">
+        <div class="ticket-reply markdown-content{{ $reply->admin ? ' staff' : '' }}">
+            <div class="posted-by">
+                @if($reply->admin)
+                    Posted by <span class="posted-by-name">{{ filled($staffNames[$reply->admin] ?? null) ? $staffNames[$reply->admin] : __('client.tickets.support_staff') }}</span> on <span class="posted-on">{{ $reply->created_at->timezone(display_tz())->format(datetime_fmt()) }}</span>
+                    <span class="label requestor-badge requestor-type-owner float-md-right">{{ __('client.tickets.support_staff') }}</span>
+                @else
+                    Posted by <span class="posted-by-name">{{ auth()->user()->full_name }}</span> on <span class="posted-on">{{ $reply->created_at->timezone(display_tz())->format(datetime_fmt()) }}</span>
+                    <span class="label requestor-badge requestor-type-client float-md-right">{{ 'Client' }}</span>
+                @endif
+            </div>
+            <div class="message p-3">
+                {!! nl2br(e($reply->message)) !!}
+                @if($reply->attachment)
+                    <hr>
+                    <i class="far fa-paperclip fa-fw"></i>
+                    <a href="{{ route('client.tickets.reply.attachment', [$ticket, $reply->id]) }}">{{ __('client.tickets.download_attachment') }}</a>
+                @endif
+
+                {{-- A closed ticket asks how we did, on the last staff reply, as
+                     the theme's rating block does. --}}
+                @if($reply->admin && $isClosed && $loop->last)
+                    <div class="clearfix">
+                        @if($ticket->feedback)
+                            <div class="rating-done">
+                                @for($rating = 1; $rating <= 5; $rating++)
+                                    <span class="star{{ (5 - $ticket->feedback->rating) < $rating ? ' active' : '' }}"></span>
+                                @endfor
+                                <div class="rated">{{ __('client.tickets.feedback_given', ['rating' => $ticket->feedback->rating]) }}</div>
+                            </div>
+                        @else
+                            <div class="rating">
+                                @foreach([5, 4, 3, 2, 1] as $score)
+                                    <form method="POST" action="{{ route('client.tickets.feedback', $ticket) }}" class="d-inline">
+                                        @csrf
+                                        <input type="hidden" name="rating" value="{{ $score }}">
+                                        <button type="submit" class="star" title="{{ __('client.tickets.feedback_score_' . $score) }}"></button>
+                                    </form>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endforeach
 </div>
 
-{{-- Original message --}}
-<div class="pn-msg">
-    <div class="pn-msg-head">
-        <span class="pn-msg-author">{{ $ticket->name ?? auth()->user()->full_name }}</span>
-        <span class="pn-msg-date">{{ $ticket->created_at->timezone(display_tz())->format(datetime_fmt()) }}</span>
-    </div>
-    <div class="pn-msg-body">{{ $ticket->message }}</div>
-    @if($ticket->attachment)
-    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border, #eee)">
-        <a href="{{ route("client.tickets.attachment", $ticket) }}" style="color:#405189;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-            {{ __('client.tickets.download_attachment') }}
-        </a>
-    </div>
-    @endif
-</div>
-
-{{-- Replies --}}
-@foreach($ticket->replies as $reply)
-<div class="pn-msg {{ $reply->admin ? "staff" : "" }}">
-    <div class="pn-msg-head">
-        <span class="pn-msg-author">
-            @if($reply->admin)
-                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                {{ __('client.tickets.support_staff') }}@if(filled($staffNames[$reply->admin] ?? null)): {{ $staffNames[$reply->admin] }}@endif
-            @else
-                {{ auth()->user()->full_name }}
-            @endif
-        </span>
-        <span class="pn-msg-date">{{ $reply->created_at->timezone(display_tz())->format(datetime_fmt()) }}</span>
-    </div>
-    <div class="pn-msg-body">{{ $reply->message }}</div>
-    @if($reply->attachment)
-    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border, #eee)">
-        <a href="{{ route("client.tickets.reply.attachment", [$ticket, $reply->id]) }}" style="color:#405189;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-            {{ __('client.tickets.download_attachment') }}
-        </a>
-    </div>
-    @endif
-</div>
-@endforeach
-
-{{-- Closed: how did we do? One rating per ticket. --}}
-@if(strtolower($ticket->status) === 'closed')
-<div class="pn-card mt-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.tickets.feedback_title') }}</span></div>
-    <div class="pn-card-body">
-        @if($ticket->feedback)
-        <p style="margin:0;">{{ __('client.tickets.feedback_given', ['rating' => $ticket->feedback->rating]) }}</p>
-        @if($ticket->feedback->comments)<p class="text-muted text-sm" style="margin:6px 0 0;">{{ $ticket->feedback->comments }}</p>@endif
-        @else
+@if($isClosed && ! $ticket->feedback)
+<div class="card d-print-none">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.tickets.feedback_title') }}</h3>
         <form method="POST" action="{{ route('client.tickets.feedback', $ticket) }}">
             @csrf
-            <fieldset style="border:0;padding:0;margin:0 0 12px;">
-                <legend class="form-label">{{ __('client.tickets.feedback_question') }}</legend>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <fieldset class="form-group">
+                <legend class="control-label">{{ __('client.tickets.feedback_question') }}</legend>
+                <div class="d-flex gap-8 flex-wrap">
                     @foreach([1, 2, 3, 4, 5] as $score)
-                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="rating" value="{{ $score }}" required> {{ __('client.tickets.feedback_score_'.$score) }}</label>
+                    <label class="radio-inline"><input type="radio" name="rating" value="{{ $score }}" required> {{ __('client.tickets.feedback_score_' . $score) }}</label>
                     @endforeach
                 </div>
             </fieldset>
             <div class="form-group">
-                <label class="form-label" for="fb-comments">{{ __('client.tickets.feedback_comments') }}</label>
+                <label class="control-label" for="fb-comments">{{ __('client.tickets.feedback_comments') }}</label>
                 <textarea id="fb-comments" name="comments" rows="3" maxlength="2000" class="form-control"></textarea>
             </div>
             <button type="submit" class="btn btn-primary btn-sm">{{ __('client.tickets.feedback_send') }}</button>
         </form>
-        @endif
     </div>
 </div>
 @endif
 
-{{-- Reply form --}}
-@if(strtolower($ticket->status) !== 'closed')
-<div class="pn-card mt-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.tickets.post_reply') }}</span></div>
-    <div class="pn-card-body">
-        <form method="POST" action="{{ route("client.tickets.reply", $ticket) }}" enctype="multipart/form-data">
+<div class="card d-print-none" id="ticketReplyContainer">
+    <div class="card-body">
+        <h3 class="card-title">Reply</h3>
+
+        @if(! $isClosed)
+        <form method="POST" action="{{ route('client.tickets.reply', $ticket) }}" enctype="multipart/form-data" role="form" id="frmReply">
             @csrf
-            @if($errors->any())
-            <div class="pn-alert pn-alert-error">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                {{ $errors->first() }}
+            <div class="row">
+                <div class="form-group col-md-4">
+                    <label for="inputName">{{ __('client.tickets.client_name') }}</label>
+                    <input class="form-control" type="text" id="inputName" value="{{ $ticket->name ?? auth()->user()->full_name }}" disabled="disabled">
+                </div>
+                <div class="form-group col-md-5">
+                    <label for="inputEmail">{{ __('client.tickets.client_email') }}</label>
+                    <input class="form-control" type="text" id="inputEmail" value="{{ auth()->user()->email }}" disabled="disabled">
+                </div>
             </div>
-            @endif
+
             <div class="form-group">
-                <label class="form-label" for="message">{{ __('client.tickets.your_reply') }} <span class="req">*</span></label>
-                <textarea id="message" name="message" rows="6" required class="form-control" placeholder="{{ __('client.tickets.reply_placeholder') }}"></textarea>
+                <label for="inputMessage">{{ __('common.form.message') }}</label>
+                <textarea name="message" id="inputMessage" rows="12" class="form-control" required placeholder="{{ __('client.tickets.reply_placeholder') }}"></textarea>
             </div>
+
             <div class="form-group">
-                <label class="form-label">{{ __('client.tickets.attachment') }} <span style="font-weight:400;color:var(--muted)">({{ __('client.form.optional') }}, {{ __('client.tickets.max_10mb') }})</span></label>
-                <input type="file" name="attachment" accept=".jpg,.png,.gif,.pdf,.doc,.docx,.txt,.zip" class="form-control" style="padding:6px 10px;">
+                <label for="inputAttachment1">{{ 'Attachments' }}</label>
+                <div class="input-group mb-1">
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" name="attachment" id="inputAttachment1" accept=".jpg,.png,.gif,.pdf,.doc,.docx,.txt,.zip">
+                        <label class="custom-file-label text-truncate" for="inputAttachment1">{{ 'Choose File' }}</label>
+                    </div>
+                </div>
+                <div class="text-muted">
+                    <small>{{ 'Allowed File Extensions' }}: .jpg, .png, .gif, .pdf, .doc, .docx, .txt, .zip ({{ __('client.tickets.max_10mb') }})</small>
+                </div>
             </div>
-            <div class="flex gap-8" style="flex-wrap:wrap">
+
+            <div class="form-group text-center">
                 <button type="submit" class="btn btn-primary">{{ __('client.tickets.post_reply_btn') }}</button>
-                <a href="{{ route("client.tickets.index") }}" class="btn btn-outline">{{ __('client.tickets.back_to_tickets') }}</a>
+                <a href="{{ route('client.tickets.index') }}" class="btn btn-default">{{ __('common.actions.cancel') }}</a>
             </div>
         </form>
-        {{-- A separate form: the reply form cannot hold a second action. --}}
-        <form method="POST" action="{{ route('client.tickets.close', $ticket) }}" style="margin-top:12px;">
-            @csrf
-            <button type="submit" class="btn btn-outline">{{ __('client.tickets.close_ticket') }}</button>
-        </form>
+        @else
+        <div class="alert alert-info mb-0">
+            {{ __('client.tickets.ticket_closed') }} <a href="{{ route('client.tickets.create') }}">{{ __('client.tickets.open_new_ticket') }}</a> {{ __('client.tickets.need_further_assistance') }}
+        </div>
+        @endif
     </div>
 </div>
-@else
-<div class="pn-alert pn-alert-info mt-24">
-    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    {{ __('client.tickets.ticket_closed') }} <a href="{{ route("client.tickets.create") }}" class="link">{{ __('client.tickets.open_new_ticket') }}</a> {{ __('client.tickets.need_further_assistance') }}
-</div>
-@endif
 
 @endsection

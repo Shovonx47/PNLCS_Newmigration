@@ -1,69 +1,86 @@
-@extends("client.layouts.app")
-@section("title", __("client.network_status.title"))
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', __('client.network_status.title'))
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">{{ __('client.network_status.title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.network_status.subtitle') }}</p>
-    </div>
-</div>
+@section('page_subheading', __('client.network_status.subtitle'))
 
-@if($activeIssues->isEmpty())
-<div class="pn-card mb-24">
-    <div class="pn-card-body" style="text-align:center;padding:40px 20px">
-        <div style="font-size:40px;line-height:1">&#9989;</div>
-        <h3 style="margin:12px 0 4px;color:var(--success, #16a34a)">{{ __('client.network_status.all_operational') }}</h3>
-        <p class="text-muted text-sm">{{ __('client.network_status.no_issues') }}</p>
-    </div>
-</div>
-@else
-<div class="pn-card mb-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.network_status.active_issues') }}</span></div>
-    <div class="pn-card-body-flush">
-        @foreach($activeIssues as $issue)
-        <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
-                <strong>{{ $issue->title }}</strong>
-                <div style="display:flex;gap:6px">
-                    <span class="badge badge-{{ strtolower($issue->priority) === 'critical' || strtolower($issue->priority) === 'high' ? 'overdue' : 'pending' }}">{{ __('client.network_status.priority_' . strtolower($issue->priority ?: 'medium')) }}</span>
-                    <span class="badge badge-pending">{{ __('client.network_status.status_' . strtolower($issue->status ?: 'open')) }}</span>
-                </div>
+@section('content')
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.network_status.active_issues') }}</h3>
+
+        @if($activeIssues->isEmpty())
+            <div class="alert alert-success text-center mb-0" role="alert">
+                <i class="fas fa-check-circle fa-fw"></i>
+                {{ __('client.network_status.all_operational') }} — {{ __('client.network_status.no_issues') }}
             </div>
-            <p class="text-muted text-sm" style="margin:8px 0 4px;white-space:pre-wrap">{{ $issue->description }}</p>
-            <small class="text-muted">
-                {{ __('client.network_status.type_' . strtolower($issue->type ?: 'general')) }}
-                @if($issue->affected_server) &nbsp;·&nbsp; {{ __('client.network_status.affecting') }}: {{ $issue->affected_server }} @endif
-                @if($issue->start_date) &nbsp;·&nbsp; {{ __('client.network_status.since') }} {{ $issue->start_date->timezone(display_tz())->format(datetime_fmt()) }} @endif
-            </small>
-        </div>
-        @endforeach
+        @else
+            <div class="table-responsive">
+                <table class="table table-list">
+                    <thead>
+                        <tr>
+                            <th>{{ __('common.form.title') }}</th>
+                            <th>{{ __('common.table.type') }}</th>
+                            <th>{{ __('common.table.priority') }}</th>
+                            <th>{{ __('common.table.status') }}</th>
+                            <th>{{ __('client.network_status.since') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($activeIssues as $issue)
+                        <tr>
+                            <td>
+                                <strong>{{ $issue->title }}</strong>
+                                @if($issue->description)
+                                    <div class="small text-muted" style="white-space:pre-wrap">{{ $issue->description }}</div>
+                                @endif
+                                @if($issue->affected_server)
+                                    <div class="small text-muted">{{ __('client.network_status.affecting') }}: {{ $issue->affected_server }}</div>
+                                @endif
+                            </td>
+                            <td>{{ __('client.network_status.type_' . strtolower($issue->type ?: 'general')) }}</td>
+                            <td>
+                                <span class="label status status-{{ in_array(strtolower((string) $issue->priority), ['critical', 'high'], true) ? 'terminated' : 'pending' }}">
+                                    {{ __('client.network_status.priority_' . strtolower($issue->priority ?: 'medium')) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="label status status-pending">{{ __('client.network_status.status_' . strtolower($issue->status ?: 'open')) }}</span>
+                            </td>
+                            <td class="small text-muted">{{ $issue->start_date?->timezone(display_tz())->format(datetime_fmt()) ?? '-' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </div>
 </div>
-@endif
 
 @if($resolvedIssues->isNotEmpty())
-<div class="pn-card">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.network_status.recently_resolved') }}</span></div>
-    <div class="pn-card-body-flush">
-        <table class="pn-table">
-            <thead>
-                <tr>
-                    <th>{{ __('common.form.title') }}</th>
-                    <th>{{ __('common.table.type') }}</th>
-                    <th>{{ __('client.network_status.resolved_at') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($resolvedIssues as $issue)
-                <tr>
-                    <td>{{ $issue->title }}</td>
-                    <td class="text-muted text-sm">{{ __('client.network_status.type_' . strtolower($issue->type ?: 'general')) }}</td>
-                    <td class="text-muted text-sm">{{ $issue->end_date?->timezone(display_tz())->format(datetime_fmt()) ?? '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+<div class="card">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.network_status.recently_resolved') }}</h3>
+        <div class="table-responsive">
+            <table class="table table-list">
+                <thead>
+                    <tr>
+                        <th>{{ __('common.form.title') }}</th>
+                        <th>{{ __('common.table.type') }}</th>
+                        <th>{{ __('client.network_status.resolved_at') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($resolvedIssues as $issue)
+                    <tr>
+                        <td>{{ $issue->title }}</td>
+                        <td>{{ __('client.network_status.type_' . strtolower($issue->type ?: 'general')) }}</td>
+                        <td class="small text-muted">{{ $issue->end_date?->timezone(display_tz())->format(datetime_fmt()) ?? '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 @endif

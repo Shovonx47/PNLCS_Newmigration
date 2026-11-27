@@ -1,14 +1,14 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.security.title'))
 @section('content')
 
-<div class="page-header">
+<div class="pn-page-header">
     <h1>{{ __('client.security.title') }}</h1>
 </div>
 
-<div class="pn-card" style="margin-bottom:20px;">
-    <div class="pn-card-header">{{ __('client.security.two_factor') }}</div>
-    <div class="pn-card-body">
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header">{{ __('client.security.two_factor') }}</div>
+    <div class="card-body">
         <p style="font-size:13px; color:#555; margin-bottom:16px;">
             {{ __('client.security.2fa_desc') }}
         </p>
@@ -45,9 +45,9 @@
 </div>
 
 @if($phoneVerifyAvailable ?? false)
-<div class="pn-card" style="margin-bottom:20px;">
-    <div class="pn-card-header">{{ __('client.phone_verify.title') }}</div>
-    <div class="pn-card-body">
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header">{{ __('client.phone_verify.title') }}</div>
+    <div class="card-body">
         @if($client?->phone_verified_at)
         <div style="padding:12px 14px; background:#dff0d8; border:1px solid #d6e9c6; border-radius:4px;">
             <span style="font-size:13px; color:#3c763d; font-weight:500;">&#10003; {{ __('client.phone_verify.verified_label') }} ({{ $client->full_phone }})</span>
@@ -77,10 +77,10 @@
 @endif
 
 @if($sessionsSupported ?? false)
-<div class="pn-card">
-    <div class="pn-card-header">{{ __('client.security.active_sessions') }}</div>
-    <div class="pn-card-body" style="padding:0;">
-        <table class="pn-table">
+<div class="card">
+    <div class="card-header">{{ __('client.security.active_sessions') }}</div>
+    <div class="card-body" style="padding:0;">
+        <table class="table table-list">
             <thead>
                 <tr>
                     <th>{{ __('client.security.device_ip') }}</th>
@@ -118,10 +118,10 @@
 </div>
 @endif
 
-<div class="pn-card">
-    <div class="pn-card-header">{{ __('client.security.login_history') }}</div>
-    <div class="pn-card-body" style="padding:0;">
-        <table class="pn-table">
+<div class="card">
+    <div class="card-header">{{ __('client.security.login_history') }}</div>
+    <div class="card-body" style="padding:0;">
+        <table class="table table-list">
             <thead>
                 <tr>
                     <th>{{ __('client.security.login_when') }}</th>
@@ -156,9 +156,9 @@
     </div>
 </div>
 @if($ownsAccount ?? false)
-<div class="pn-card">
-    <div class="pn-card-header">{{ __('client.security.your_data') }}</div>
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-header">{{ __('client.security.your_data') }}</div>
+    <div class="card-body">
         <p style="font-size:13px; color:var(--muted); margin-top:0;">{{ __('client.security.your_data_desc') }}</p>
         <form method="POST" action="{{ route('client.account.personal-data') }}" style="margin:0;">
             @csrf

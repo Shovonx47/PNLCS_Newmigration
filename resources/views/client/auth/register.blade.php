@@ -6,12 +6,12 @@
     <title>{{ __('client.auth.register_title') }} - {{ company_name() }}</title>
     @include('partials.seo-meta', ['title' => __('client.auth.register_title').' - '.company_name()])
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css'])
     @include('client.auth.partials.theme-head')
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; background: #f6f6f6; color: #333; margin: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        body { font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif; font-size: 13px; background: #f6f6f6; color: #333; margin: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         .register-box { width: 100%; max-width: 480px; }
         .login-logo { text-align: center; margin-bottom: 24px; }
         .login-logo h1 { font-size: 26px; font-weight: 700; color: var(--theme-primary, #1a4d80); margin: 0 0 6px; }

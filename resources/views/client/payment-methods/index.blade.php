@@ -1,11 +1,11 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.payment_methods.title"))
 @section("content")
 
 <div class="pn-page-header">
     <div>
-        <h1 class="pn-page-title">{{ __('client.payment_methods.title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.payment_methods.subtitle') }}</p>
+        <h1 class="h1 mb-0">{{ __('client.payment_methods.title') }}</h1>
+        <p class="text-muted">{{ __('client.payment_methods.subtitle') }}</p>
     </div>
     {{-- Offered only where a card could actually be stored AND charged: the
          shop collects by card and has a gateway that can do it. Anywhere else
@@ -21,9 +21,9 @@
      with the shop's AutoChargeEnabled off nothing charges a card at all, and a
      toggle for a thing that does not happen misleads whichever way it is set. --}}
 @if($autoChargeOffered)
-<div class="pn-card mb-24">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.payment_methods.auto_charge_title') }}</span></div>
-    <div class="pn-card-body">
+<div class="card mb-24">
+    <div class="card-header"><span class="card-title">{{ __('client.payment_methods.auto_charge_title') }}</span></div>
+    <div class="card-body">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
             <p class="text-muted text-sm" style="margin:0;max-width:520px">
                 {{ $autoCharge ? __('client.payment_methods.auto_charge_on_hint') : __('client.payment_methods.auto_charge_off_hint') }}
@@ -43,12 +43,12 @@
 @endif
 
 @if($staffSession ?? false)
-<div class="pn-alert pn-alert-info mb-24" role="status">{{ __('client.payment_methods.staff_cannot_consent') }}</div>
+<div class="alert alert-warning alert-info mb-24" role="status">{{ __('client.payment_methods.staff_cannot_consent') }}</div>
 @endif
 
-<div class="pn-card mb-24">
-    <div class="pn-card-body-flush">
-        <table class="pn-table">
+<div class="card mb-24">
+    <div class="card-body p-0">
+        <table class="table table-list">
             <thead>
                 <tr>
                     <th>{{ __('common.table.description') }}</th>
@@ -111,9 +111,9 @@
     </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.payment_methods.add_bank_account') }}</span></div>
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-header"><span class="card-title">{{ __('client.payment_methods.add_bank_account') }}</span></div>
+    <div class="card-body">
         <p class="text-muted text-sm mb-16">{{ __('client.payment_methods.add_bank_hint') }}</p>
         <form method="POST" action="{{ route('client.payment-methods.store') }}" style="max-width:560px">
             @csrf
@@ -121,12 +121,12 @@
             <div style="display:grid;grid-template-columns:1fr 160px;gap:12px">
                 <div>
                     <label class="pn-label">{{ __('client.payment_methods.account_label') }} *</label>
-                    <input type="text" name="description" class="pn-input" required maxlength="255"
+                    <input type="text" name="description" class="form-control" required maxlength="255"
                            placeholder="{{ __('client.payment_methods.account_placeholder') }}">
                 </div>
                 <div>
                     <label class="pn-label">{{ __('client.payment_methods.last_four') }}</label>
-                    <input type="text" name="last_four" class="pn-input" maxlength="4" pattern="[0-9]{4}" placeholder="1234">
+                    <input type="text" name="last_four" class="form-control" maxlength="4" pattern="[0-9]{4}" placeholder="1234">
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" style="margin-top:14px">{{ __('client.payment_methods.add_button') }}</button>

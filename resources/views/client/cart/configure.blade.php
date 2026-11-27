@@ -1,9 +1,9 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.cart.configure') . ': '. $product->name)
-@section('styles')
+@section('no_page_header')@endsection
+@push('styles')
+<link href="{{ asset('templates/orderforms/standard_cart/css/all.min.css') }}" rel="stylesheet">
 <style>
-    .config-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
-    @media (max-width: 900px) { .config-layout { grid-template-columns: minmax(0, 1fr); } }
     .cycle-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .cycle-option { border: 1px solid #ddd; border-radius: 4px; padding: 10px; cursor: pointer; text-align: center; transition: all 0.15s; }
     .cycle-option:hover { border-color: #337ab7; background: #f0f6ff; }
@@ -11,23 +11,27 @@
     .cycle-option.selected { border-color: #337ab7; background: #e8f0fe; }
     .cycle-price { font-size: 16px; font-weight: 600; color: #1a4d80; }
     .cycle-label { font-size: 11px; color: #777; margin-top: 3px; text-transform: capitalize; }
-    .order-summary { position: sticky; top: 70px; }
+    .secondary-cart-sidebar .order-summary { position: sticky; top: 70px; }
     .summary-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
     .summary-row:last-child { border-bottom: none; font-weight: 600; }
     #summaryExtras .summary-row:last-child { border-bottom: 1px solid #f0f0f0; font-weight: 400; }
+    .product-info p.product-title { font-size: 1.15rem; font-weight: 600; margin-bottom: .5rem; }
 </style>
-@endsection
+@endpush
 @section('content')
 
-<div class="page-header">
-    <h1>{{ __('client.cart.configure') }}: {{ $product->name }}</h1>
-    <a href="{{ route('client.store') }}" class="btn btn-outline btn-sm">&larr; {{ __('client.actions.back') }}</a>
-</div>
+<div id="order-standard_cart">
+<div class="row">
+    @include('client.cart.partials.sidebar')
+    <div class="cart-body">
+        <div class="header-lined">
+            <h1 class="font-size-36">{{ __('client.cart.configure') }}</h1>
+        </div>
 
 @if($product->hasDescription())
-<div class="pn-card" style="margin-bottom:16px;">
-    <div class="pn-card-header">{{ __('client.cart.product') }}: <strong>{{ $product->name }}</strong></div>
-    <div class="pn-card-body" style="font-size:13px;color:var(--muted);line-height:1.65;">{!! $product->descriptionHtml() !!}</div>
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">{{ __('client.cart.product') }}: <strong>{{ $product->name }}</strong></div>
+    <div class="card-body" style="font-size:13px;color:var(--muted);line-height:1.65;">{!! $product->descriptionHtml() !!}</div>
 </div>
 @endif
 
@@ -39,9 +43,9 @@
     @if($res)
     {{-- The limits the order actually buys, so the choice of app can be made
          against them rather than after the fact. --}}
-    <div class="pn-card" style="margin-bottom:16px;">
-        <div class="pn-card-header">{{ __('client.store.included_resources') }}</div>
-        <div class="pn-card-body">
+    <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">{{ __('client.store.included_resources') }}</div>
+        <div class="card-body">
             <ul class="pn-res-row">
                 @foreach($res as $r)
                 <li><i class="{{ $r['icon'] }}"></i>{{ $r['text'] }}</li>
@@ -56,9 +60,9 @@
     {{-- One product, any app. Selling ninety-eight apps as ninety-eight
          products does not scale, so the choice is made here and the order
          installs it. --}}
-    <div class="pn-card" style="margin-bottom:16px;">
-        <div class="pn-card-header">{{ __('client.cart.choose_app') }} <span class="ap-opt">{{ __('client.cart.app_optional') }}</span></div>
-        <div class="pn-card-body">
+    <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">{{ __('client.cart.choose_app') }} <span class="ap-opt">{{ __('client.cart.app_optional') }}</span></div>
+        <div class="card-body">
             <p class="ap-intro">{{ __('client.cart.app_intro') }}</p>
             <div class="ap-search">
                 <input type="text" id="ap-q" class="form-control" autocomplete="off"
@@ -104,12 +108,12 @@
     </div>
     @endif
 
-    <div class="config-layout">
-        <div>
+    <div class="row">
+        <div class="secondary-cart-body">
             {{-- Billing Cycle --}}
-            <div class="pn-card" style="margin-bottom:16px;">
-                <div class="pn-card-header">{{ __('client.cart.billing_cycle') }}</div>
-                <div class="pn-card-body">
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">{{ __('client.cart.billing_cycle') }}</div>
+                <div class="card-body">
                     @php $pricedCycles = $product->pricedCycles($currency?->id); @endphp
                     <div class="cycle-options">
                         @if($pricedCycles !== [])
@@ -142,9 +146,9 @@
 
             {{-- Configurable Options --}}
             @if(($optionGroups ?? collect())->isNotEmpty())
-            <div class="pn-card" style="margin-bottom:16px;">
-                <div class="pn-card-header">{{ __('client.cart.configurable_options') }}</div>
-                <div class="pn-card-body">
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">{{ __('client.cart.configurable_options') }}</div>
+                <div class="card-body">
                     @foreach($optionGroups as $group)
                         @foreach($group->options as $option)
                             @continue($option->subs->isEmpty())
@@ -219,9 +223,9 @@
 
             {{-- Addons --}}
             @if(($addons ?? collect())->isNotEmpty())
-            <div class="pn-card" style="margin-bottom:16px;">
-                <div class="pn-card-header">{{ __('client.cart.addons') }}</div>
-                <div class="pn-card-body">
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">{{ __('client.cart.addons') }}</div>
+                <div class="card-body">
                     @php $selectedCycle = old('billing_cycle', (string) (array_key_first($pricedCycles) ?: 'monthly')); @endphp
                     @php $previousAddons = array_map('intval', (array) old('addons', [])); @endphp
                     @foreach($addons as $addon)
@@ -248,18 +252,18 @@
             @endif
             {{-- Hostname: a virtual server is named, not sold a domain. --}}
             @if(strtolower((string) $product->server_type) === 'proxmox')
-            <div class="pn-card" style="margin-bottom:16px;">
-                <div class="pn-card-header">{{ __('proxmox.client.order_hostname') }} <span style="font-weight:400; color:var(--muted);">({{ __('client.form.optional') }})</span></div>
-                <div class="pn-card-body">
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">{{ __('proxmox.client.order_hostname') }} <span style="font-weight:400; color:var(--muted);">({{ __('client.form.optional') }})</span></div>
+                <div class="card-body">
                     <input type="hidden" name="domain_option" value="own">
                     <input type="text" name="domain" id="vpsHostname" class="form-control" value="{{ old('domain') }}" autocomplete="off" maxlength="63" pattern="[A-Za-z0-9]([A-Za-z0-9\-\.]*[A-Za-z0-9])?" aria-label="{{ __('proxmox.client.order_hostname') }}">
                     <div class="text-muted text-sm" style="margin-top:6px;">{{ __('proxmox.client.order_hostname_hint') }}</div>
                     @error('domain')<div class="text-sm" style="color:var(--danger);margin-top:6px;">{{ $message }}</div>@enderror
                 </div>
             </div>
-            <div class="pn-card" style="margin-bottom:16px;">
-                <div class="pn-card-header">{{ __('proxmox.client.ssh_keys') }} <span style="font-weight:400; color:var(--muted);">({{ __('client.form.optional') }})</span></div>
-                <div class="pn-card-body">
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">{{ __('proxmox.client.ssh_keys') }} <span style="font-weight:400; color:var(--muted);">({{ __('client.form.optional') }})</span></div>
+                <div class="card-body">
                     <textarea name="ssh_keys" id="vpsSshKeys" class="form-control" rows="3" spellcheck="false" style="font-family:monospace;font-size:12px;" aria-label="{{ __('proxmox.client.ssh_keys') }}">{{ old('ssh_keys') }}</textarea>
                     <div class="text-muted text-sm" style="margin-top:6px;">{{ __('proxmox.client.ssh_keys_hint') }}</div>
                     @error('ssh_keys')<div class="text-sm" style="color:var(--danger);margin-top:6px;">{{ $message }}</div>@enderror
@@ -267,9 +271,9 @@
             </div>
             {{-- Domain --}}
             @elseif($product->show_domain_options)
-            <div class="pn-card" style="margin-bottom:16px;">
-                <div class="pn-card-header">{{ __('client.cart.domain') }}</div>
-                <div class="pn-card-body">
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">{{ __('client.cart.domain') }}</div>
+                <div class="card-body">
                     @if($product->free_domain && $product->freeDomainTlds())
                     @php($ikaCycles = $product->freeDomainCycles())
                     <p class="text-sm" style="margin-top:0;">{{ __('client.cart.free_domain_note', ['tlds' => implode(', ', $product->freeDomainTlds())]) }}@if($ikaCycles) {{ __('client.cart.free_domain_cycles', ['cycles' => implode(', ', array_map(fn ($c) => __('common.billing.'.str_replace('semiannually', 'semi_annually', $c)), $ikaCycles))]) }}@endif</p>
@@ -320,28 +324,29 @@
 
             {{-- The product's own questions, answered for this order. --}}
             @if(($productFields ?? collect())->isNotEmpty())
-            <div class="pn-card">
-                <div class="pn-card-header">{{ __('client.cart.order_questions') }}</div>
-                <div class="pn-card-body">
+            <div class="card">
+                <div class="card-header">{{ __('client.cart.order_questions') }}</div>
+                <div class="card-body">
                     @include('client.partials.custom-fields', ['fields' => $productFields, 'clientId' => null])
                 </div>
             </div>
             @endif
 
             {{-- Additional Notes --}}
-            <div class="pn-card">
-                <div class="pn-card-header">{{ __('client.cart.additional_notes') }} <span style="font-weight:400; color:var(--muted);">({{ __('client.form.optional') }})</span></div>
-                <div class="pn-card-body">
+            <div class="card">
+                <div class="card-header">{{ __('client.cart.additional_notes') }} <span style="font-weight:400; color:var(--muted);">({{ __('client.form.optional') }})</span></div>
+                <div class="card-body">
                     <textarea name="notes" rows="3" class="form-control" placeholder="{{ __('client.cart.special_requirements') }}">{{ old('notes') }}</textarea>
                 </div>
             </div>
         </div>
 
         {{-- Order Summary --}}
-        <div class="order-summary">
-            <div class="pn-card">
-                <div class="pn-card-header">{{ __('client.cart.order_summary') }}</div>
-                <div class="pn-card-body">
+        <div class="secondary-cart-sidebar">
+        <div class="order-summary" id="orderSummary">
+            <div class="card">
+                <div class="card-header">{{ __('client.cart.order_summary') }}</div>
+                <div class="card-body">
                     <div class="summary-row">
                         <span style="color:var(--muted);">{{ __('client.cart.product') }}</span>
                         <span style="font-weight:500;">{{ $product->name }}</span>
@@ -363,8 +368,12 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </form>
+    </div>
+</div>
+</div>
 
 @section('scripts')
 <script>

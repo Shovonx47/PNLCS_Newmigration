@@ -1,4 +1,4 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 
 @section("title", __("client.ssl.show_title", ["domain" => $order->domain ?: __("client.ssl.order_fallback", ["id" => $order->id])]))
 
@@ -52,7 +52,7 @@
                         <p class="mb-0">
                             {{ $order->crt_expires->format(date_fmt()) }}
                             @if($order->daysUntilExpiry() !== null)
-                                <small class="{{ $order->daysUntilExpiry() <= 7 ? 'text-danger' : ($order->daysUntilExpiry() <= 30 ? 'text-warning' : 'text-success') }}">
+                                <small class="{{ $order->daysUntilExpiry() <= 7 ? 'text-danger' : ($order->daysUntilExpiry() 30 'text-warning' 'text-success') }}">
                                     ({{ $order->daysUntilExpiry() }} {{ __('client.ssl.days_remaining') }})
                                 </small>
                             @endif

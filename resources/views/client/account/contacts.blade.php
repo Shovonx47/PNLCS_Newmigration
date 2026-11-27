@@ -1,16 +1,16 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.contacts.title'))
 @section('content')
 
-<div class="page-header">
+<div class="pn-page-header">
     <h1>{{ __('client.contacts.title') }}</h1>
     <a href="#" class="btn btn-primary btn-sm" onclick="document.getElementById('addContactForm').style.display=document.getElementById('addContactForm').style.display==='none'?'block':'none'; return false;">{{ __('client.contacts.add_contact') }}</a>
 </div>
 
 <div id="addContactForm" style="display:none; margin-bottom:16px;">
-    <div class="pn-card">
-        <div class="pn-card-header">{{ __('client.contacts.add_new_contact') }}</div>
-        <div class="pn-card-body">
+    <div class="card">
+        <div class="card-header">{{ __('client.contacts.add_new_contact') }}</div>
+        <div class="card-body">
             <form method="POST" action="{{ route('client.account.contacts.store') }}">
                 @csrf
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -38,9 +38,9 @@
     </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-body" style="padding:0;">
-        <table class="pn-table">
+<div class="card">
+    <div class="card-body" style="padding:0;">
+        <table class="table table-list">
             <thead>
                 <tr>
                     <th>{{ __('common.table.name') }}</th>

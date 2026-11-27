@@ -1,17 +1,17 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.quotes.title"))
 @section("content")
 
 <div class="pn-page-header">
     <div>
-        <h1 class="pn-page-title">{{ __('client.quotes.title') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.quotes.subtitle') }}</p>
+        <h1 class="h1 mb-0">{{ __('client.quotes.title') }}</h1>
+        <p class="text-muted">{{ __('client.quotes.subtitle') }}</p>
     </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-body-flush">
-        <table class="pn-table">
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-list">
             <thead>
                 <tr>
                     <th>#</th>

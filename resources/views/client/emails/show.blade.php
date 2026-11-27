@@ -1,4 +1,4 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", $email->subject)
 @section("content")
 
@@ -9,16 +9,16 @@
 
 <div class="pn-page-header">
     <div>
-        <h1 class="pn-page-title">{{ $email->subject }}</h1>
-        <p class="pn-page-subtitle">
+        <h1 class="h1 mb-0">{{ $email->subject }}</h1>
+        <p class="text-muted">
             {{ $email->date?->timezone(display_tz())->format(datetime_fmt()) ?? $email->created_at?->timezone(display_tz())->format(datetime_fmt()) }}
             &nbsp;·&nbsp; {{ __('client.emails.sent_to') }}: {{ $email->to }}
         </p>
     </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-body">
         <iframe sandbox="" srcdoc="{{ $email->message }}" style="width:100%;min-height:560px;border:0;background:var(--card);border-radius:8px"></iframe>
     </div>
 </div>

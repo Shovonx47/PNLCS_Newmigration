@@ -1,105 +1,115 @@
-@extends("client.layouts.app")
-@section("title", __("client.open_support_ticket"))
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', __('client.tickets.open_support_ticket'))
 
-<a href="{{ route("client.tickets.index") }}" class="pn-back">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    {{ __('client.tickets.back_to_tickets') }}
-</a>
+@section('content')
+<form method="POST" action="{{ route('client.tickets.store') }}" enctype="multipart/form-data" role="form">
+    @csrf
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">{{ __('client.tickets.open_support_ticket') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.tickets.team_respond') }}</p>
-    </div>
-</div>
+    <div class="card">
+        <div class="card-body extra-padding">
 
-@include('client.partials.aside-grid-style')
-<div class="pn-aside-grid"><div class="pn-card">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.tickets.new_support_request') }}</span></div>
-    <div class="pn-card-body">
-        @if($errors->any())
-        <div class="pn-alert pn-alert-error">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
-        </div>
-        @endif
+            <h3 class="card-title">{{ __('client.tickets.new_support_request') }}</h3>
 
-        <form method="POST" action="{{ route("client.tickets.store") }}" enctype="multipart/form-data">
-            @csrf
-            <div class="form-grid-2">
-                <div class="form-group">
-                    <label class="form-label" for="department_id">{{ __('client.contact.department') }} <span class="req">*</span></label>
-                    <select id="department_id" name="department_id" required class="form-control">
-                        <option value="">-- {{ __('client.contact.select_department') }} --</option>
+            @if($errors->any())
+                <div class="alert alert-danger" role="alert">
+                    @foreach($errors->all() as $validationError)
+                        <div>{{ $validationError }}</div>
+                    @endforeach
+                </div>
+            @endif
+
+            <p class="text-muted">{{ __('client.tickets.team_respond') }}</p>
+
+            <div class="row">
+                <div class="form-group col-md-4">
+                    <label for="inputName">Name</label>
+                    <input type="text" id="inputName" value="{{ auth()->user()->full_name }}" class="form-control disabled" disabled="disabled">
+                </div>
+                <div class="form-group col-md-5">
+                    <label for="inputEmail">Email Address</label>
+                    <input type="email" id="inputEmail" value="{{ auth()->user()->email }}" class="form-control disabled" disabled="disabled">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group col-md-10">
+                    <label for="inputSubject">{{ __('common.form.subject') }}</label>
+                    <input type="text" name="subject" id="inputSubject" value="{{ old('subject') }}" class="form-control" required placeholder="{{ __('client.tickets.subject_placeholder') }}">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group col-md-3">
+                    <label for="inputDepartment">{{ __('client.contact.department') }}</label>
+                    <select name="department_id" id="inputDepartment" class="form-control" required>
                         @foreach($departments as $d)
-                        <option value="{{ $d->id }}" {{ old("department_id") == $d->id ? "selected" : "" }}>{{ $d->name }}</option>
+                            <option value="{{ $d->id }}" {{ old('department_id') == $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="priority">{{ __('client.tickets.priority') }}</label>
-                    <select id="priority" name="priority" class="form-control">
-                        <option value="low" {{ old("priority") == "low" ? "selected" : "" }}>{{ __('client.tickets.low') }}</option>
-                        <option value="medium" {{ old("priority", "medium") == "medium" ? "selected" : "" }}>{{ __('client.tickets.medium') }}</option>
-                        <option value="high" {{ old("priority") == "high" ? "selected" : "" }}>{{ __('client.tickets.high') }}</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="subject">{{ __('common.form.subject') }}<span class="req">*</span></label>
-                <input type="text" id="subject" name="subject" value="{{ old("subject") }}" required class="form-control" placeholder="{{ __('client.tickets.subject_placeholder') }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="related_service">{{ __('client.tickets.related_service') }} <span style="font-weight:400;color:var(--muted)">({{ __('client.form.optional') }})</span></label>
-                <select id="related_service" name="related_service" class="form-control">
-                    <option value="">-- {{ __('client.tickets.none') }} --</option>
-                    @if(isset($services))
+                @if(isset($services) && $services->isNotEmpty())
+                <div class="form-group col-md-5">
+                    <label for="inputRelatedService">{{ __('client.tickets.related_service') }}</label>
+                    <select name="related_service" id="inputRelatedService" class="form-control">
+                        <option value="">{{ __('client.tickets.none') }}</option>
                         @foreach($services as $svc)
-                        {{-- With the address, so one of several alike servers can be picked (#287). --}}
-                        @php
-                            $svcLabel = implode(' · ', array_filter([$svc->domain, $svc->primaryIp()]));
-                        @endphp
-                        <option value="{{ $svc->id }}">{{ $svc->product?->name ?? __('client.services.title') }}{{ $svcLabel !== '' ? " (".$svcLabel.")" : "" }}</option>
+                            @php($svcLabel = implode(' · ', array_filter([$svc->domain, $svc->primaryIp()])))
+                            <option value="{{ $svc->id }}" {{ old('related_service') == $svc->id ? 'selected' : '' }}>
+                                {{ $svc->product?->name ?? __('client.services.title') }}{{ $svcLabel !== '' ? ' (' . $svcLabel . ')' : '' }}
+                            </option>
                         @endforeach
-                    @endif
-                </select>
+                    </select>
+                </div>
+                @endif
+                <div class="form-group col-md-3">
+                    <label for="inputPriority">{{ __('client.tickets.priority') }}</label>
+                    <select name="priority" id="inputPriority" class="form-control">
+                        <option value="high" {{ old('priority') === 'high' ? 'selected' : '' }}>{{ __('client.tickets.high') }}</option>
+                        <option value="medium" {{ old('priority', 'medium') === 'medium' ? 'selected' : '' }}>{{ __('client.tickets.medium') }}</option>
+                        <option value="low" {{ old('priority') === 'low' ? 'selected' : '' }}>{{ __('client.tickets.low') }}</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="message">{{ __('common.form.message') }}<span class="req">*</span></label>
-                <textarea id="message" name="message" rows="9" required class="form-control" placeholder="{{ __('client.tickets.message_placeholder') }}">{{ old("message") }}</textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">{{ __('client.tickets.attachment') }} <span style="font-weight:400;color:var(--muted)">({{ __('client.form.optional') }}, {{ __('client.tickets.max_10mb') }})</span></label>
-                <input type="file" name="attachment" accept=".jpg,.png,.gif,.pdf,.doc,.docx,.txt,.zip" class="form-control" style="padding:6px 10px;">
-            </div>
-            @include('client.partials.recaptcha', ['form' => 'tickets'])
-            <div class="flex gap-8">
-                <button type="submit" class="btn btn-primary">{{ __('client.tickets.submit_ticket') }}</button>
-                <a href="{{ route("client.tickets.index") }}" class="btn btn-outline">{{ __('common.actions.cancel') }}</a>
-            </div>
-        </form>
-    </div>
-</div>
 
-</div>
-<div>
-<div class="pn-card">
-<div class="pn-card-header"><span class="pn-card-title">{{ __('client.tickets.before_submit') }}</span></div>
-<div class="pn-card-body" style="font-size:13px;color:var(--muted)">
-<p style="margin-bottom:12px">{{ __('client.tickets.check_resources') }}</p>
-<a href="{{ url('/client/knowledgebase') }}" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--primary-light);border-radius:8px;color:var(--primary);text-decoration:none;font-weight:600;margin-bottom:8px">{{ __('client.nav.knowledge_base') }}</a>
-<a href="{{ url('/client/announcements') }}" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--primary-light);border-radius:8px;color:var(--primary);text-decoration:none;font-weight:600;margin-bottom:8px">{{ __('client.nav.announcements') }}</a>
-</div>
-</div>
-<div class="pn-card" style="margin-top:16px">
-<div class="pn-card-header"><span class="pn-card-title">{{ __('client.tickets.response_times') }}</span></div>
-<div class="pn-card-body" style="font-size:13px">
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">{{ __('client.tickets.low_priority') }}</span><strong>{{ __('client.tickets.response_24h') }}</strong></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">{{ __('client.tickets.medium_priority') }}</span><strong>{{ __('client.tickets.response_12h') }}</strong></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--muted)">{{ __('client.tickets.high_priority') }}</span><strong style="color:#ef4444">{{ __('client.tickets.response_4h') }}</strong></div>
-</div>
-</div>
-</div>
-</div>
+            <div class="form-group">
+                <label for="inputMessage">{{ __('common.form.message') }}</label>
+                <textarea name="message" id="inputMessage" rows="12" class="form-control markdown-editor" required placeholder="{{ __('client.tickets.message_placeholder') }}">{{ old('message') }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="inputAttachment1">{{ __('client.tickets.attachment') }}</label>
+                <div class="input-group mb-1 attachment-group">
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" name="attachment" id="inputAttachment1" accept=".jpg,.png,.gif,.pdf,.doc,.docx,.txt,.zip">
+                        <label class="custom-file-label text-truncate" for="inputAttachment1">Choose File</label>
+                    </div>
+                </div>
+                <div class="text-muted">
+                    <small>Allowed File Extensions: .jpg, .png, .gif, .pdf, .doc, .docx, .txt, .zip ({{ __('client.tickets.max_10mb') }})</small>
+                </div>
+            </div>
+
+            <div class="text-center">
+                @include('client.partials.recaptcha', ['form' => 'tickets'])
+            </div>
+
+            <p class="text-center">
+                <button type="submit" id="openTicketSubmit" class="btn btn-primary">{{ __('client.tickets.submit_ticket') }}</button>
+                <a href="{{ route('client.tickets.index') }}" class="btn btn-default">{{ __('common.actions.cancel') }}</a>
+            </p>
+
+        </div>
+    </div>
+</form>
+
+{{-- The theme clears the file input's label when a file is chosen; with no
+     theme scripts loaded, do that much here. --}}
+<script>
+document.querySelectorAll('.custom-file-input').forEach(function (input) {
+    input.addEventListener('change', function () {
+        var label = input.nextElementSibling;
+        if (label && input.files.length) label.textContent = input.files[0].name;
+    });
+});
+</script>
 @endsection

@@ -1,4 +1,4 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __('client.hosting.backups.title'))
 @section("content")
 

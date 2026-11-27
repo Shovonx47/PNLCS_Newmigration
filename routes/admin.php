@@ -351,6 +351,7 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     // My Account — no permission required (all admins)
     Route::get('my-account', [SettingController::class, 'myAccount'])->name('my-account');
     Route::post('my-account', [SettingController::class, 'updateMyAccount'])->name('my-account.update');
+    Route::post('my-notes', [SettingController::class, 'saveMyNotes'])->name('my-notes.save');
     Route::match(['get', 'post'], '2fa/enable', [AuthController::class, 'enable2fa'])->name('2fa.enable');
     Route::post('2fa/disable', [AuthController::class, 'disable2fa'])->name('2fa.disable');
 
@@ -367,6 +368,9 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     // Configuration Routes
     // =============================================
     Route::prefix('config')->name('config.')->group(function () {
+        // WHMCS-style System Settings hub
+        Route::get('system-settings', [SettingController::class, 'systemSettings'])->name('system-settings');
+
         // Staff & Security — manage_staff, manage_roles
         Route::middleware('admin.permission:manage_staff')->group(function () {
             Route::get('admins', [ConfigController::class, 'admins'])->name('admins');

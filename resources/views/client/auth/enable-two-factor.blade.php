@@ -1,4 +1,4 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.auth.enable_2fa_title'))
 @section('content')
 <a href="{{ route('client.account.security') }}" class="pn-back">
@@ -6,11 +6,11 @@
     {{ __('client.auth.back_to_security') }}
 </a>
 
-<div class="pn-page-header"><div><h1 class="pn-page-title">{{ __('client.auth.enable_2fa_title') }}</h1></div></div>
+<div class="pn-page-header"><div><h1 class="h1 mb-0">{{ __('client.auth.enable_2fa_title') }}</h1></div></div>
 
-<div class="pn-card" style="max-width:600px;">
-    <div class="pn-card-header"><span class="pn-card-title">{{ __('client.auth.setup') }}</span></div>
-    <div class="pn-card-body">
+<div class="card" style="max-width:600px;">
+    <div class="card-header"><span class="card-title">{{ __('client.auth.setup') }}</span></div>
+    <div class="card-body">
         <p style="margin-bottom:16px;">{{ __('client.auth.scan_qr_code') }}</p>
 
         <div style="text-align:center;margin:20px 0;">
@@ -23,17 +23,17 @@
         </div>
 
         @if($errors->any())
-        <div class="pn-alert pn-alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
+        <div class="alert alert-warning alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
         @endif
 
         <form method="POST" action="{{ route('client.2fa.enable') }}">
             @csrf
             <div style="margin-bottom:16px;">
                 <label class="pn-label">{{ __('client.auth.enter_6_digit_verify') }}</label>
-                <input type="text" name="code" class="pn-input" autofocus autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" style="max-width:200px;text-align:center;font-size:18px;letter-spacing:4px;">
+                <input type="text" name="code" class="form-control" autofocus autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" style="max-width:200px;text-align:center;font-size:18px;letter-spacing:4px;">
             </div>
-            <button type="submit" class="pn-btn pn-btn-primary">{{ __('client.auth.enable_2fa_btn') }}</button>
-            <a href="{{ route('client.account.security') }}" class="pn-btn" style="margin-left:8px;">{{ __('common.actions.cancel') }}</a>
+            <button type="submit" class="btn btn-default btn-primary">{{ __('client.auth.enable_2fa_btn') }}</button>
+            <a href="{{ route('client.account.security') }}" class="btn btn-default" style="margin-left:8px;">{{ __('common.actions.cancel') }}</a>
         </form>
     </div>
 </div>

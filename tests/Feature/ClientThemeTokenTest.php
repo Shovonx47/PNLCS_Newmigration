@@ -58,16 +58,17 @@ test('dark mode restates the badges', function () {
         ->and($layout)->toContain('[data-theme="dark"] .badge-overdue');
 });
 
-test('the server renders the theme the cookie asks for', function () {
-    // The toggle writes a raw JavaScript cookie. With cookie encryption on,
-    // the server could never read it: every page was born light and flashed
-    // dark after a script ran. The cookie is excepted from encryption, so the
-    // page arrives dark.
-    $response = $this->withUnencryptedCookie('pnlcs_theme', 'dark')
-        ->get(route('client.login'));
+test('the client area is served in the WHMCS Twenty-One theme', function () {
+    // The client area was rebuilt as a clone of the shop's WHMCS Twenty-One
+    // site: the pages load that theme's own stylesheets, not the old
+    // hand-written skin's token/dark-mode pair. A page that rendered without
+    // them would fall back to bare browser styles.
+    $response = $this->get(route('client.login'));
 
     $response->assertOk();
-    expect($response->getContent())->toContain('data-theme="dark"');
+    expect($response->getContent())
+        ->toContain('templates/twenty-one/css/all.min.css')
+        ->toContain('templates/twenty-one/css/theme.min.css');
 });
 
 test('the footer is pinned to the bottom of short pages', function () {

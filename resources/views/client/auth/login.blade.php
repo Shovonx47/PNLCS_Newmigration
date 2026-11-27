@@ -1,87 +1,74 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $textDirection ?? 'ltr' }}" data-theme="{{ request()->cookie('pnlcs_theme') === 'dark' ? 'dark' : 'light' }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ __('client.auth.login_title') }} - {{ company_name() }}</title>
-    @include('partials.seo-meta', ['title' => __('client.auth.login_title').' - '.company_name()])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css'])
-    @if(!empty($customFavicon))
-    <link rel="icon" href="{{ $customFavicon }}" type="image/png">
-    @endif
-    @if(!empty($themeCssVars))
-    <style id="theme-vars">{!! $themeCssVars !!}</style>
-    @endif
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; background: #f6f6f6; color: #333; margin: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .login-box { width: 100%; max-width: 400px; }
-        .login-logo { text-align: center; margin-bottom: 24px; }
-        .login-logo h1 { font-size: 26px; font-weight: 700; color: var(--theme-primary, #1a4d80); margin: 0 0 6px; }
-        .login-logo p { font-size: 13px; color: #777; margin: 0; }
-        .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .card-body { padding: 28px; }
-        .form-group { margin-bottom: 14px; }
-        .form-label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 4px; }
-        .form-control { display: block; width: 100%; padding: 7px 12px; font-size: 13px; color: #555; background: #fff; border: 1px solid #ccc; border-radius: 4px; transition: border-color 0.15s; }
-        .form-control:focus { border-color: #66afe9; outline: 0; box-shadow: 0 0 6px rgba(102,175,233,.5); }
-        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 7px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; text-decoration: none; width: 100%; }
-        .btn-primary { background: var(--theme-accent, #337ab7); color: #fff; border-color: var(--theme-accent-dark, #2e6da4); }
-        .btn-primary:hover { background: var(--theme-accent-dark, #286090); }
-        .alert { padding: 9px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 14px; background: #f2dede; border: 1px solid #ebccd1; color: #a94442; }
-        .remember-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .remember-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555; cursor: pointer; }
-        .remember-row a { font-size: 13px; color: var(--theme-accent, #337ab7); text-decoration: none; }
-        .register-link { text-align: center; margin-top: 16px; font-size: 13px; color: #777; }
-        .register-link a { color: var(--theme-accent, #337ab7); font-weight: 500; text-decoration: none; }
-    </style>
-    {!! hook_output('ClientAreaHeadOutput', ['user' => auth()->user()]) !!}
-    @include('partials.locale-alternates')
-</head>
-<body>
-<div class="login-box">
-    <div class="login-logo">
-        @if(!empty($customLogo))
-            <img src="{{ $customLogo }}" alt="{{ company_name() }}" style="max-height:48px; margin-bottom:8px;">
-        @else
-            <h1>{{ company_name() }}</h1>
-        @endif
-        <p>{{ __('client.auth.client_area') }}</p>
-    </div>
-    <div class="card">
-        <div class="card-body">
-            @if($errors->any())
-                <div class="alert">{{ $errors->first() }}</div>
-            @endif
+@section('no_page_header')@endsection
+@extends('client.layouts.twentyone')
+@section('title', __('client.auth.login_title'))
 
-            <form method="POST" action="{{ route('client.login.submit') }}">
-                @csrf
-                <div class="form-group">
-                    <label class="form-label" for="email">{{ __('common.form.email_address') }}</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus class="form-control" placeholder="you@example.com">
+@section('no_breadcrumb')@endsection
+
+@section('content')
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+        <form method="POST" action="{{ route('client.login.submit') }}" class="login-form" role="form">
+            @csrf
+            <div class="card mb-md-4 mt-md-4">
+                <div class="card-body px-sm-5 py-5">
+                    <div class="mb-4">
+                        <h6 class="h3">Login</h6>
+                        <p class="text-muted mb-0">Sign in to your account to continue.</p>
+                    </div>
+
+                    @if($errors->any())
+                        <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
+                    @endif
+
+                    <div class="form-group">
+                        <label for="email" class="form-control-label">{{ __('common.form.email_address') }}</label>
+                        <div class="input-group input-group-merge">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            </div>
+                            <input type="email" class="form-control" name="email" id="email" value="{{ old('email') }}" placeholder="name@example.com" autofocus required>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <label for="password" class="form-control-label">{{ __('common.form.password') }}</label>
+                            <div class="mb-2">
+                                <a href="{{ route('client.password.request') }}" class="small text-muted" tabindex="-1">{{ __('client.auth.forgot_password') }}</a>
+                            </div>
+                        </div>
+                        <div class="input-group input-group-merge">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                            </div>
+                            <input type="password" class="form-control pw-input" name="password" id="password" placeholder="{{ __('common.form.password') }}" autocomplete="off" required>
+                            <div class="input-group-append">
+                                <button class="btn btn-default btn-reveal-pw" type="button" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    @include('client.partials.recaptcha', ['form' => 'login'])
+
+                    <div class="float-left">
+                        <button id="login" type="submit" class="btn btn-primary">{{ __('client.auth.sign_in') }}</button>
+                    </div>
+                    <div class="text-right">
+                        <label>
+                            <input type="checkbox" class="form-check-input" name="remember" />
+                            {{ __('client.auth.remember_me') }}
+                        </label>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="password">{{ __('common.form.password') }}</label>
-                    <input type="password" id="password" name="password" required class="form-control" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
+                <div class="card-footer px-md-5">
+                    <small>{{ __('client.auth.no_account') }}</small>
+                    <a href="{{ route('client.register') }}" class="small font-weight-bold">{{ __('common.actions.register') }}</a>
                 </div>
-                <div class="remember-row">
-                    <label>
-                        <input type="checkbox" name="remember"> {{ __('client.auth.remember_me') }}
-                    </label>
-                    <a href="{{ route("client.password.request") }}">{{ __('client.auth.forgot_password') }}</a>
-                </div>
-                @include('client.partials.recaptcha', ['form' => 'login'])
-                <button type="submit" class="btn btn-primary">{{ __('client.auth.sign_in') }}</button>
-            </form>
-            @include('client.partials.google-button')
-        </div>
-    </div>
-    <div class="register-link">
-        {{ __('client.auth.no_account') }} <a href="{{ route('client.register') }}">{{ __('common.actions.register') }}</a>
+            </div>
+        </form>
+        @include('client.partials.google-button')
     </div>
 </div>
-    {!! hook_output('ClientAreaFooterOutput', ['user' => auth()->user()]) !!}
-</body>
-</html>
+@endsection

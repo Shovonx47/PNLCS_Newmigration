@@ -863,4 +863,21 @@ class SettingController extends Controller
 
         return back()->with('success', __('messages.success.darkmode_saved'));
     }
+
+    public function systemSettings()
+    {
+        return view('admin.config.system-settings');
+    }
+
+    public function saveMyNotes(Request $request)
+    {
+        $validated = $request->validate([
+            'notes' => 'nullable|string|max:20000',
+        ]);
+
+        $adminId = (int) auth('admin')->id();
+        Setting::set('admin_notes_' . $adminId, (string) ($validated['notes'] ?? ''), 'admin_notes');
+
+        return back()->with('success', 'Notes saved successfully.');
+    }
 }

@@ -1,29 +1,33 @@
-@extends("client.layouts.app")
+@extends("client.layouts.twentyone")
 @section("title", __("client.checkout.title"))
+@section("no_page_header")@endsection
+@push("styles")
+<link href="{{ asset('templates/orderforms/standard_cart/css/all.min.css') }}" rel="stylesheet">
+@endpush
 @section("content")
 
-<a href="{{ route("client.cart.index") }}" class="pn-back">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    {{ __('client.cart.back_to_cart') }}
-</a>
+<div id="order-standard_cart">
+<div class="row">
+    @include('client.cart.partials.sidebar')
+    <div class="cart-body">
+        <div class="header-lined">
+            <h1 class="font-size-36">{{ __('common.actions.checkout') }}</h1>
+        </div>
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">{{ __('common.actions.checkout') }}</h1>
-        <p class="pn-page-subtitle">{{ __('client.checkout.subtitle') }}</p>
-    </div>
-</div>
+        <div class="already-registered clearfix">
+            <p class="text-sm-left overflow-hidden">{{ __('client.checkout.subtitle') }}</p>
+        </div>
 
-@if(session("error"))<div class="pn-alert pn-alert-error mb-16">{{ session("error") }}</div>@endif
+@if(session("error"))<div class="alert alert-danger" role="alert">{{ session("error") }}</div>@endif
 
 <form method="POST" action="{{ route("client.cart.process") }}">
     @csrf
-    <div class="pn-checkout-grid">
-        <div>
+    <div class="row">
+        <div class="secondary-cart-body">
             @auth
-            <div class="pn-card mb-16">
-                <div class="pn-card-header"><span class="pn-card-title">{{ __('client.checkout.contact_details') }}</span></div>
-                <div class="pn-card-body">
+            <div class="card mb-16">
+                <div class="card-header"><span class="card-title">{{ __('client.checkout.contact_details') }}</span></div>
+                <div class="card-body">
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label class="form-label">{{ __('common.form.first_name') }}<span class="req">*</span></label>
@@ -44,15 +48,15 @@
             {{-- The visitor opens their account right here, mid-payment - not
                  on a register page three screens back with the cart lost on
                  the way. Same fields the register page asks for. --}}
-            <div class="pn-card mb-16">
-                <div class="pn-card-header" style="display:flex;align-items:center;justify-content:space-between;">
-                    <span class="pn-card-title">{{ __('client.auth.create_your_account') }}</span>
+            <div class="card mb-16">
+                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <span class="card-title">{{ __('client.auth.create_your_account') }}</span>
                     <span style="font-size:12.5px;color:var(--muted)">
                         {{ __('client.auth.already_have_account') }}
                         <a class="link" href="{{ route('client.login') }}">{{ __('client.auth.sign_in') }}</a>
                     </span>
                 </div>
-                <div class="pn-card-body">
+                <div class="card-body">
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label class="form-label">{{ __('common.form.first_name') }}<span class="req">*</span></label>
@@ -95,11 +99,11 @@
                  it to buy a second service. A guest always sees it, because
                  the account is being opened on this page. --}}
             @if($needsBillingAddress)
-            <div class="pn-card mb-16">
-                <div class="pn-card-header">
-                    <span class="pn-card-title">{{ __('common.form.billing_address') }}</span>
+            <div class="card mb-16">
+                <div class="card-header">
+                    <span class="card-title">{{ __('common.form.billing_address') }}</span>
                 </div>
-                <div class="pn-card-body">
+                <div class="card-body">
                     <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;">{{ __('common.form.billing_address_hint') }}</p>
                     @include('client.partials.billing-address-fields')
                 </div>
@@ -111,17 +115,17 @@
                  later, so no payment method to choose. The order still records
                  one, the first the shop offers, as every order does. --}}
             <input type="hidden" name="payment_method" value="{{ array_key_first($paymentMethods) }}">
-            <div class="pn-alert pn-alert-info mb-16" role="status">{{ __('client.checkout.nothing_to_pay') }}</div>
+            <div class="alert alert-warning alert-info mb-16" role="status">{{ __('client.checkout.nothing_to_pay') }}</div>
             @elseif(($creditApplied ?? 0) > 0 && ($amountToPay ?? 1) <= 0)
             {{-- The balance covers the whole order: nothing left for a gateway. --}}
             <input type="hidden" name="payment_method" value="credit">
-            <div class="pn-alert pn-alert-info mb-16" role="status">{{ __('client.checkout.paid_from_balance') }}</div>
+            <div class="alert alert-warning alert-info mb-16" role="status">{{ __('client.checkout.paid_from_balance') }}</div>
             @else
-            <div class="pn-card mb-16">
-                <div class="pn-card-header"><span class="pn-card-title">{{ __('client.checkout.payment_method') }}</span></div>
-                <div class="pn-card-body">
+            <div class="card mb-16">
+                <div class="card-header"><span class="card-title">{{ __('client.checkout.payment_method') }}</span></div>
+                <div class="card-body">
                     @foreach($paymentMethods as $value => $label)
-                    <label class="pn-pay-option {{ $loop->first ? "selected" : "" }}" onclick="selectPay(this)">
+                    <label class="pn-pay-option {{ $loop->first ?"selected" : "" }}" onclick="selectPay(this)">
                         <input type="radio" name="payment_method" value="{{ $value }}" {{ $loop->first ? "checked" : "" }} style="margin:0;accent-color:var(--primary)">
                         <div>
                             <div style="font-size:13.5px;font-weight:600">{{ $label }}</div>
@@ -146,10 +150,10 @@
             @endguest
         </div>
 
-        <div>
-            <div class="pn-card" style="position:sticky;top:80px">
-                <div class="pn-card-header"><span class="pn-card-title">{{ __('client.cart.order_summary') }}</span></div>
-                <div class="pn-card-body">
+        <div class="secondary-cart-sidebar">
+            <div class="order-summary" id="orderSummary" style="position:sticky;top:80px;">
+                <h2 class="font-size-30">{{ __('client.cart.order_summary') }}</h2>
+                <div class="card-body">
                     @foreach($totals["items"] as $item)
                     <div class="pn-order-row">
                         <span class="key" style="font-size:13px">{{ $item["product_name"] ?? __('client.cart.product_fallback') }}</span>
@@ -201,6 +205,9 @@
         </div>
     </div>
 </form>
+    </div>
+</div>
+</div>
 
 @section("scripts")
 <script>

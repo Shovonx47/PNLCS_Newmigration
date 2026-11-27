@@ -1,4 +1,4 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.domains.glue_title').' - '.$domain->domain)
 @section('content')
 <div class="pn-page-header">
@@ -9,15 +9,15 @@
     <a href="{{ route('client.domains.show', $domain) }}" class="btn btn-default">{{ __('common.actions.back') }}</a>
 </div>
 
-<div class="pn-card" style="margin-bottom:16px;">
-    <div class="pn-card-body">
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-body">
         <p class="text-muted text-sm" style="margin-top:0;">{{ __('client.domains.glue_hint', ['domain' => $domain->domain]) }}</p>
         @if($hosts === null)
         <p class="text-sm" style="color:var(--warning);">{{ __('client.domains.glue_unreadable') }}</p>
         @elseif($hosts === [])
         <p class="text-muted text-sm">{{ __('client.domains.glue_none') }}</p>
         @else
-        <table class="pn-table">
+        <table class="table table-list">
             <thead><tr><th>{{ __('client.domains.glue_host') }}</th><th>{{ __('client.domains.glue_ips') }}</th><th></th></tr></thead>
             <tbody>
             @foreach($hosts as $h)
@@ -39,9 +39,9 @@
     </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-header">{{ __('client.domains.glue_add') }}</div>
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-header">{{ __('client.domains.glue_add') }}</div>
+    <div class="card-body">
         <form method="POST" action="{{ route('client.domains.glue.save', $domain) }}">
             @csrf
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">

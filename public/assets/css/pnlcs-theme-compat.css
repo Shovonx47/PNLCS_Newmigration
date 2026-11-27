@@ -1,0 +1,176 @@
+/* ============================================================================
+   PNLCS — compatibility tokens for client views rendered inside the WHMCS
+   Twenty-One shell.
+
+   Views were written against the old skin's design tokens (--primary, --card,
+   .pn-card, .pn-table …). The Twenty-One shell does not load that stylesheet,
+   so the tokens and the handful of structural classes those views speak are
+   restated here in Twenty-One's own type scale and colours: flat white cards,
+   1px borders, 4px radius, 13px body text. Anything the theme itself already
+   defines (.btn, .badge, .label, .form-control, .table, .card, .alert) is left
+   to the theme so both skins agree.
+   ========================================================================== */
+
+:root {
+    --primary: #1a4d80;
+    --primary-dark: #143d66;
+    --primary-light: #e8f0fb;
+    --accent: #2e6da4;
+    --accent-dark: #286090;
+    --danger: #c43c35;
+    --warning: #f89406;
+    --success: #46a546;
+    --info: #0768b8;
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --border: #dcdcdc;
+    --text: #333333;
+    --muted: #777777;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    --shadow-md: 0 2px 6px rgba(0, 0, 0, .08);
+    --rad: 4px;
+    --radius: 4px;
+}
+
+/* Page heading (WHMCS header-lined already styles the h1; only spacing). */
+.pn-page-header { margin: 0 0 18px; }
+.pn-page-title { font-size: 26px; font-weight: 300; color: #333; margin: 0 0 4px; line-height: 1.3; }
+.pn-page-subtitle { font-size: 13px; color: var(--muted); margin: 0; }
+
+/* Cards — flat panels, exactly like the theme's own .card. */
+.pn-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+.pn-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 15px;
+    background: #f5f5f5;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+.pn-card-title { font-size: 13px; font-weight: 600; color: #333; margin: 0; }
+.pn-card-body { padding: 15px; }
+.pn-card-body-flush { padding: 0; }
+
+/* Definition lists that used to be flex rows. */
+.detail-row, .summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+}
+.detail-row:last-child, .summary-row:last-child { border-bottom: 0; }
+.detail-row .k, .summary-row .k { color: var(--muted); }
+.detail-row .v, .summary-row .v { font-weight: 600; text-align: right; }
+
+/* Tables — the theme's table-list already does the work; align cells. */
+.pn-table { width: 100%; border-collapse: collapse; }
+.pn-table > thead > tr > th { text-align: left; }
+.pn-table td, .pn-table th { vertical-align: middle; }
+
+/* Buttons written with the old family. */
+.pn-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    text-decoration: none;
+}
+.pn-btn:hover { background: #e6e6e6; color: #333; text-decoration: none; }
+.pn-btn-primary { background: var(--accent); border-color: var(--accent-dark); color: #fff; }
+.pn-btn-primary:hover { background: var(--accent-dark); color: #fff; }
+.pn-btn-danger { background: #d9534f; border-color: #d43f3a; color: #fff; }
+.pn-btn-danger:hover { background: #c9302c; color: #fff; }
+.pn-btn-success { background: #5cb85c; border-color: #4cae4c; color: #fff; }
+.pn-btn-success:hover { background: #449d44; color: #fff; }
+.pn-btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* Alerts — the theme's .alert is Bootstrap 4; keep the same palette. */
+.pn-alert { padding: 12px 15px; border: 1px solid #faebcc; border-radius: 4px; background: #fcf8e3; color: #8a6d3b; font-size: 13px; margin-bottom: 15px; }
+.pn-alert-success { background: #dff0d8; border-color: #d6e9c6; color: #3c763d; }
+.pn-alert-info { background: #d9edf7; border-color: #bce8f1; color: #31708f; }
+.pn-alert-danger, .pn-alert-error { background: #f2dede; border-color: #ebccd1; color: #a94442; }
+.pn-alert-warning { background: #fcf8e3; border-color: #faebcc; color: #8a6d3b; }
+
+/* Inputs written with the old family. */
+.pn-input, .pn-label { font-size: 13px; }
+.pn-label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; }
+.pn-input {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    color: #555;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-family: inherit;
+}
+.pn-input:focus { border-color: #66afe9; outline: 0; }
+
+/* Empty states. */
+.pn-empty { text-align: center; padding: 30px 15px; color: var(--muted); }
+.pn-empty-icon { font-size: 28px; color: #c9c9c9; margin-bottom: 8px; }
+
+/* Two-column form grid used across the account screens. */
+.form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+@media (max-width: 767px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+/* A couple of spacing helpers the views use that the theme does not ship. */
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.gap-8 { gap: 8px; }
+.text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
+.w-100 { width: 100%; }
+.d-inline-block { display: inline-block; }
+.flex { display: flex; }
+
+/* Ticket rating: the theme's stars in the free Font Awesome family, as a
+   submit button per star so a score can be posted without extra script. */
+.rating { float: right; padding: 5px 10px; direction: rtl; font-size: 24px; }
+.rating button.star { background: none; border: 0; padding: 0; margin: 0; cursor: pointer; color: #999; font-family: "Font Awesome 5 Free", "Font Awesome 5 Pro"; font-weight: 900; font-size: 24px; line-height: 1; }
+.rating button.star:before { content: "\f005"; }
+.rating button.star:hover, .rating button.star:hover ~ form button.star { color: #f2de88; }
+.rating-done .star { font-family: "Font Awesome 5 Free", "Font Awesome 5 Pro"; font-weight: 900; color: #999; }
+.rating-done .star:before { content: "\f005"; }
+.rating-done .star.active { color: #f2de88; }
+
+/* The shell prints the WHMCS header-lined page title; views that still carry
+   their own old page header would print it twice. The old heading and subtitle
+   are dropped, and whatever the block carried beside them - action buttons,
+   status badges - is kept as a right-aligned toolbar under the title, which is
+   where Twenty-One puts a page's actions. */
+#main-body .primary-content > .pn-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -6px 0 15px;
+}
+#main-body .primary-content > .pn-page-header > div:first-child { display: none; }
+#main-body .primary-content > .pn-page-header:empty { display: none; }
+#main-body .primary-content > .pn-page-header h1,
+#main-body .primary-content > .pn-page-header .pn-page-title { display: none; }

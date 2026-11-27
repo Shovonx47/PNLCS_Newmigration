@@ -1,14 +1,14 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.confirm.title'))
 @section('content')
 
-<div class="pn-card" style="max-width:460px; margin:24px auto;">
-    <div class="pn-card-header">{{ __('client.confirm.title') }}</div>
-    <div class="pn-card-body">
+<div class="card" style="max-width:460px; margin:24px auto;">
+    <div class="card-header">{{ __('client.confirm.title') }}</div>
+    <div class="card-body">
         <p style="font-size:13px; color:var(--muted); margin-top:0;">{{ __('client.confirm.intro', ['email' => $email]) }}</p>
 
         @if($errors->any())
-        <div class="pn-alert pn-alert-error">{{ $errors->first() }}</div>
+        <div class="alert alert-warning alert-danger">{{ $errors->first() }}</div>
         @endif
 
         @if($codeSent)

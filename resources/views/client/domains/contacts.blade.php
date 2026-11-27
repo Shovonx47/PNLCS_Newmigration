@@ -1,4 +1,4 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', __('client.domains.contacts_title').' - '.$domain->domain)
 @section('content')
 <div class="pn-page-header">
@@ -9,8 +9,8 @@
     <a href="{{ route('client.domains.show', $domain) }}" class="btn btn-default">{{ __('common.actions.back') }}</a>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-body">
+<div class="card">
+    <div class="card-body">
         <p class="text-muted text-sm" style="margin-top:0;">{{ __('client.domains.contacts_hint') }}</p>
         @if($fromProfile)
         <p class="text-sm" style="color:var(--warning);">{{ __('client.domains.contacts_from_profile') }}</p>

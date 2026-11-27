@@ -1,180 +1,212 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', $domain->domain ?? 'Domain')
-@section('styles')
+@push('styles')
 <style>
-    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-row dt { color: #777; }
-    .detail-row dd { font-weight: 500; margin: 0; }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    @media (max-width: 640px) { .detail-grid { grid-template-columns: 1fr; } }
+    .domain-overview h5 { font-size: 13px; font-weight: 600; color: #333; margin: 0 0 4px; }
+    .domain-overview .row { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .domain-overview .row:last-of-type { border-bottom: 0; }
 </style>
-@endsection
+@endpush
 @section('content')
 
-<div class="page-header">
-    <div>
-        <h1>{{ $domain->domain }}</h1>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <span class="badge badge-{{ strtolower($domain->status ?? 'active') }}">{{ status_label($domain->status ?? 'active') }}</span>
-        <a href="{{ route('client.domains.index') }}" class="btn btn-outline btn-sm">&larr; {{ __('client.nav.my_domains') }}</a>
-    </div>
-</div>
-
 @if($restoreAmount ?? null)
-<div class="pn-alert pn-alert-warning" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-    <span>{{ __('client.domains.restore_notice', ['amount' => display_money_fmt($restoreAmount)]) }}</span>
-    <form method="POST" action="{{ route('client.domains.restore', $domain) }}" style="margin:0;">@csrf
-        <button type="submit" class="btn btn-primary btn-sm">{{ __('client.domains.restore_now') }}</button>
-    </form>
+<div class="alert alert-warning clearfix">
+    <div class="float-right">
+        <form method="POST" action="{{ route('client.domains.restore', $domain) }}" style="margin:0;">@csrf
+            <button type="submit" class="btn btn-xs btn-default">{{ __('client.domains.restore_now') }}</button>
+        </form>
+    </div>
+    {{ __('client.domains.restore_notice', ['amount' => display_money_fmt($restoreAmount)]) }}
 </div>
 @endif
 
-<div class="detail-grid">
-    <div class="pn-card">
-        <div class="pn-card-header">{{ __('client.domains.domain_info') }}</div>
-        <div class="pn-card-body">
-            <dl>
-                <div class="detail-row"><dt>{{ __('client.domains.domain_name') }}</dt><dd>{{ $domain->domain }}</dd></div>
-                <div class="detail-row"><dt>{{ __('client.services.registration_date') }}</dt><dd>{{ $domain->registration_date?->format(date_fmt()) ?? 'N/A' }}</dd></div>
-                <div class="detail-row"><dt>{{ __('client.domains.expiry_date') }}</dt><dd>{{ $domain->expiry_date?->format(date_fmt()) ?? 'N/A' }}
-                    @if(strtolower((string) $domain->status) === 'active' && (float) $domain->recurring_amount > 0)
+<div class="card domain-overview">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.domains.domain_info') }}</h3>
+
+        @if($locked === false)
+            <div class="alert alert-danger text-center" role="alert">
+                <strong>{{ __('client.domains.registrar_lock') }}: {{ __('client.status.unlocked') }}</strong><br>
+                {{ __('client.domains.ns_change_hint') }}
+            </div>
+        @endif
+
+        <div class="row mb-3">
+            <div class="col-lg-6">
+                <h5>{{ __('client.domains.domain_name') }}:</h5>
+                <a href="http://{{ $domain->domain }}" target="_blank" rel="noopener">{{ $domain->domain }}</a>
+            </div>
+            <div class="col-lg-6">
+                <h5>{{ __('client.services.status') }}:</h5>
+                <span class="badge badge-{{ strtolower($domain->status ?? 'active') }}">{{ status_label($domain->status ?? 'active') }}</span>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-lg-6">
+                <h5>{{ __('client.services.registration_date') }}:</h5>
+                <span>{{ $domain->registration_date?->format(date_fmt()) ?? 'N/A' }}</span>
+            </div>
+            <div class="col-lg-6">
+                <h5>{{ __('client.domains.expiry_date') }}:</h5>
+                <span>{{ $domain->expiry_date?->format(date_fmt()) ?? 'N/A' }}</span>
+                @if(strtolower((string) $domain->status) === 'active' && (float) $domain->recurring_amount > 0)
                     <form method="POST" action="{{ route('client.domains.renew', $domain) }}" style="display:inline;margin-left:8px;">
                         @csrf
-                        <button type="submit" class="btn btn-default btn-xs">{{ __('client.domains.renew_now') }}</button>
+                        <button type="submit" class="btn btn-xs btn-default">{{ __('client.domains.renew_now') }}</button>
                     </form>
-                    @endif
-                </dd></div>
-                <div class="detail-row"><dt>{{ __('client.services.auto_renew') }}</dt><dd>
-                    {{ $domain->auto_renew ? __("client.status.enabled") : __("client.status.disabled") }}
-                    <form method="POST" action="{{ route('client.domains.autorenew', $domain) }}" style="display:inline;margin-left:8px;">
-                        @csrf
-                        <button type="submit" class="btn btn-default btn-xs">{{ $domain->auto_renew ? __('client.domains.turn_off') : __('client.domains.turn_on') }}</button>
-                    </form>
-                </dd></div>
-                @if($canEditContacts ?? false)
-                <div class="detail-row"><dt>{{ __('client.domains.contacts_title') }}</dt><dd><a href="{{ route('client.domains.contacts', $domain) }}" class="btn btn-default btn-xs">{{ __('common.actions.edit') }}</a></dd></div>
                 @endif
-                @if($canManageGlue ?? false)
-                <div class="detail-row"><dt>{{ __('client.domains.glue_title') }}</dt><dd><a href="{{ route('client.domains.glue', $domain) }}" class="btn btn-default btn-xs">{{ __('common.actions.manage') }}</a></dd></div>
-                @endif
-                <div class="detail-row"><dt>{{ __('client.domains.id_protection') }}</dt><dd>{{ ($domain->id_protection ?? false) ? __("client.status.enabled") : __("client.status.disabled") }}
-                    @if($canTogglePrivacy ?? false)
-                    <form method="POST" action="{{ route('client.domains.privacy', $domain) }}" style="display:inline;margin-left:8px;">
-                        @csrf
-                        <button type="submit" class="btn btn-default btn-xs">{{ $domain->id_protection ? __('client.domains.turn_off') : __('client.domains.turn_on') }}</button>
-                    </form>
-                    @endif
-                </dd></div>
-                <div class="detail-row"><dt>{{ __('client.domains.registrar_lock') }}</dt><dd>{{ $locked === null ? __('client.status.unknown') : ($locked ? __("client.status.locked") : __("client.status.unlocked")) }}</dd></div>
-            </dl>
+            </div>
         </div>
-    </div>
-    <div class="pn-card">
-        <div class="pn-card-header">{{ __('client.domains.nameservers') }}</div>
-        <div class="pn-card-body">
-            {{-- The route and DomainController::updateNameservers() existed, but
-                 no screen posted to them: the customer could read the
-                 nameservers and not change them. Reported by ENA Hosting. --}}
-            @php $ns = $domain->nameserverList(); @endphp
-            <form method="POST" action="{{ route('client.domains.nameservers', $domain) }}">
-                @csrf
-                @method('PUT')
-                @for($i = 1; $i <= 5; $i++)
-                <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                    <label for="ns{{ $i }}" style="font-size:12px;color:var(--muted);width:34px;flex-shrink:0;margin:0;">NS{{ $i }}</label>
-                    <input type="text" id="ns{{ $i }}" name="ns{{ $i }}" value="{{ old('ns'.$i, $ns[$i-1] ?? '') }}"
-                           class="form-control" style="font-family:monospace;font-size:12.5px;" autocomplete="off" spellcheck="false"
-                           @if($i <= 2) required @else placeholder="{{ __('client.form.optional') }}" @endif>
-                </div>
-                @error('ns'.$i)<div class="text-danger text-sm" style="margin:-4px 0 8px 44px;">{{ $message }}</div>@enderror
-                @endfor
-                <p style="font-size:12px;color:var(--muted);margin:10px 0 12px;">{{ __('client.domains.ns_change_hint') }}</p>
-                <button type="submit" class="btn btn-primary btn-sm">{{ __('client.domains.update_nameservers') }}</button>
-            </form>
-
-            {{-- One step: put the domain on one of the customer's hosting
-                 accounts and point it there. Running it again is harmless. --}}
-            @if(($hostings ?? collect())->isNotEmpty())
-            @php
-                $setUp = $hostings->firstWhere('set_up', true);
-                $first = $setUp ?? $hostings->first();
-            @endphp
-            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-                @if($setUp)
-                <p style="font-size:12.5px;color:var(--success);font-weight:600;margin:0 0 10px;">&#10003; {{ __('client.domains.attach_already') }}</p>
-                @endif
-                <form method="POST" action="{{ route('client.domains.attach-hosting', $domain) }}">
+        <div class="row mb-3">
+            <div class="col-lg-6">
+                <h5>{{ __('client.services.auto_renew') }}:</h5>
+                <span>{{ $domain->auto_renew ? __('client.status.enabled') : __('client.status.disabled') }}</span>
+                <form method="POST" action="{{ route('client.domains.autorenew', $domain) }}" style="display:inline;margin-left:8px;">
                     @csrf
-                    @if($hostings->count() > 1)
-                    <div class="form-group" style="margin-bottom:10px;">
-                        <label class="form-label" for="service_id">{{ __('client.domains.attach_choose_service') }}</label>
-                        <select id="service_id" name="service_id" class="form-control">
-                            @foreach($hostings as $h)
-                            <option value="{{ $h['service']->id }}" @selected($h['service']->id === $first['service']->id)>{{ $h['service']->product?->name }}{{ $h['service']->domain ? ' - '.$h['service']->domain : '' }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @else
-                    <input type="hidden" name="service_id" value="{{ $first['service']->id }}">
-                    @endif
-                    <button type="submit" class="btn btn-success btn-sm">{{ $setUp ? __('client.domains.attach_to_hosting_again') : __('client.domains.attach_to_hosting') }}</button>
-                    <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">
-                        @if($setUp)
-                            {{ __('client.domains.attach_again_hint') }}
-                        @elseif($first['nameservers'] !== [])
-                            {{ __('client.domains.attach_to_hosting_hint', ['ns' => implode(', ', $first['nameservers'])]) }}
-                        @else
-                            {{ __('client.domains.attach_to_hosting_hint_no_ns') }}
-                        @endif
-                    </p>
+                    <button type="submit" class="btn btn-xs btn-default">{{ $domain->auto_renew ? __('client.domains.turn_off') : __('client.domains.turn_on') }}</button>
                 </form>
             </div>
-            @endif
+            <div class="col-lg-6">
+                <h5>{{ __('client.domains.id_protection') }}:</h5>
+                <span>{{ ($domain->id_protection ?? false) ? __('client.status.enabled') : __('client.status.disabled') }}</span>
+                @if($canTogglePrivacy ?? false)
+                    <form method="POST" action="{{ route('client.domains.privacy', $domain) }}" style="display:inline;margin-left:8px;">
+                        @csrf
+                        <button type="submit" class="btn btn-xs btn-default">{{ $domain->id_protection ? __('client.domains.turn_off') : __('client.domains.turn_on') }}</button>
+                    </form>
+                @endif
+            </div>
         </div>
-    </div>
-</div>
+        <div class="row mb-3">
+            <div class="col-lg-6">
+                <h5>{{ __('client.domains.registrar_lock') }}:</h5>
+                <span>{{ $locked === null ? __('client.status.unknown') : ($locked ? __('client.status.locked') : __('client.status.unlocked')) }}</span>
+            </div>
+            <div class="col-lg-6">
+                <h5>{{ __('client.domains.nameservers') }}:</h5>
+                <span>{{ implode(', ', $domain->nameserverList()) ?: '&mdash;' }}</span>
+            </div>
+        </div>
 
-@if($domain->dns_management ?? false)
-<div class="pn-card" style="margin-bottom:20px;">
-    <div class="pn-card-header">{{ __('client.domains.dns_management') }}</div>
-    <div class="pn-card-body">
-        <p style="font-size:13px; color:#555; margin-bottom:12px;">{{ __('client.domains.dns_enabled') }}</p>
-        <a href="#" class="btn btn-primary btn-sm">{{ __('client.domains.manage_dns') }} &rarr;</a>
-    </div>
-</div>
-@endif
+        <h3 class="card-title">{{ __('client.domains.manage_domain') }}</h3>
+        <ul>
+            @if($canEditContacts ?? false)
+                <li><a href="{{ route('client.domains.contacts', $domain) }}">{{ __('client.domains.contacts_title') }}</a></li>
+            @endif
+            @if($canManageGlue ?? false)
+                <li><a href="{{ route('client.domains.glue', $domain) }}">{{ __('client.domains.glue_title') }}</a></li>
+            @endif
+            <li><a href="{{ route('client.domains.epp', $domain) }}">{{ __('client.domains.get_epp_code') }}</a></li>
+        </ul>
 
-{{-- Give the domain to another client account. --}}
-<div class="pn-card" style="margin-bottom:20px;">
-    <div class="pn-card-header">{{ __('client.domain_move.title') }}</div>
-    <div class="pn-card-body">
-        @if($outgoingMove ?? null)
-        <p class="text-sm" style="margin-top:0;">{{ __('client.domain_move.waiting', ['email' => $outgoingMove->toClient?->email, 'date' => $outgoingMove->expires_at->format(date_fmt())]) }}</p>
-        <form method="POST" action="{{ route('client.domain-moves.cancel', $outgoingMove) }}">@csrf<button type="submit" class="btn btn-outline btn-sm">{{ __('client.domain_move.cancel') }}</button></form>
-        @else
-        <p class="text-muted text-sm" style="margin-top:0;">{{ __('client.domain_move.hint') }}</p>
-        <form method="POST" action="{{ route('client.domains.move', $domain) }}" style="display:flex;gap:8px;flex-wrap:wrap;">
-            @csrf
-            <input type="email" name="email" required maxlength="255" class="form-control" style="max-width:320px;" value="{{ old('email') }}" aria-label="{{ __('client.domain_move.email') }}" placeholder="{{ __('client.domain_move.email') }}">
-            <button type="submit" class="btn btn-outline btn-sm">{{ __('client.domain_move.offer') }}</button>
-        </form>
-        @error('email')<div class="text-sm" style="color:var(--danger);margin-top:6px;">{{ $message }}</div>@enderror
+        @if(session('epp_code'))
+        <div class="alert alert-info" style="font-family:monospace;">{{ session('epp_code') }}</div>
         @endif
     </div>
 </div>
 
-{{-- EPP Code --}}
-<div class="pn-card" style="margin-bottom:20px;">
-    <div class="pn-card-header">{{ __('client.domains.transfer_domain') }}</div>
-    <div class="pn-card-body">
-        <p style="font-size:13px; color:#555; margin-bottom:12px;">{{ __('client.domains.epp_desc') }}</p>
-        <a href="{{ route('client.domains.epp', $domain) }}" class="btn btn-outline btn-sm">{{ __('client.domains.get_epp_code') }}</a>
-        @if(session('epp_code'))
-        <div style="margin-top:12px; padding:10px 14px; background:var(--bg); border:1px solid #e0e0e0; border-radius:4px; font-size:13px; font-family:monospace;">
-            {{ session('epp_code') }}
-        </div>
+<h3 class="card-title">{{ __('client.domains.nameservers') }}</h3>
+<div class="card">
+    <div class="card-body">
+        {{-- The route and DomainController::updateNameservers() existed, but no
+             screen posted to them: the customer could read the nameservers and
+             not change them. Reported by ENA Hosting. --}}
+        @php $ns = $domain->nameserverList(); @endphp
+        <form method="POST" action="{{ route('client.domains.nameservers', $domain) }}">
+            @csrf
+            @method('PUT')
+            @for($i = 1; $i <= 5; $i++)
+            <div class="form-group row">
+                <label for="ns{{ $i }}" class="col-sm-3 col-form-label">{{ __('client.domains.nameservers') }} {{ $i }}</label>
+                <div class="col-sm-9">
+                    <input type="text" id="ns{{ $i }}" name="ns{{ $i }}" value="{{ old('ns'.$i, $ns[$i-1] ?? '') }}"
+                           class="form-control" autocomplete="off" spellcheck="false"
+                           @if($i <= 2) required @else placeholder="{{ __('client.form.optional') }}" @endif>
+                    @error('ns'.$i)<div class="text-danger">{{ $message }}</div>@enderror
+                </div>
+            </div>
+            @endfor
+            <p class="text-muted text-sm">{{ __('client.domains.ns_change_hint') }}</p>
+            <button type="submit" class="btn btn-primary">{{ __('client.domains.update_nameservers') }}</button>
+        </form>
+    </div>
+</div>
+
+@if(($hostings ?? collect())->isNotEmpty())
+@php
+    $setUp = $hostings->firstWhere('set_up', true);
+    $first = $setUp ?? $hostings->first();
+@endphp
+<h3 class="card-title">{{ __('client.domains.attach_to_hosting') }}</h3>
+<div class="card">
+    <div class="card-body">
+        {{-- One step: put the domain on one of the customer's hosting accounts
+             and point it there. Running it again is harmless. --}}
+        @if($setUp)
+        <p class="text-success"><strong>&#10003; {{ __('client.domains.attach_already') }}</strong></p>
+        @endif
+        <form method="POST" action="{{ route('client.domains.attach-hosting', $domain) }}">
+            @csrf
+            @if($hostings->count() > 1)
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label" for="service_id">{{ __('client.domains.attach_choose_service') }}</label>
+                <div class="col-sm-9">
+                    <select id="service_id" name="service_id" class="form-control">
+                        @foreach($hostings as $h)
+                        <option value="{{ $h['service']->id }}" @selected($h['service']->id === $first['service']->id)>{{ $h['service']->product?->name }}{{ $h['service']->domain ? ' - '.$h['service']->domain : '' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            @else
+            <input type="hidden" name="service_id" value="{{ $first['service']->id }}">
+            @endif
+            <button type="submit" class="btn btn-success">{{ $setUp ? __('client.domains.attach_to_hosting_again') : __('client.domains.attach_to_hosting') }}</button>
+            <p class="text-muted text-sm">
+                @if($setUp)
+                    {{ __('client.domains.attach_again_hint') }}
+                @elseif($first['nameservers'] !== [])
+                    {{ __('client.domains.attach_to_hosting_hint', ['ns' => implode(', ', $first['nameservers'])]) }}
+                @else
+                    {{ __('client.domains.attach_to_hosting_hint_no_ns') }}
+                @endif
+            </p>
+        </form>
+    </div>
+</div>
+@endif
+
+@if($domain->dns_management ?? false)
+<h3 class="card-title">{{ __('client.domains.dns_management') }}</h3>
+<div class="card">
+    <div class="card-body">
+        <p>{{ __('client.domains.dns_enabled') }}</p>
+        <a href="#" class="btn btn-primary">{{ __('client.domains.manage_dns') }} &rarr;</a>
+    </div>
+</div>
+@endif
+
+<h3 class="card-title">{{ __('client.domain_move.title') }}</h3>
+<div class="card">
+    <div class="card-body">
+        @if($outgoingMove ?? null)
+        <p>{{ __('client.domain_move.waiting', ['email' => $outgoingMove->toClient?->email, 'date' => $outgoingMove->expires_at->format(date_fmt())]) }}</p>
+        <form method="POST" action="{{ route('client.domain-moves.cancel', $outgoingMove) }}">@csrf<button type="submit" class="btn btn-default">{{ __('client.domain_move.cancel') }}</button></form>
+        @else
+        <p class="text-muted">{{ __('client.domain_move.hint') }}</p>
+        <form method="POST" action="{{ route('client.domains.move', $domain) }}">
+            @csrf
+            <div class="form-group row">
+                <label for="moveEmail" class="col-sm-3 col-form-label">{{ __('client.domain_move.email') }}</label>
+                <div class="col-sm-6">
+                    <input type="email" id="moveEmail" name="email" required maxlength="255" class="form-control" value="{{ old('email') }}">
+                    @error('email')<div class="text-danger">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-sm-3">
+                    <button type="submit" class="btn btn-default">{{ __('client.domain_move.offer') }}</button>
+                </div>
+            </div>
+        </form>
         @endif
     </div>
 </div>
