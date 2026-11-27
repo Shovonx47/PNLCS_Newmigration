@@ -119,8 +119,18 @@ class SendNotificationListener
     public function handleTicketOpened(TicketOpened $event): void
     {
         try {
-            if ($event->ticket->email) {
-                Mail::to($event->ticket->email)->queue(new TicketOpenedMail($event->ticket, false, $event->isAdmin));
+            if ($event->ticket->email && $event->sendClientEmail) {
+                $pendingMail = Mail::to($event->ticket->email);
+                if (! empty($event->ticket->cc)) {
+                    $ccAddresses = array_values(array_filter(
+                        array_map('trim', explode(',', (string) $event->ticket->cc)),
+                        fn (string $addr) => filter_var($addr, FILTER_VALIDATE_EMAIL) !== false
+                    ));
+                    if ($ccAddresses !== []) {
+                        $pendingMail->cc($ccAddresses);
+                    }
+                }
+                $pendingMail->queue(new TicketOpenedMail($event->ticket, false, $event->isAdmin));
             }
             if (! $event->isAdmin) {
                 $adminEmail = Setting::get('Email', null);

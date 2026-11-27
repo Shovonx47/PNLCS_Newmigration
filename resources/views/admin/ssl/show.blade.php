@@ -1,11 +1,9 @@
-@extends("admin.layouts.app")
-
-@section("title", __('admin.ssl.title_num', ['num' => $order->id]))
-
-@section("content")
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">{{ __('admin.ssl.title_num', ['num' => $order->id]) }}</h1>
-    <a href="{{ route('admin.ssl.index') }}" class="btn btn-secondary">{{ __('admin.ssl.back_to_list') }}</a>
+@extends('admin.layouts.app')
+@section('title', __('admin.ssl.title_num', ['num' => $order->id]))
+@section('content')
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <h1 style="margin:0;">{{ __('admin.ssl.title_num', ['num' => $order->id]) }}</h1>
+    <a href="{{ route('admin.ssl.index') }}" class="btn btn-default btn-sm">&larr; {{ __('admin.ssl.back_to_list') }}</a>
 </div>
 
 @if(session('success'))
@@ -15,201 +13,180 @@
     <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
 
-<div class="row">
-    <div class="col-lg-8">
-        {{-- Certificate Details --}}
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.certificate_details') }}</h5></div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="text-muted small">{{ __('admin.ssl.domain') }}</label>
-                        <p class="mb-0 fw-bold">{{ $order->domain ?: '—' }}</p>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="text-muted small">{{ __('admin.ssl.type') }}</label>
-                        <p class="mb-0">{{ $order->cert_type ?: '—' }}</p>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="text-muted small">{{ __('admin.ssl.status') }}</label>
-                        <p class="mb-0"><span class="badge {{ $order->getStatusBadgeClass() }}">{{ status_label($order->status) }}</span></p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="text-muted small">{{ __('admin.ssl.module') }}</label>
-                        <p class="mb-0">{{ $order->module ?: '—' }}</p>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="text-muted small">{{ __('admin.ssl.remote_id') }}</label>
-                        <p class="mb-0">{{ $order->remote_id ?: '—' }}</p>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="text-muted small">{{ __('admin.ssl.validation') }}</label>
-                        <p class="mb-0">{{ $order->validation_method ?: '—' }}</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="text-muted small">{{ __('admin.ssl.order_date') }}</label>
-                        <p class="mb-0">{{ $order->order_date?->timezone(display_tz())->format(datetime_fmt()) ?: $order->created_at->timezone(display_tz())->format(datetime_fmt()) }}</p>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="text-muted small">{{ __('admin.ssl.completion_date') }}</label>
-                        <p class="mb-0">{{ $order->completion_date?->timezone(display_tz())->format(datetime_fmt()) ?: '—' }}</p>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="text-muted small">{{ __('admin.ssl.expires') }}</label>
-                        <p class="mb-0">
-                            @if($order->crt_expires)
-                                {{ $order->crt_expires->format(date_fmt()) }}
-                                @if($order->daysUntilExpiry() !== null)
-                                    <small class="{{ $order->daysUntilExpiry() <= 7 ? 'text-danger' : ($order->daysUntilExpiry() <= 30 ? 'text-warning' : 'text-success') }}">
-                                        ({{ $order->daysUntilExpiry() }} {{ __('admin.ssl.days') }})
-                                    </small>
-                                @endif
-                            @else
-                                —
-                            @endif
-                        </p>
-                    </div>
-                </div>
-
-                @if($order->domains)
-                    <div class="mb-3">
-                        <label class="text-muted small">{{ __('admin.ssl.san_domains') }}</label>
-                        <p class="mb-0">{{ $order->domains }}</p>
-                    </div>
+<h2>{{ __('admin.ssl.certificate_details') }}</h2>
+<table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+    <tr>
+        <td width="20%" class="fieldlabel">{{ __('admin.ssl.domain') }}</td>
+        <td width="30%" class="fieldarea"><strong>{{ $order->domain ?: '—' }}</strong></td>
+        <td width="20%" class="fieldlabel">{{ __('admin.ssl.status') }}</td>
+        <td width="30%" class="fieldarea">
+            <span class="whmcs-status badge {{ $order->getStatusBadgeClass() }}">{{ status_label($order->status) }}</span>
+        </td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.type') }}</td>
+        <td class="fieldarea">{{ $order->cert_type ?: '—' }}</td>
+        <td class="fieldlabel">{{ __('admin.ssl.module') }}</td>
+        <td class="fieldarea">{{ $order->module ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.remote_id') }}</td>
+        <td class="fieldarea">{{ $order->remote_id ?: '—' }}</td>
+        <td class="fieldlabel">{{ __('admin.ssl.validation') }}</td>
+        <td class="fieldarea">{{ $order->validation_method ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.client') }}</td>
+        <td class="fieldarea">
+            @if($order->client)
+                <a href="{{ route('admin.clients.show', $order->client_id) }}"><strong>{{ $order->client->first_name }} {{ $order->client->last_name }}</strong></a>
+                <span class="text-muted">({{ $order->client->email }})</span>
+                <a href="{{ route('admin.clients.show', $order->client_id) }}" class="btn btn-default btn-xs" style="margin-left:6px;">{{ __('admin.ssl.view_client') }}</a>
+            @else
+                <span class="text-muted">{{ __('admin.ssl.no_client') }}</span>
+            @endif
+        </td>
+        <td class="fieldlabel">{{ __('admin.ssl.related_service') }}</td>
+        <td class="fieldarea">
+            @if($order->service)
+                <a href="{{ route('admin.services.show', $order->service_id) }}"><strong>{{ $order->service->product?->name ?? ('Service #' . $order->service_id) }}</strong></a>
+                <span class="text-muted">({{ __('admin.ssl.service_status', ['status' => $order->service->status]) }})</span>
+                <a href="{{ route('admin.services.show', $order->service_id) }}" class="btn btn-default btn-xs" style="margin-left:6px;">{{ __('admin.ssl.view_service') }}</a>
+            @else
+                {{ '—' }}
+            @endif
+        </td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.order_date') }}</td>
+        <td class="fieldarea">{{ $order->order_date?->timezone(display_tz())->format(datetime_fmt()) ?: $order->created_at->timezone(display_tz())->format(datetime_fmt()) }}</td>
+        <td class="fieldlabel">{{ __('admin.ssl.completion_date') }}</td>
+        <td class="fieldarea">{{ $order->completion_date?->timezone(display_tz())->format(datetime_fmt()) ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.expires') }}</td>
+        <td class="fieldarea">
+            @if($order->crt_expires)
+                {{ $order->crt_expires->format(date_fmt()) }}
+                @if($order->daysUntilExpiry() !== null)
+                    <small style="color:{{ $order->daysUntilExpiry() <= 7 ? '#c43c35' : ($order->daysUntilExpiry() <= 30 ? '#d68100' : '#2e7d32') }};">
+                        ({{ $order->daysUntilExpiry() . ' ' . __('admin.ssl.days') }})
+                    </small>
                 @endif
-
-                @if($order->approver_email)
-                    <div class="mb-3">
-                        <label class="text-muted small">{{ __('admin.ssl.approver_email') }}</label>
-                        <p class="mb-0">{{ $order->approver_email }}</p>
-                    </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Admin Contact --}}
-        @if($order->admin_first_name)
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.admin_contact') }}</h5></div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-2"><label class="text-muted small">{{ __('admin.ssl.name') }}</label><p class="mb-0">{{ $order->admin_first_name }} {{ $order->admin_last_name }}</p></div>
-                    <div class="col-md-6 mb-2"><label class="text-muted small">{{ __('common.form.email') }}</label><p class="mb-0">{{ $order->admin_email }}</p></div>
-                    <div class="col-md-6 mb-2"><label class="text-muted small">{{ __('admin.ssl.phone') }}</label><p class="mb-0">{{ $order->admin_phone ?: '—' }}</p></div>
-                    <div class="col-md-6 mb-2"><label class="text-muted small">{{ __('admin.ssl.organization') }}</label><p class="mb-0">{{ $order->admin_org ?: '—' }}</p></div>
-                    <div class="col-12 mb-2"><label class="text-muted small">{{ __('common.form.address') }}</label><p class="mb-0">{{ collect([$order->admin_address, $order->admin_city, $order->admin_state, $order->admin_zip, $order->admin_country])->filter()->implode(', ') ?: '—' }}</p></div>
-                </div>
-            </div>
-        </div>
-        @endif
-
-        {{-- CSR --}}
-        @if($order->csr)
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.csr') }}</h5></div>
-            <div class="card-body">
-                <textarea class="form-control font-monospace" rows="6" readonly>{{ $order->csr }}</textarea>
-            </div>
-        </div>
-        @endif
-    </div>
-
-    <div class="col-lg-4">
-        {{-- Client Info --}}
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.client') }}</h5></div>
-            <div class="card-body">
-                @if($order->client)
-                    <p class="mb-1"><strong>{{ $order->client->first_name }} {{ $order->client->last_name }}</strong></p>
-                    <p class="mb-1 text-muted">{{ $order->client->email }}</p>
-                    <a href="{{ route('admin.clients.show', $order->client_id) }}" class="btn btn-sm btn-outline-primary mt-2">{{ __('admin.ssl.view_client') }}</a>
-                @else
-                    <p class="text-muted">{{ __('admin.ssl.no_client') }}</p>
-                @endif
-            </div>
-        </div>
-
-        {{-- Related Service --}}
-        @if($order->service)
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.related_service') }}</h5></div>
-            <div class="card-body">
-                <p class="mb-1"><strong>{{ $order->service->product?->name ?? 'Service #' . $order->service_id }}</strong></p>
-                <p class="mb-0 text-muted">{{ __('admin.ssl.service_status', ['status' => $order->service->status]) }}</p>
-                <a href="{{ route('admin.services.show', $order->service_id) }}" class="btn btn-sm btn-outline-primary mt-2">{{ __('admin.ssl.view_service') }}</a>
-            </div>
-        </div>
-        @endif
-
-        {{-- Actions --}}
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.actions') }}</h5></div>
-            <div class="card-body d-grid gap-2">
+            @else
+                {{ '—' }}
+            @endif
+        </td>
+        <td class="fieldlabel">{{ __('admin.ssl.timeline') }}</td>
+        <td class="fieldarea">
+            <div><small class="text-muted">{{ __('admin.ssl.created') }}{{ ': ' }}</small>{{ $order->created_at->timezone(display_tz())->format(datetime_fmt()) }}</div>
+            @if($order->order_date)
+                <div><small class="text-muted">{{ __('admin.ssl.submitted_ca') }}{{ ': ' }}</small>{{ $order->order_date->timezone(display_tz())->format(datetime_fmt()) }}</div>
+            @endif
+            @if($order->completion_date)
+                <div><small class="text-muted">{{ __('admin.ssl.completed') }}{{ ': ' }}</small>{{ $order->completion_date->timezone(display_tz())->format(datetime_fmt()) }}</div>
+            @endif
+            @if($order->last_polled_at)
+                <div><small class="text-muted">{{ __('admin.ssl.last_polled') }}{{ ': ' }}</small>{{ $order->last_polled_at->timezone(display_tz())->format(datetime_fmt()) }}</div>
+            @endif
+        </td>
+    </tr>
+    @if($order->domains)
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.san_domains') }}</td>
+        <td class="fieldarea" colspan="3">{{ $order->domains }}</td>
+    </tr>
+    @endif
+    @if($order->approver_email)
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.approver_email') }}</td>
+        <td class="fieldarea" colspan="3">{{ $order->approver_email }}</td>
+    </tr>
+    @endif
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.actions') }}</td>
+        <td class="fieldarea" colspan="3">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                 @if(in_array($order->status, ['Awaiting Configuration', 'Awaiting Issuance', 'Configuration Submitted']))
-                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}">
+                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="action" value="poll">
-                        <button type="submit" class="btn btn-primary w-100">{{ __('admin.ssl.poll_status') }}</button>
+                        <button type="submit" class="btn btn-primary btn-sm">{{ __('admin.ssl.poll_status') }}</button>
                     </form>
                 @endif
 
                 @if(in_array($order->status, ['Awaiting Issuance', 'Configuration Submitted']))
-                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}">
+                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="action" value="resend">
-                        <button type="submit" class="btn btn-warning w-100">{{ __('admin.ssl.resend_validation') }}</button>
+                        <button type="submit" class="btn btn-warning btn-sm">{{ __('admin.ssl.resend_validation') }}</button>
                     </form>
                 @endif
 
                 @if($order->isCompleted())
                     @if(auth('admin')->user()?->hasPermission('manage_services'))
-                        <a href="{{ route('admin.ssl.download', $order) }}" class="btn btn-success w-100">{{ __('admin.ssl.download_cert') }}</a>
+                        <a href="{{ route('admin.ssl.download', $order) }}" class="btn btn-success btn-sm">{{ __('admin.ssl.download_cert') }}</a>
                     @endif
-                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}">
+                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="action" value="renew">
-                        <button type="submit" class="btn btn-success w-100" onclick="return pnConfirm(event, @js(__('admin.ssl.confirm_renew')))">{{ __('admin.ssl.renew') }}</button>
+                        <button type="submit" class="btn btn-success btn-sm" onclick="return pnConfirm(event, @js(__('admin.ssl.confirm_renew')))">{{ __('admin.ssl.renew') }}</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}">
+                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="action" value="reissue">
                         <input type="hidden" name="csr" value="{{ $order->csr }}">
-                        <button type="submit" class="btn btn-info w-100" onclick="return pnConfirm(event, @js(__('admin.ssl.confirm_reissue')))">{{ __('admin.ssl.reissue') }}</button>
+                        <button type="submit" class="btn btn-info btn-sm" onclick="return pnConfirm(event, @js(__('admin.ssl.confirm_reissue')))">{{ __('admin.ssl.reissue') }}</button>
                     </form>
                 @endif
 
                 @if(!in_array($order->status, ['Cancelled', 'Revoked', 'Expired']))
-                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}">
+                    <form method="POST" action="{{ route('admin.ssl.action', $order) }}" style="display:inline;">
                         @csrf
                         <input type="hidden" name="action" value="revoke">
-                        <button type="submit" class="btn btn-danger w-100" onclick="return pnConfirm(event, @js(__('admin.ssl.confirm_revoke')), {danger: true})">{{ __('admin.ssl.revoke_certificate') }}</button>
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return pnConfirm(event, @js(__('admin.ssl.confirm_revoke')), {danger: true})">{{ __('admin.ssl.revoke_certificate') }}</button>
                     </form>
                 @endif
             </div>
-        </div>
+        </td>
+    </tr>
+</table>
 
-        {{-- Timeline --}}
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">{{ __('admin.ssl.timeline') }}</h5></div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0">
-                    <li class="mb-2"><small class="text-muted">{{ __('admin.ssl.created') }}</small><br>{{ $order->created_at->timezone(display_tz())->format(datetime_fmt()) }}</li>
-                    @if($order->order_date)
-                        <li class="mb-2"><small class="text-muted">{{ __('admin.ssl.submitted_ca') }}</small><br>{{ $order->order_date->timezone(display_tz())->format(datetime_fmt()) }}</li>
-                    @endif
-                    @if($order->completion_date)
-                        <li class="mb-2"><small class="text-muted">{{ __('admin.ssl.completed') }}</small><br>{{ $order->completion_date->timezone(display_tz())->format(datetime_fmt()) }}</li>
-                    @endif
-                    @if($order->last_polled_at)
-                        <li class="mb-2"><small class="text-muted">{{ __('admin.ssl.last_polled') }}</small><br>{{ $order->last_polled_at->timezone(display_tz())->format(datetime_fmt()) }}</li>
-                    @endif
-                </ul>
-            </div>
-        </div>
-    </div>
+@if($order->admin_first_name)
+<h2 style="margin-top:16px;">{{ __('admin.ssl.admin_contact') }}</h2>
+<table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+    <tr>
+        <td width="20%" class="fieldlabel">{{ __('admin.ssl.name') }}</td>
+        <td width="30%" class="fieldarea">{{ $order->admin_first_name }} {{ $order->admin_last_name }}</td>
+        <td width="20%" class="fieldlabel">{{ __('common.form.email') }}</td>
+        <td width="30%" class="fieldarea">{{ $order->admin_email }}</td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.ssl.phone') }}</td>
+        <td class="fieldarea">{{ $order->admin_phone ?: '—' }}</td>
+        <td class="fieldlabel">{{ __('admin.ssl.organization') }}</td>
+        <td class="fieldarea">{{ $order->admin_org ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('common.form.address') }}</td>
+        <td class="fieldarea" colspan="3">{{ collect([$order->admin_address, $order->admin_city, $order->admin_state, $order->admin_zip, $order->admin_country])->filter()->implode(', ') ?: '—' }}</td>
+    </tr>
+</table>
+@endif
+
+@if($order->csr)
+<h2 style="margin-top:16px;">{{ __('admin.ssl.csr') }}</h2>
+<table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+    <tr>
+        <td width="20%" class="fieldlabel">{{ __('admin.ssl.csr') }}</td>
+        <td class="fieldarea">
+            <textarea class="form-control" style="font-family:monospace;" rows="6" readonly>{{ $order->csr }}</textarea>
+        </td>
+    </tr>
+</table>
+@endif
+
+<div class="btn-container">
+    <a href="{{ route('admin.ssl.index') }}" class="btn btn-default">{{ __('admin.ssl.back_to_list') }}</a>
 </div>
 @endsection

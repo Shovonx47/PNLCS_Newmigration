@@ -1,6 +1,7 @@
 @section('no_page_header')@endsection
 @extends('client.layouts.twentyone')
 @section('title', __('client.dashboard.title'))
+@section('full_width', '1')
 
 @section('breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">{{ __('client.dashboard.title') }}</li>
@@ -8,7 +9,7 @@
 
 @section('content')
 <div class="header-lined">
-    <h1>{{ __('client.dashboard.welcome_back') }} {{ auth('web')->user()->first_name }}!</h1>
+    <h1>{{ __('client.dashboard.welcome_back', ['name' => auth('web')->user()->first_name]) }}</h1>
 </div>
 
 <div class="tiles clearfix">

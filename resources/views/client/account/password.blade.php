@@ -1,80 +1,102 @@
-@extends("client.layouts.twentyone")
-@section("title", __("client.account.change_password"))
-@section("styles")
-<style>
-.pw-strength{height:5px;border-radius:999px;background:var(--border);margin-top:8px;overflow:hidden}
-.pw-strength-bar{height:100%;border-radius:999px;transition:width 0.3s,background 0.3s;width:0}
-.pw-hint{font-size:11.5px;margin-top:6px;font-weight:600}
-</style>
-@endsection
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', __('client.account.change_password'))
+@section('content')
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="h1 mb-0">{{ __('client.password.page_title') }}</h1>
-        <p class="text-muted">{{ __('client.password.page_subtitle') }}</p>
-    </div>
-</div>
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">{{ __('client.password.update_password') }}</h3>
+                <p class="text-muted">{{ __('client.password.page_subtitle') }}</p>
 
-@include('client.partials.aside-grid-style')
-<div class="pn-aside-grid" style="--aside:380px"><div class="card">
-    <div class="card-header"><span class="card-title">{{ __('client.password.update_password') }}</span></div>
-    <div class="card-body">
-        @if($errors->any())
-        <div class="alert alert-warning alert-danger">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0 pl-3">
+                            @foreach($errors->all() as $e)
+                                <li>{{ $e }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form class="using-password-strength" method="POST" action="{{ route('client.account.password.update') }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="form-group row">
+                        <label class="col-xl-4 col-form-label" for="current_password">
+                            {{ __('common.form.current_password') }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-xl-8">
+                            <input type="password" id="current_password" name="current_password" required class="form-control" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-xl-4 col-form-label" for="password">
+                            {{ __('common.form.new_password') }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-xl-8">
+                            <input type="password" id="password" name="password" required class="form-control" autocomplete="off"
+                                   oninput="checkStrength(this.value)" placeholder="{{ __('client.password.min_chars') }}">
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" id="pwBar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="form-text text-muted" id="pwHint">{{ __('client.password.enter_new') }}</small>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-xl-4 col-form-label" for="password_confirmation">
+                            {{ __('client.password.confirm_new') }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="col-xl-8">
+                            <input type="password" id="password_confirmation" name="password_confirmation" required class="form-control" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group row mb-0">
+                        <div class="col-xl-8 offset-xl-4">
+                            <button type="submit" class="btn btn-primary">{{ __('client.password.update_btn') }}</button>
+                            <button type="reset" class="btn btn-default ml-1">{{ __('common.actions.cancel') }}</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-        @endif
+    </div>
 
-        <form method="POST" action="{{ route("client.account.password.update") }}">
-            @csrf
-            @method("PUT")
-            <div class="form-group">
-                <label class="form-label" for="current_password">{{ __('common.form.current_password') }}<span class="req">*</span></label>
-                <input type="password" id="current_password" name="current_password" required class="form-control">
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="card-title h6 mb-0">{{ __('client.password.tips_title') }}</h4>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="password">{{ __('common.form.new_password') }}<span class="req">*</span></label>
-                <input type="password" id="password" name="password" required class="form-control" oninput="checkStrength(this.value)" placeholder="{{ __('client.password.min_chars') }}">
-                <div class="pw-strength"><div class="pw-strength-bar" id="pwBar"></div></div>
-                <div class="pw-hint text-muted" id="pwHint">{{ __("client.password.enter_new") }}</div>
+            <div class="card-body">
+                <ol class="pl-3 mb-0 text-muted small">
+                    <li class="mb-2">{{ __('client.password.tip_1') }}</li>
+                    <li class="mb-2">{{ __('client.password.tip_2') }}</li>
+                    <li class="mb-2">{{ __('client.password.tip_3') }}</li>
+                    <li class="mb-2">{{ __('client.password.tip_4') }}</li>
+                    <li>{{ __('client.password.tip_5') }}</li>
+                </ol>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="password_confirmation">{{ __('client.password.confirm_new') }} <span class="req">*</span></label>
-                <input type="password" id="password_confirmation" name="password_confirmation" required class="form-control">
+        </div>
+
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-lock fa-2x text-muted mb-2"></i>
+                <div class="small text-muted">
+                    {{ __('client.password.last_changed') }}<br>
+                    <strong class="text-body">{{ __('client.password.never') }}</strong>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">{{ __('client.password.update_btn') }}</button>
-        </form>
+        </div>
     </div>
 </div>
 
-</div>
-<div>
-<div class="card">
-<div class="card-header"><span class="card-title">{{ __('client.password.tips_title') }}</span></div>
-<div class="card-body">
-<ul style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:10px;">
-<li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">1</span> {{ __('client.password.tip_1') }}</li>
-<li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">2</span> {{ __('client.password.tip_2') }}</li>
-<li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">3</span> {{ __('client.password.tip_3') }}</li>
-<li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">4</span> {{ __('client.password.tip_4') }}</li>
-<li style="display:flex;gap:8px;align-items:start"><span style="color:var(--accent);font-weight:700">5</span> {{ __('client.password.tip_5') }}</li>
-</ul>
-</div>
-</div>
-<div class="card" style="margin-top:16px">
-<div class="card-body" style="text-align:center;padding:20px">
-<div style="font-size:32px;margin-bottom:8px">&#128274;</div>
-<div style="font-size:13px;color:var(--muted)">{{ __('client.password.last_changed') }}<br><strong style="color:var(--text)">{{ __('client.password.never') }}</strong></div>
-</div>
-</div>
-</div>
-</div>
-@section("scripts")
+@endsection
+
+@section('scripts')
 <script>
 function checkStrength(v) {
     var bar = document.getElementById("pwBar"), hint = document.getElementById("pwHint");
+    if (!bar || !hint) return;
     var score = 0;
     if (v.length >= 8) score++;
     if (v.length >= 12) score++;
@@ -82,18 +104,18 @@ function checkStrength(v) {
     if (/[0-9]/.test(v)) score++;
     if (/[^A-Za-z0-9]/.test(v)) score++;
     var levels = [
-        {w:"0%",c:"#ef4444",t:"{{ __('client.password.too_short') }}"},
-        {w:"20%",c:"#ef4444",t:"{{ __('client.password.very_weak') }}"},
-        {w:"40%",c:"#f59e0b",t:"{{ __('client.password.weak') }}"},
-        {w:"60%",c:"#f59e0b",t:"{{ __('client.password.fair') }}"},
-        {w:"80%",c:"#06d6a0",t:"{{ __('client.password.strong') }}"},
-        {w:"100%",c:"#10b981",t:"{{ __('client.password.very_strong') }}"}
+        {w:"0%", cls:"bg-danger", txt:"text-danger", t:@json(__('client.password.too_short'))},
+        {w:"20%", cls:"bg-danger", txt:"text-danger", t:@json(__('client.password.very_weak'))},
+        {w:"40%", cls:"bg-warning", txt:"text-warning", t:@json(__('client.password.weak'))},
+        {w:"60%", cls:"bg-warning", txt:"text-warning", t:@json(__('client.password.fair'))},
+        {w:"80%", cls:"bg-info", txt:"text-info", t:@json(__('client.password.strong'))},
+        {w:"100%", cls:"bg-success", txt:"text-success", t:@json(__('client.password.very_strong'))}
     ];
     var l = levels[Math.min(score, 5)];
-    bar.style.width = l.w; bar.style.background = l.c;
-    hint.textContent = l.t; hint.style.color = l.c;
+    bar.style.width = l.w;
+    bar.className = "progress-bar " + l.cls;
+    hint.textContent = l.t;
+    hint.className = "form-text font-weight-bold " + l.txt;
 }
 </script>
-@endsection
-
 @endsection

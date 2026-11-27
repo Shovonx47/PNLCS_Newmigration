@@ -2,14 +2,18 @@
 @section('title', __('admin.invoices.create_invoice'))
 @section('content')
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>{{ __('admin.invoices.create_invoice') }}</h1>
-    <a href="{{ route('admin.invoices.index') }}" class="btn btn-default btn-sm">&larr; {{ __('admin.invoices.back_to_invoices') }}</a>
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+    <h1 style="margin:0;">{{ __('admin.invoices.create_invoice') }}</h1>
+    <div class="context-btn-container" style="margin:0;">
+        <a href="{{ route('admin.invoices.index') }}" class="btn btn-default btn-sm">&larr; {{ __('admin.invoices.back_to_invoices') }}</a>
+    </div>
 </div>
 
 @if($errors->any())
-<div style="padding:10px 15px;background:#f2dede;border:1px solid #ebccd1;border-radius:4px;color:#a94442;margin-bottom:15px;font-size:13px;">
-    @foreach($errors->all() as $error)<div>&bull; {{ $error }}</div>@endforeach
+<div class="infobox" style="border-left:4px solid #c43c35;background:#f2dede;color:#a94442;margin-bottom:15px;">
+    @foreach($errors->all() as $error)
+        <div>&bull; {{ $error }}</div>
+    @endforeach
 </div>
 @endif
 
@@ -17,187 +21,161 @@
 <form method="POST" action="{{ route('admin.invoices.store') }}">
     @csrf
 
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:15px;">
+    <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+        <tr>
+            <td width="15%" class="fieldlabel">{{ __('admin.invoices.select_client') }} <span style="color:#d9534f;">*</span></td>
+            <td width="35%" class="fieldarea">
+                <select name="client_id" required class="form-control" @change="setClient($event.target.value)">
+                    <option value="">{{ __('admin.invoices.choose_client') }}</option>
+                    @foreach($clients as $client)
+                        <option value="{{ $client->id }}" data-rate="{{ $client->billing_tax_rate }}" data-label="{{ $client->billing_tax_label }}" data-rates="{{ $client->billing_tax_rates->toJson() }}" {{ old('client_id', $selectedClient?->id) == $client->id ? 'selected' : '' }}>
+                            {{ $client->display_name }} ({{ $client->email }})
+                        </option>
+                    @endforeach
+                </select>
+            </td>
+            <td width="15%" class="fieldlabel">{{ __('admin.invoices.payment_method') }}</td>
+            <td width="35%" class="fieldarea">
+                <select name="payment_method" class="form-control select-inline">
+                    @foreach($gateways as $gw)
+                        <option value="{{ $gw }}" {{ old('payment_method', $defaultPaymentMethod ?? '') == $gw ? 'selected' : '' }}>{{ payment_method_label((string) $gw) }}</option>
+                    @endforeach
+                    @unless(in_array('banktransfer', $gateways, true))
+                        <option value="banktransfer" {{ old('payment_method', $defaultPaymentMethod ?? '') == 'banktransfer' ? 'selected' : '' }}>{{ __('admin.invoices.bank_transfer') }}</option>
+                    @endunless
+                    <option value="manual" {{ old('payment_method', $defaultPaymentMethod ?? '') == 'manual' ? 'selected' : '' }}>{{ __('admin.invoices.manual') }}</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td class="fieldlabel">{{ __('admin.invoices.invoice_date') }} <span style="color:#d9534f;">*</span></td>
+            <td class="fieldarea">
+                <input type="date" name="date" required value="{{ old('date', now()->toDateString()) }}" class="form-control input-200">
+            </td>
+            <td class="fieldlabel">{{ __('admin.invoices.due_date') }} <span style="color:#d9534f;">*</span></td>
+            <td class="fieldarea">
+                <input type="date" name="due_date" required value="{{ old('due_date', now()->addDays($dueDays ?? 14)->toDateString()) }}" class="form-control input-200">
+            </td>
+        </tr>
+        <tr>
+            <td class="fieldlabel">{{ __('admin.invoices.notes') }}</td>
+            <td class="fieldarea" colspan="3">
+                <textarea name="notes" rows="2" placeholder="{{ __('admin.invoices.notes_placeholder') }}" class="form-control">{{ old('notes') }}</textarea>
+            </td>
+        </tr>
+    </table>
 
-        {{-- Left column --}}
-        <div>
-            <div class="card" style="margin-bottom:15px;">
-                <div class="card-header"><strong>{{ __('admin.invoices.client') }}</strong></div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label class="form-label">{{ __('admin.invoices.select_client') }} <span style="color:#d9534f;">*</span></label>
-                        <select name="client_id" required class="form-control" @change="setClient($event.target.value)">
-                            <option value="">{{ __('admin.invoices.choose_client') }}</option>
-                            @foreach($clients as $client)
-                            <option value="{{ $client->id }}" data-rate="{{ $client->billing_tax_rate }}" data-label="{{ $client->billing_tax_label }}" data-rates="{{ $client->billing_tax_rates->toJson() }}" {{ old('client_id', $selectedClient?->id) == $client->id ? 'selected' : '' }}>
-                                {{ $client->display_name }} ({{ $client->email }})
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-            </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;">
+        <h2 style="margin:0;">{{ __('admin.invoices.line_items') }}</h2>
+        <button type="button" @click="addItem()" class="btn btn-default btn-xs">+ {{ __('admin.invoices.add_item') }}</button>
+    </div>
 
-            <div class="card" style="margin-bottom:15px;">
-                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-                    <strong>{{ __('admin.invoices.line_items') }}</strong>
-                    <button type="button" @click="addItem()" class="btn btn-default btn-xs">+ {{ __('admin.invoices.add_item') }}</button>
-                </div>
-                <div class="card-body">
-                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                        <thead>
-                            <tr style="border-bottom:1px solid #ddd;">
-                                <th style="padding:6px 8px;text-align:left;font-weight:600;color:#555;">{{ __('common.table.description') }}</th>
-                                <th style="padding:6px 8px;text-align:center;font-weight:600;color:#555;width:70px;">{{ __('common.table.qty') }}</th>
-                                <th style="padding:6px 8px;text-align:center;font-weight:600;color:#555;width:60px;">{{ __('admin.invoices.unit') }}</th>
-                                <th style="padding:6px 8px;text-align:center;font-weight:600;color:#555;width:70px;">{{ __('common.table.tax') }}</th>
-                                <th style="padding:6px 8px;text-align:right;font-weight:600;color:#555;width:110px;">{{ __('admin.invoices.price') }}</th>
-                                <th style="padding:6px 8px;text-align:right;font-weight:600;color:#555;width:100px;">{{ __('common.table.total') }}</th>
-                                <th style="width:30px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="(item, index) in items" :key="index">
-                                <tr style="border-bottom:1px solid #f5f5f5;">
-                                    <td style="padding:6px 8px;">
-                                        <input type="text" :id="'desc-input-' + index" :name="`items[${index}][description]`" x-model="item.description"
-                                               @input="onTyping(index, item.description)" @keydown.arrow-down.prevent="move(index, 1)"
-                                               @keydown.arrow-up.prevent="move(index, -1)" @keydown.enter.prevent="pickActive(index)"
-                                               @keydown.escape="item.show = false" @blur="setTimeout(() => item.show = false, 150)"
-                                               placeholder="{{ __('admin.invoices.description_placeholder') }}" required class="form-control" style="font-size:13px;">
-                                        <div x-show="item.show && matchesFor(item.description).length"
-                                             x-cloak :style="item.dd ? 'position:fixed;top:' + item.dd.bottom + 'px;left:' + item.dd.left + 'px;width:' + item.dd.width + 'px;z-index:9999;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.2);' : 'display:none;'">
-                                            <div style="overflow-y:auto;max-height:220px;">
-                                            <template x-for="(p, i) in pageList(item)" :key="p.name">
-                                                <div @mousedown.prevent="select(index, p)"
-                                                     @mouseenter="item.active = i"
-                                                     :style="'padding:7px 10px;cursor:pointer;font-size:13px;' + (i === item.active ? 'background:#f0f6ff;' : '')">
-                                                    <span x-text="p.name" style="font-weight:600;"></span>
-                                                    <span x-show="p.unit" style="color:#999;margin-left:6px;" x-text="p.unit"></span>
-                                                    <span x-show="p.amount != null" style="color:#777;float:right;" x-text="p.amount != null ? currencyPrefix + Number(p.amount).toFixed(2) + currencySuffix : ''"></span>
-                                                </div>
-                                            </template>
-                                            </div>
-                                            <div x-show="totalPages(item) > 1" style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-top:1px solid #eee;font-size:12px;background:#fafafa;">
-                                                <button type="button" @click.prevent="prevPage(item)" :disabled="item.page <= 1"
-                                                        style="border:1px solid #ccc;background:#fff;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:12px;">&laquo;</button>
-                                                <span style="color:#666;" x-text="item.page + ' / ' + totalPages(item)"></span>
-                                                <button type="button" @click.prevent="nextPage(item)" :disabled="item.page >= totalPages(item)"
-                                                        style="border:1px solid #ccc;background:#fff;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:12px;">&raquo;</button>
-                                            </div>
+    <div class="tablebg">
+        <table class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3">
+            <thead>
+                <tr>
+                    <th>{{ __('common.table.description') }}</th>
+                    <th style="width:74px;text-align:center;">{{ __('common.table.qty') }}</th>
+                    <th style="width:74px;text-align:center;">{{ __('admin.invoices.unit') }}</th>
+                    <th style="width:130px;text-align:center;">{{ __('common.table.tax') }}</th>
+                    <th style="width:120px;text-align:right;">{{ __('admin.invoices.price') }}</th>
+                    <th style="width:110px;text-align:right;">{{ __('common.table.total') }}</th>
+                    <th style="width:34px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="(item, index) in items" :key="index">
+                    <tr>
+                        <td>
+                            <input type="text" :id="'desc-input-' + index" :name="`items[${index}][description]`" x-model="item.description"
+                                   @input="onTyping(index, item.description)" @keydown.arrow-down.prevent="move(index, 1)"
+                                   @keydown.arrow-up.prevent="move(index, -1)" @keydown.enter.prevent="pickActive(index)"
+                                   @keydown.escape="item.show = false" @blur="setTimeout(() => item.show = false, 150)"
+                                   placeholder="{{ __('admin.invoices.description_placeholder') }}" required class="form-control">
+                            <div x-show="item.show && matchesFor(item.description).length"
+                                 x-cloak :style="item.dd ? 'position:fixed;top:' + item.dd.bottom + 'px;left:' + item.dd.left + 'px;width:' + item.dd.width + 'px;z-index:9999;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.2);' : 'display:none;'">
+                                <div style="overflow-y:auto;max-height:220px;">
+                                    <template x-for="(p, i) in pageList(item)" :key="p.name">
+                                        <div @mousedown.prevent="select(index, p)"
+                                             @mouseenter="item.active = i"
+                                             :style="'padding:7px 10px;cursor:pointer;font-size:13px;' + (i === item.active ? 'background:#f0f6ff;' : '')">
+                                            <span x-text="p.name" style="font-weight:600;"></span>
+                                            <span x-show="p.unit" style="color:#999;margin-left:6px;" x-text="p.unit"></span>
+                                            <span x-show="p.amount != null" style="color:#777;float:right;" x-text="p.amount != null ? currencyPrefix + Number(p.amount).toFixed(2) + currencySuffix : ''"></span>
                                         </div>
-                                    </td>
-                                    <td style="padding:6px 8px;text-align:center;">
-                                        <input type="number" :name="`items[${index}][qty]`" x-model.number="item.qty"
-                                               @input="recalculate()" placeholder="1" step="1" min="1"
-                                               class="form-control" style="font-size:13px;text-align:center;width:64px;">
-                                    </td>
-                                    <td style="padding:6px 8px;text-align:center;">
-                                        <input type="text" :name="`items[${index}][unit]`" x-model="item.unit"
-                                               placeholder="jed." class="form-control" style="font-size:13px;text-align:center;width:64px;">
-                                    </td>
-                                    <td style="padding:6px 8px;text-align:center;">
-                                        <select :name="`items[${index}][tax_label]`" x-model="item.tax_label"
-                                                @change="syncItemTax(index)" class="form-control"
-                                                style="font-size:13px;text-align:center;min-width:120px;">
-                                            <option value="">0%</option>
-                                            <template x-for="(r, i) in clientRates" :key="i">
-                                                <option :value="r.name" x-text="r.name"></option>
-                                            </template>
-                                        </select>
-                                        <input type="hidden" :name="`items[${index}][tax_rate]`" :value="item.tax_rate">
-                                        <input type="hidden" :name="`items[${index}][tax_rule_id]`" :value="item.tax_rule_id || ''">
-                                    </td>
-                                    <td style="padding:6px 8px;">
-                                        <input type="number" :name="`items[${index}][amount]`" x-model.number="item.amount"
-                                               @input="recalculate()" placeholder="0.00" step="0.01" min="0" required
-                                               class="form-control" style="font-size:13px;text-align:right;">
-                                    </td>
-                                    <td style="padding:6px 8px;text-align:right;white-space:nowrap;color:#333;font-family:monospace;font-size:13px;">
-                                        <span x-text="currencyPrefix + lineTotal(item).toFixed(2) + currencySuffix">0.00</span>
-                                    </td>
-                                    <td style="padding:6px 4px;text-align:center;">
-                                        <button type="button" @click="removeItem(index)" x-show="items.length > 1"
-                                                style="background:none;border:none;color:#d9534f;cursor:pointer;font-size:16px;padding:0 2px;">&times;</button>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                    </template>
+                                </div>
+                                <div x-show="totalPages(item) > 1" style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-top:1px solid #eee;font-size:12px;background:#fafafa;">
+                                    <button type="button" @click.prevent="prevPage(item)" :disabled="item.page <= 1"
+                                            style="border:1px solid #ccc;background:#fff;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:12px;">&laquo;</button>
+                                    <span style="color:#666;" x-text="item.page + ' / ' + totalPages(item)"></span>
+                                    <button type="button" @click.prevent="nextPage(item)" :disabled="item.page >= totalPages(item)"
+                                            style="border:1px solid #ccc;background:#fff;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:12px;">&raquo;</button>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align:center;">
+                            <input type="number" :name="`items[${index}][qty]`" x-model.number="item.qty"
+                                   @input="recalculate()" placeholder="{{ '1' }}" step="1" min="1"
+                                   class="form-control" style="text-align:center;width:64px;">
+                        </td>
+                        <td style="text-align:center;">
+                            <input type="text" :name="`items[${index}][unit]`" x-model="item.unit"
+                                   placeholder="{{ 'jed.' }}" class="form-control" style="text-align:center;width:64px;">
+                        </td>
+                        <td style="text-align:center;">
+                            <select :name="`items[${index}][tax_label]`" x-model="item.tax_label"
+                                    @change="syncItemTax(index)" class="form-control"
+                                    style="text-align:center;min-width:115px;">
+                                <option value="">{{ '0%' }}</option>
+                                <template x-for="(r, i) in clientRates" :key="i">
+                                    <option :value="r.name" x-text="r.name"></option>
+                                </template>
+                            </select>
+                            <input type="hidden" :name="`items[${index}][tax_rate]`" :value="item.tax_rate">
+                            <input type="hidden" :name="`items[${index}][tax_rule_id]`" :value="item.tax_rule_id || ''">
+                        </td>
+                        <td>
+                            <input type="number" :name="`items[${index}][amount]`" x-model.number="item.amount"
+                                   @input="recalculate()" placeholder="{{ '0.00' }}" step="0.01" min="0" required
+                                   class="form-control" style="text-align:right;">
+                        </td>
+                        <td style="text-align:right;white-space:nowrap;font-family:monospace;">
+                            <span x-text="currencyPrefix + lineTotal(item).toFixed(2) + currencySuffix">{{ '0.00' }}</span>
+                        </td>
+                        <td style="text-align:center;">
+                            <button type="button" @click="removeItem(index)" x-show="items.length > 1"
+                                    style="background:none;border:none;color:#d9534f;cursor:pointer;font-size:16px;padding:0 2px;">&times;</button>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align:right;padding:6px 10px;font-weight:600;">{{ __('admin.invoices.net') }}:</td>
+                    <td style="text-align:right;padding:6px 10px;font-family:monospace;" x-text="currencyPrefix + subtotal.toFixed(2) + currencySuffix">{{ '0.00' }}</td>
+                    <td></td>
+                </tr>
+                <template x-for="g in vatBreakdown" :key="g.label">
+                    <tr>
+                        <td colspan="4" style="text-align:right;padding:4px 10px;color:#555;" x-text="g.label"></td>
+                        <td style="text-align:right;padding:4px 10px;font-family:monospace;color:#666;" x-text="currencyPrefix + g.net.toFixed(2) + currencySuffix">{{ '0.00' }}</td>
+                        <td style="text-align:right;padding:4px 10px;font-family:monospace;" x-text="currencyPrefix + g.amount.toFixed(2) + currencySuffix">{{ '0.00' }}</td>
+                        <td></td>
+                    </tr>
+                </template>
+                <tr style="background:#eef2f7;border-top:2px solid #cbd5e1;">
+                    <td colspan="5" style="text-align:right;padding:8px 10px;font-weight:700;font-size:14px;">{{ __('admin.invoices.gross') }}:</td>
+                    <td style="text-align:right;padding:8px 10px;font-weight:700;font-family:monospace;font-size:14px;" x-text="currencyPrefix + grandTotal.toFixed(2) + currencySuffix">{{ '0.00' }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 
-            <div class="card">
-                <div class="card-header"><strong>{{ __('admin.invoices.notes') }}</strong></div>
-                <div class="card-body">
-                    <div class="form-group" style="margin:0;">
-                        <textarea name="notes" rows="3" placeholder="{{ __('admin.invoices.notes_placeholder') }}" class="form-control">{{ old('notes') }}</textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Right column --}}
-        <div>
-            <div class="card" style="margin-bottom:15px;">
-                <div class="card-header"><strong>{{ __('admin.invoices.dates') }}</strong></div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label class="form-label">{{ __('admin.invoices.invoice_date') }} <span style="color:#d9534f;">*</span></label>
-                        <input type="date" name="date" required value="{{ old('date', now()->toDateString()) }}" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">{{ __('admin.invoices.due_date') }} <span style="color:#d9534f;">*</span></label>
-                        <input type="date" name="due_date" required value="{{ old('due_date', now()->addDays($dueDays ?? 14)->toDateString()) }}" class="form-control">
-                    </div>
-                </div>
-            </div>
-
-            <div class="card" style="margin-bottom:15px;">
-                <div class="card-header"><strong>{{ __('admin.invoices.payment_method') }}</strong></div>
-                <div class="card-body">
-                    <div class="form-group" style="margin:0;">
-                        <select name="payment_method" class="form-control">
-                            @foreach($gateways as $gw)
-                            <option value="{{ $gw }}" {{ old('payment_method', $defaultPaymentMethod ?? '') == $gw ? 'selected' : '' }}>{{ payment_method_label((string) $gw) }}</option>
-                            @endforeach
-                            @unless(in_array('banktransfer', $gateways, true))
-                            <option value="banktransfer" {{ old('payment_method', $defaultPaymentMethod ?? '') == 'banktransfer' ? 'selected' : '' }}>{{ __('admin.invoices.bank_transfer') }}</option>
-                            @endunless
-                            <option value="manual" {{ old('payment_method', $defaultPaymentMethod ?? '') == 'manual' ? 'selected' : '' }}>{{ __('admin.invoices.manual') }}</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card" style="margin-bottom:15px;">
-                <div class="card-header"><strong>{{ __('admin.invoices.summary') }}</strong></div>
-                <div class="card-body">
-                    <table style="width:100%;font-size:13px;border-collapse:collapse;">
-                        <tr>
-                            <td style="padding:4px 0;color:#777;">{{ __('admin.invoices.net') }}</td>
-                            <td style="padding:4px 0;"></td>
-                            <td style="padding:4px 0;text-align:right;font-family:monospace;" x-text="currencyPrefix + subtotal.toFixed(2) + currencySuffix">0.00</td>
-                        </tr>
-                        <template x-for="g in vatBreakdown" :key="g.label">
-                            <tr>
-                                <td style="padding:4px 0;color:#777;" x-text="g.label"></td>
-                                <td style="padding:4px 0;text-align:right;font-family:monospace;" x-text="currencyPrefix + g.amount.toFixed(2) + currencySuffix">0.00</td>
-                                <td style="padding:4px 0;text-align:right;font-family:monospace;" x-text="currencyPrefix + g.net.toFixed(2) + currencySuffix">0.00</td>
-                            </tr>
-                        </template>
-                        <tr style="border-top:2px solid #aaa;background:#f5f5f5;">
-                            <td style="padding:6px 0;font-weight:700;">{{ __('admin.invoices.gross') }}</td>
-                            <td style="padding:6px 0;"></td>
-                            <td style="padding:6px 0;text-align:right;font-weight:700;font-family:monospace;font-size:15px;" x-text="currencyPrefix + grandTotal.toFixed(2) + currencySuffix">0.00</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width:100%;padding:10px;">{{ __('admin.invoices.create_invoice') }}</button>
-        </div>
-
+    <div class="btn-container" style="margin-top:16px;">
+        <button type="submit" class="btn btn-primary">{{ __('admin.invoices.create_invoice') }}</button>
+        <a href="{{ route('admin.invoices.index') }}" class="btn btn-default">{{ __('common.actions.cancel') }}</a>
     </div>
 </form>
 </div>
@@ -210,7 +188,6 @@ function invoiceBuilder() {
         currencyPrefix: @json($defaultCurrency?->prefix ?? ''),
         currencySuffix: @json($defaultCurrency?->suffix ?? ''),
         taxRate: 0,
-        // How the invoice will be taxed when saved: null on top, 'inclusive', 'none' (Invoice::currentTaxMode).
         taxMode: @json(\App\Models\Invoice::currentTaxMode()),
         taxLabel: '',
         clientRates: [],
@@ -314,10 +291,6 @@ function invoiceBuilder() {
                 item.tax_rate = p.tax_rate;
                 const label = p.tax_label || '';
                 item.tax_rule_id = p.tax_rule_id ?? this.ruleIdForLabel(label);
-                // Make the product's own rule selectable in the per-line box
-                // before setting the line's label, so the select has an option
-                // to match. A customer may not be chosen yet, and their rules
-                // are the box's options.
                 if (label && !this.clientRates.some(r => r.name === label)) {
                     this.clientRates = [...this.clientRates, { id: item.tax_rule_id, name: label, rate: item.tax_rate, is_default: false }];
                 }
@@ -337,8 +310,6 @@ function invoiceBuilder() {
         lineTotal(item) { return (parseFloat(item.amount) || 0) * (parseInt(item.qty, 10) || 1); },
         fmtRate(r) { return String(Math.round(r * 100) / 100); },
         recalculate() {
-            // As the invoice will be saved (Invoice::lineTax): no tax while the shop charges none, and with prices
-            // that include tax the VAT is the part of the line it holds.
             const inclusive = this.taxMode === 'inclusive';
             const gross = this.items.reduce((s, i) => s + this.lineTotal(i), 0);
             const groups = {};

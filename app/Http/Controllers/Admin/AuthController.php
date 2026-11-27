@@ -55,6 +55,7 @@ class AuthController extends Controller
             ]);
 
             $request->session()->regenerate();
+            $request->session()->forget('admin_password_confirmed_at');
 
             // Check 2FA
             if ($admin->second_factor_type && $admin->second_factor_secret) {
@@ -189,6 +190,52 @@ class AuthController extends Controller
         session()->forget('admin_2fa_verified');
 
         return back()->with('success', __('messages.success.2fa_has_been_disabled'));
+    }
+
+    public function confirmPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+            'intended' => 'nullable|string|max:500',
+        ]);
+
+        $admin = Auth::guard('admin')->user();
+        if (! $admin) {
+            return redirect()->route('admin.login');
+        }
+
+        $intendedRaw = (string) ($request->input('intended') ?: $request->session()->get('admin_password_confirm_intended', ''));
+        $adminPrefix = rtrim(url('/admin'), '/');
+        $safeIntended = route('admin.config.admins');
+
+        if ($intendedRaw !== '') {
+            if (str_starts_with($intendedRaw, $adminPrefix . '/') || $intendedRaw === $adminPrefix) {
+                $safeIntended = $intendedRaw;
+            } elseif (str_starts_with($intendedRaw, '/admin') && ! str_starts_with($intendedRaw, '//')) {
+                $safeIntended = url($intendedRaw);
+            }
+        }
+
+        $attemptsKey = 'confirm-password:admin:' . $admin->id;
+        if (RateLimiter::tooManyAttempts($attemptsKey, 5)) {
+            return redirect()->to($safeIntended)->withErrors([
+                'password' => __('auth.throttle', ['seconds' => RateLimiter::availableIn($attemptsKey)]),
+            ]);
+        }
+
+        if (! \Illuminate\Support\Facades\Hash::check((string) $request->input('password'), (string) $admin->password)) {
+            RateLimiter::hit($attemptsKey, 900);
+
+            return redirect()->to($safeIntended)->withErrors([
+                'password' => 'The password you entered is incorrect. Please try again.',
+            ]);
+        }
+
+        RateLimiter::clear($attemptsKey);
+        $request->session()->put('admin_password_confirmed_at', time());
+        $request->session()->forget('admin_password_confirm_intended');
+
+        return redirect()->to($safeIntended);
     }
 
     public function logout(Request $request)

@@ -1,19 +1,38 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $textDirection ?? 'ltr' }}" data-theme="{{ request()->cookie('pnlcs_theme') === 'dark' ? 'dark' : 'light' }}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ __('client.auth.forgot_password_title') }} - {{ company_name() }}</title>
-@include('partials.seo-meta', ['title' => __('client.auth.forgot_password_title').' - '.company_name()])
+@extends('client.layouts.twentyone')
+@section('no_page_header', '1')
+@section('title', __('client.auth.forgot_password_title'))
+@section('content')
 
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh}.card{background:var(--card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08);width:420px;max-width:95%;padding:40px}h1{font-size:22px;font-weight:700;color:var(--theme-primary,#1a4d80);margin-bottom:6px}p.sub{color:var(--muted);font-size:14px;margin-bottom:24px}.fg{margin-bottom:16px}.fl{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}.fc{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none}.fc:focus{border-color:var(--theme-primary,#1a4d80)}.btn{width:100%;padding:12px;background:var(--theme-primary,#1a4d80);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}.btn:hover{background:#143d66}.as{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px}.ae{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px}a{color:var(--theme-primary,#1a4d80);text-decoration:none;font-weight:500;font-size:13px}</style>    {!! hook_output('ClientAreaHeadOutput', ['user' => auth()->user()]) !!}
-    @include('partials.locale-alternates')
-@include('client.auth.partials.theme-head')
-</head>
-<body><div>@include('client.auth.partials.brand')<div class="card"><h1>{{ __('client.auth.forgot_password_heading') }}</h1><p class="sub">{{ __('client.auth.forgot_password_subtitle') }}</p>
-<?php if(session('success')): ?><div class="as">{{ session('success') }}</div><?php endif; ?>
-<?php if($errors->any()): ?><div class="ae"><?php foreach($errors->all() as $e): ?>{{ $e }}<?php endforeach; ?></div><?php endif; ?>
-<form method="POST" action="{{ route('client.password.email') }}"><?php echo csrf_field(); ?>
-<div class="fg"><label class="fl">{{ __('common.form.email_address') }}</label><input type="email" name="email" class="fc" placeholder="you@example.com" required></div>
-@include('client.partials.recaptcha', ['form' => 'password'])
-<button type="submit" class="btn">{{ __('client.auth.send_reset_link') }}</button></form>
-<div style="text-align:center;margin-top:20px"><a href="{{ route('client.login') }}">{{ __('client.auth.back_to_login') }}</a></div></div></div>    {!! hook_output('ClientAreaFooterOutput', ['user' => auth()->user()]) !!}
-</body></html>
+<div class="card mw-540 mb-md-4 mt-md-4 mx-auto">
+    <div class="card-body px-sm-5 py-5">
+        <h3 class="card-title">{{ __('client.auth.forgot_password_heading') }}</h3>
+        <p class="text-muted mb-4">{{ __('client.auth.forgot_password_subtitle') }}</p>
+
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger">
+                @foreach($errors->all() as $e)
+                    <div>{{ $e }}</div>
+                @endforeach
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('client.password.email') }}">
+            @csrf
+            <div class="form-group">
+                <label for="inputEmail">{{ __('common.form.email_address') }}</label>
+                <input type="email" id="inputEmail" name="email" class="form-control" placeholder="{{ __('common.form.email_address') }}" required autofocus>
+            </div>
+            @include('client.partials.recaptcha', ['form' => 'password'])
+            <button type="submit" class="btn btn-primary btn-block mt-3">{{ __('client.auth.send_reset_link') }}</button>
+        </form>
+    </div>
+    <div class="card-footer px-md-5 text-center">
+        <a href="{{ route('client.login') }}">{{ __('client.auth.back_to_login') }}</a>
+    </div>
+</div>
+
+@endsection

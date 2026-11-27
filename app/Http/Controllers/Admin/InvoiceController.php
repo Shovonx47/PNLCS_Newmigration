@@ -55,6 +55,12 @@ class InvoiceController extends Controller
 
         if ($status === 'unpaid') {
             $query->whereIn('status', ['unpaid', 'overdue']);
+        } elseif (in_array($status, ['payment-pending', 'payment_pending'], true)) {
+            $pendingIds = \App\Models\PaymentNotification::where('status', 'pending')->pluck('invoice_id');
+            $query->where(function ($q) use ($pendingIds) {
+                $q->whereIn('status', ['payment_pending', 'payment-pending'])
+                    ->orWhereIn('id', $pendingIds);
+            });
         } elseif ($status === self::CHARGE_REVIEW_FILTER) {
             // Not an invoice status: the invoices whose automatic card payment
             // was sent and whose outcome could not be established. They are
@@ -79,6 +85,56 @@ class InvoiceController extends Controller
         $invoices = $query->orderBy('created_at', 'desc')->paginate(25);
 
         return view('admin.invoices.index', compact('invoices'));
+    }
+
+    public function offlineCc(Request $request): View
+    {
+        $query = Invoice::with(['client', 'chargeAttempt'])
+            ->excludeSettledProformas()
+            ->whereIn('status', ['unpaid', 'overdue']);
+
+        if ($request->filled('search')) {
+            $s = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('invoice_num', 'like', "%{$s}%")
+                    ->orWhereHas('client', fn ($c) => $c
+                        ->where('first_name', 'like', "%{$s}%")
+                        ->orWhere('last_name', 'like', "%{$s}%")
+                        ->orWhere('company_name', 'like', "%{$s}%")
+                        ->orWhere('email', 'like', "%{$s}%"));
+            });
+        }
+
+        $invoices = $query->orderBy('due_date', 'asc')->paginate(25);
+        $storedCardClients = \App\Models\PaymentMethod::where('status', \App\Models\PaymentMethod::STATUS_ACTIVE)
+            ->pluck('client_id')
+            ->unique()
+            ->flip();
+
+        return view('admin.invoices.offline-cc', compact('invoices', 'storedCardClients'));
+    }
+
+    public function disputes(Request $request): View
+    {
+        $filter = (string) $request->query('filter', 'all');
+
+        $query = \App\Models\Transaction::with(['client', 'invoice'])
+            ->where(function ($q) {
+                $q->where('amount_out', '>', 0)
+                    ->orWhere('description', 'like', '%refund%')
+                    ->orWhere('description', 'like', '%dispute%')
+                    ->orWhere('description', 'like', '%chargeback%');
+            });
+
+        if ($filter === 'refunded') {
+            $query->where('amount_out', '>', 0);
+        } elseif ($filter === 'open') {
+            $query->where('description', 'like', '%dispute%');
+        }
+
+        $disputes = $query->orderByDesc('id')->paginate(25);
+
+        return view('admin.invoices.disputes', compact('disputes', 'filter'));
     }
 
     public function show(Invoice $invoice): View

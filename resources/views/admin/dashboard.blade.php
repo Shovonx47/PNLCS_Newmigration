@@ -550,19 +550,19 @@
                     <div class="ubo-grid-3">
                         <a href="{{ url('/admin/extensions/iptsp-recharge') }}" class="a2z-card bg-c-green">
                             <i class="fas fa-check-circle w-icon"></i>
-                            <div class="sub-val">{{ 'Count:' }} {{ $ubo['rcgSuccessC'] }}</div>
+                            <div class="sub-val">{{ $ubo['rcgSuccessC'] }} {{ 'Transactions' }}</div>
                             <div class="val">{{ $ubo['rcgSuccessA'] }}</div>
                             <div class="lbl">{{ 'Success Today' }}</div>
                         </a>
                         <a href="{{ url('/admin/extensions/iptsp-recharge') }}" class="a2z-card bg-c-orange">
                             <i class="fas fa-hourglass-half w-icon"></i>
-                            <div class="sub-val">{{ 'Count:' }} {{ $ubo['rcgPendingC'] }}</div>
+                            <div class="sub-val">{{ $ubo['rcgPendingC'] }} {{ 'Transactions' }}</div>
                             <div class="val">{{ $ubo['rcgPendingA'] }}</div>
                             <div class="lbl">{{ 'Pending Today' }}</div>
                         </a>
                         <a href="{{ url('/admin/extensions/iptsp-recharge') }}" class="a2z-card bg-c-crimson">
                             <i class="fas fa-times-circle w-icon"></i>
-                            <div class="sub-val">{{ 'Count:' }} {{ $ubo['rcgFailedC'] }}</div>
+                            <div class="sub-val">{{ $ubo['rcgFailedC'] }} {{ 'Transactions' }}</div>
                             <div class="val">{{ $ubo['rcgFailedA'] }}</div>
                             <div class="lbl">{{ 'Failed Today' }}</div>
                         </a>
@@ -745,15 +745,15 @@
                                     </div>
                                     <div style="width:64%;display:grid;grid-template-columns:repeat(3,1fr);text-align:center;font-size:12px;">
                                         <div>
-                                            <div class="color-green" style="font-weight:600;">{{ 'N/A' }}</div>
+                                            <div class="{{ ! empty($srv['online']) ? 'color-green' : 'color-red' }}" style="font-weight:600;">{{ ! empty($srv['online']) ? 'Online' : 'Offline' }}</div>
                                             <div style="font-size:10.5px;color:#a2a6af;">{{ 'Status' }}</div>
                                         </div>
                                         <div>
-                                            <div style="color:#444;">{{ 'N/A' }}</div>
+                                            <div style="color:#777;">{{ 'Not tracked' }}</div>
                                             <div style="font-size:10.5px;color:#a2a6af;">{{ 'Uptime' }}</div>
                                         </div>
                                         <div>
-                                            <div style="color:#31708f;">{{ 'N/A' }}</div>
+                                            <div style="color:#777;">{{ 'Not tracked' }}</div>
                                             <div style="font-size:10.5px;color:#a2a6af;">{{ 'Avg. load' }}</div>
                                         </div>
                                     </div>

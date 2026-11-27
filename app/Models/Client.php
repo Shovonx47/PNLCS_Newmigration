@@ -253,6 +253,11 @@ class Client extends Model
         return $this->belongsTo(ClientGroup::class, 'group_id');
     }
 
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);

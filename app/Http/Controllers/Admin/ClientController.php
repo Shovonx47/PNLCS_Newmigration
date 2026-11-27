@@ -86,6 +86,7 @@ class ClientController extends Controller
             'tax_office' => 'nullable|string|max:100',
             'national_id' => 'nullable|string|max:20',
             'address1' => 'nullable|string|max:255',
+            'address2' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'postcode' => 'nullable|string|max:20',
@@ -98,6 +99,9 @@ class ClientController extends Controller
             'default_payment_method' => 'nullable|string|max:50',
             'language' => 'nullable|string|max:10',
             'password' => 'nullable|string|min:8|confirmed',
+            'tax_exempt' => 'nullable|boolean',
+            'auto_charge' => 'nullable|boolean',
+            'notes' => 'nullable|string',
         ]);
         $client = Client::create($validated);
 
@@ -675,6 +679,7 @@ class ClientController extends Controller
             'tax_office' => 'nullable|string|max:100',
             'national_id' => 'nullable|string|max:20',
             'address1' => 'nullable|string|max:255',
+            'address2' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'postcode' => 'nullable|string|max:20',

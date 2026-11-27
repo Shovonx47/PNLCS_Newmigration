@@ -2,11 +2,10 @@
 @section("title", __("admin.servers"))
 @section("content")
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>{{ __('admin.servers.title') }}</h1>
-    <div style="display:flex;gap:8px;">
-        <button type="button" onclick="document.getElementById('modal-add-server').style.display='flex'" class="btn btn-primary btn-sm">+ {{ __('admin.servers.add_server') }}</button>
-    </div>
+<h1>{{ __('admin.servers.title') }}</h1>
+
+<div class="context-btn-container" style="margin-bottom:12px;">
+    <button type="button" onclick="document.getElementById('modal-add-server').style.display='flex'" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> {{ __('admin.servers.add_server') }}</button>
 </div>
 
 @if($errors->any())
@@ -20,146 +19,210 @@
 @if($report = session('server_report'))
 @php($levelColor = ['ok' => '#15803d', 'warn' => '#b45309', 'fail' => '#b91c1c', 'info' => '#475569'])
 @php($levelIcon = ['ok' => '&#10003;', 'warn' => '!', 'fail' => '&#10007;', 'info' => 'i'])
-<div class="card" id="server-report" style="margin-bottom:15px;border-left:4px solid {{ $report['ok'] ? '#16a34a' : '#dc2626' }};">
-    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+<div class="infobox" id="server-report" style="margin-bottom:15px;border-left:4px solid {{ $report['ok'] ? '#16a34a' : '#dc2626' }};background:#fff;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
         <strong>{{ __('proxmox.admin.report_title', ['name' => $report['name']]) }}</strong>
-        @if(!empty($report['version']))<span style="font-size:12px;color:#666;">Proxmox VE {{ $report['version'] }} &middot; {{ $report['identity'] }}</span>@endif
+        @if(!empty($report['version']))<span style="font-size:12px;color:#666;">{{ 'Proxmox VE' }} {{ $report['version'] }} &middot; {{ $report['identity'] }}</span>@endif
     </div>
-    <div class="card-body">
-        <ul style="list-style:none;margin:0;padding:0;">
-            @foreach($report['checks'] as $check)
-            <li style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1f1f1;font-size:13px;">
-                <span style="flex:0 0 20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:{{ $levelColor[$check['level']] ?? '#475569' }};">{!! $levelIcon[$check['level']] ?? 'i' !!}</span>
-                <span>{{ $check['text'] }}</span>
-            </li>
-            @endforeach
-        </ul>
-        @if(!empty($report['commands']))
-        <div style="margin-top:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <strong style="font-size:13px;">{{ __('proxmox.admin.commands_title') }}</strong>
-                <button type="button" class="btn btn-default btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('pve-commands').innerText).then(()=>{this.textContent='{{ __('proxmox.admin.copied') }}'})">{{ __('proxmox.admin.copy') }}</button>
-            </div>
-            <div style="font-size:12px;color:#555;margin-bottom:6px;">{{ __('proxmox.admin.commands_hint') }}</div>
-            <pre id="pve-commands" style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:0;">{{ $report['commands'] }}</pre>
+    <ul style="list-style:none;margin:0;padding:0;">
+        @foreach($report['checks'] as $check)
+        <li style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1f1f1;font-size:13px;">
+            <span style="flex:0 0 20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:{{ $levelColor[$check['level']] ?? '#475569' }};">{!! $levelIcon[$check['level']] ?? 'i' !!}</span>
+            <span>{{ $check['text'] }}</span>
+        </li>
+        @endforeach
+    </ul>
+    @if(!empty($report['commands']))
+    <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <strong style="font-size:13px;">{{ __('proxmox.admin.commands_title') }}</strong>
+            <button type="button" class="btn btn-default btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('pve-commands').innerText).then(()=>{this.textContent='{{ __('proxmox.admin.copied') }}'})">{{ __('proxmox.admin.copy') }}</button>
         </div>
-        @endif
-        @if(!empty($report['recipes']))
-        <details style="margin-top:14px;">
-            <summary style="cursor:pointer;font-size:13px;font-weight:700;">{{ __('proxmox.admin.recipes_title') }}</summary>
-            <div style="font-size:12px;color:#555;margin:6px 0;">{{ __('proxmox.admin.recipes_hint') }}</div>
-            <pre style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:0;">{{ $report['recipes'] }}</pre>
-        </details>
-        @endif
+        <div style="font-size:12px;color:#555;margin-bottom:6px;">{{ __('proxmox.admin.commands_hint') }}</div>
+        <pre id="pve-commands" style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:4px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:0;">{{ $report['commands'] }}</pre>
     </div>
+    @endif
+    @if(!empty($report['recipes']))
+    <details style="margin-top:14px;">
+        <summary style="cursor:pointer;font-size:13px;font-weight:700;">{{ __('proxmox.admin.recipes_title') }}</summary>
+        <div style="font-size:12px;color:#555;margin:6px 0;">{{ __('proxmox.admin.recipes_hint') }}</div>
+        <pre style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:4px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:0;">{{ $report['recipes'] }}</pre>
+    </details>
+    @endif
 </div>
 @endif
 
-<div class="card">
-    @if(($servers ?? collect())->isEmpty())
-    <div class="card-body" style="text-align:center;padding:40px;color:#999;">{{ __('admin.servers.no_servers') }}</div>
-    @else
-    <table class="data-table">
-        <thead><tr><th>{{ __('common.table.name') }}</th><th>{{ __('admin.servers.hostname') }}</th><th>{{ __('common.table.ip_address') }}</th><th>{{ __('common.table.type') }}</th><th>{{ __('admin.servers.port') }}</th><th>{{ __('admin.servers.max_accounts') }}</th><th>{{ __('common.table.status') }}</th><th style="text-align:right;">{{ __('common.table.actions') }}</th></tr></thead>
+<div class="tablebg">
+    <table class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3">
+        <thead>
+            <tr>
+                <th>{{ __('common.table.name') }}</th>
+                <th>{{ __('admin.servers.hostname') }}</th>
+                <th>{{ __('common.table.ip_address') }}</th>
+                <th>{{ __('common.table.type') }}</th>
+                <th>{{ __('admin.servers.port') }}</th>
+                <th>{{ __('admin.servers.max_accounts') }}</th>
+                <th>{{ __('common.table.status') }}</th>
+                <th style="text-align:right;">{{ __('common.table.actions') }}</th>
+            </tr>
+        </thead>
         <tbody>
-        @foreach($servers as $server)
-        <tr>
-            <td style="font-weight:600;">{{ $server->name }}</td>
-            <td style="font-family:monospace;font-size:12px;">{{ $server->hostname }}</td>
-            <td style="font-family:monospace;font-size:12px;">{{ $server->ip_address ?? "-" }}</td>
-            <td><span class="badge badge-active" style="text-transform:capitalize;">{{ $server->type }}</span></td>
-            <td>{{ $server->port ?? "-" }}</td>
-            <td>{{ $server->max_accounts ?: __("admin.servers.unlimited") }}</td>
-            <td><span class="badge {{ $server->active ? "badge-active" : "badge-suspended" }}">{{ $server->active ? __("common.status.active") : __("common.status.disabled") }}</span></td>
-            <td style="text-align:right;">
-                <form method="POST" action="{{ route('admin.config.servers.test', $server) }}" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-default btn-xs">{{ __('common.actions.test') }}</button>
-                </form>
-                @if(isset($syncable[$server->id]))
-                <a href="{{ route('admin.config.servers.sync', $server) }}" class="btn btn-default btn-xs">{{ __('admin.server_sync.button') }}</a>
-                @endif
-                @if(strtolower((string) $server->type) === 'proxmox')
-                <a href="{{ route('admin.config.servers.images', $server) }}" class="btn btn-default btn-xs">{{ __('proxmox.images.button') }}</a>
-                <a href="{{ route('admin.config.servers.capacity', $server) }}" class="btn btn-default btn-xs">{{ __('proxmox.capacity.button') }}</a>
-                @endif
-                <button type="button" class="btn btn-default btn-xs" onclick="editServer({{ $server->id }},{{ json_encode($server->name) }},{{ json_encode($server->hostname) }},{{ json_encode($server->ip_address) }},{{ json_encode($server->type) }},{{ json_encode($server->port) }},{{ json_encode($server->username) }},{{ (int)($server->max_accounts ?? 500) }},{{ json_encode($server->nameserver1 ?? '') }},{{ json_encode($server->nameserver2 ?? '') }},{{ $server->active ? 'true' : 'false' }},{{ json_encode((object) ($server->settings ?? [])) }})">{{ __('common.actions.edit') }}</button>
-                <form method="POST" action="{{ route('admin.config.servers.destroy', $server) }}" style="display:inline;" onsubmit="return pnConfirm(event, @js(__('admin.servers.confirm_delete')))">
-                    @csrf @method("DELETE")
-                    <button type="submit" class="btn btn-danger btn-xs">{{ __('common.actions.delete') }}</button>
-                </form>
-            </td>
-        </tr>
-        @endforeach
+        @forelse($servers ?? [] as $server)
+            <tr>
+                <td style="font-weight:600;">{{ $server->name }}</td>
+                <td style="font-family:monospace;font-size:12px;">{{ $server->hostname }}</td>
+                <td style="font-family:monospace;font-size:12px;">{{ $server->ip_address ?? "-" }}</td>
+                <td style="text-transform:capitalize;">{{ $server->type }}</td>
+                <td>{{ $server->port ?? "-" }}</td>
+                <td>{{ $server->max_accounts ?: __("admin.servers.unlimited") }}</td>
+                <td><span class="whmcs-status {{ $server->active ? "active badge-active" : "suspended badge-suspended" }}">{{ $server->active ? __("common.status.active") : __("common.status.disabled") }}</span></td>
+                <td style="text-align:right;white-space:nowrap;">
+                    <form method="POST" action="{{ route('admin.config.servers.test', $server) }}" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="btn btn-default btn-xs">{{ __('common.actions.test') }}</button>
+                    </form>
+                    @if(isset($syncable[$server->id]))
+                    <a href="{{ route('admin.config.servers.sync', $server) }}" class="btn btn-default btn-xs">{{ __('admin.server_sync.button') }}</a>
+                    @endif
+                    @if(strtolower((string) $server->type) === 'proxmox')
+                    <a href="{{ route('admin.config.servers.images', $server) }}" class="btn btn-default btn-xs">{{ __('proxmox.images.button') }}</a>
+                    <a href="{{ route('admin.config.servers.capacity', $server) }}" class="btn btn-default btn-xs">{{ __('proxmox.capacity.button') }}</a>
+                    @endif
+                    <button type="button" class="btn btn-default btn-xs" onclick="editServer({{ $server->id }},{{ json_encode($server->name) }},{{ json_encode($server->hostname) }},{{ json_encode($server->ip_address) }},{{ json_encode($server->type) }},{{ json_encode($server->port) }},{{ json_encode($server->username) }},{{ (int)($server->max_accounts ?? 500) }},{{ json_encode($server->nameserver1 ?? '') }},{{ json_encode($server->nameserver2 ?? '') }},{{ $server->active ? 'true' : 'false' }},{{ json_encode((object) ($server->settings ?? [])) }})">{{ __('common.actions.edit') }}</button>
+                    <form method="POST" action="{{ route('admin.config.servers.destroy', $server) }}" style="display:inline;" onsubmit="return pnConfirm(event, @js(__('admin.servers.confirm_delete')))">
+                        @csrf @method("DELETE")
+                        <button type="submit" class="btn btn-danger btn-xs">{{ __('common.actions.delete') }}</button>
+                    </form>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="8" style="text-align:center;padding:20px;color:#777;">{{ __('admin.servers.no_servers') }}</td>
+            </tr>
+        @endforelse
         </tbody>
     </table>
-    @endif
 </div>
 
 {{-- Add Server Modal --}}
 <div id="modal-add-server" style="display:none;position:fixed;inset:0;z-index:1050;align-items:center;justify-content:center;">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);" onclick="this.parentElement.style.display='none'"></div>
-    <div style="position:relative;background:#fff;border-radius:4px;width:620px;max-width:95%;box-shadow:0 5px 30px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
-        <div style="padding:15px 20px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;">
-            <h4 style="margin:0;font-size:16px;">{{ __('admin.servers.add_server') }}</h4>
+    <div style="position:relative;background:#fff;border-radius:4px;width:660px;max-width:95%;box-shadow:0 5px 30px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+        <div style="padding:12px 16px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;">
+            <h4 style="margin:0;font-size:15px;">{{ __('admin.servers.add_server') }}</h4>
             <button type="button" onclick="this.closest('[id^=modal-]').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#777;">&times;</button>
         </div>
         <form method="POST" action="{{ route('admin.config.servers.store') }}">
             @csrf
-            <div style="padding:20px;">
-                {{-- What to paste where, per panel type. The generic form showed
-                     seven fields to someone holding exactly two strings; this
-                     says which two, in the words the other panel used. --}}
-                <div data-role="type-hint" style="display:none;margin-bottom:14px;padding:10px 12px;border-radius:6px;background:#eef4ff;border:1px solid #c7d8f8;font-size:13px;line-height:1.55;"></div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('admin.servers.server_name') }} *</label><input type="text" name="name" required class="form-control" placeholder="{{ __('admin.servers.name_placeholder') }}"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.hostname') }} *</label><input type="text" name="hostname" required class="form-control" placeholder="{{ __('admin.servers.hostname_placeholder') }}"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.ip_address') }}</label><input type="text" name="ip_address" class="form-control" placeholder="{{ __('admin.servers.ip_placeholder') }}"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.server_type') }}</label>
-                        <select name="type" class="form-control" onchange="serverTypeTuning(this, '')">
-                            @foreach($serverTypes as $typeKey => $typeLabel)
-                            <option value="{{ $typeKey }}" @selected($typeKey === 'panelica')>{{ $typeLabel }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.port') }}</label><input type="number" name="port" value="8443" class="form-control" data-role="port"></div>
-                    <div class="form-group" data-role="username-group"><label class="form-label" data-role="username-label">{{ __('common.form.username') }}</label><input type="text" name="username" class="form-control" data-role="username" placeholder="{{ __('admin.servers.username_placeholder') }}"></div>
-                    <div class="form-group"><label class="form-label" data-role="password-label">{{ __('admin.servers.password_api_token') }}</label><input type="password" name="password" class="form-control" data-role="password" placeholder=""></div>
-                    <div class="form-group" data-role="hash-group"><label class="form-label" data-role="hash-label">{{ __('admin.servers.access_hash') }}</label><textarea name="access_hash" rows="2" class="form-control" data-role="hash" placeholder=""></textarea></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.max_accounts') }}</label><input type="number" name="max_accounts" value="500" min="0" class="form-control"></div>
-                </div>
-                <div data-role="pve-group" style="display:none;margin-top:15px;padding-top:15px;border-top:1px solid #eee;">
-                    <label class="form-label" style="font-weight:700;">{{ __('proxmox.admin.settings_title') }}</label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.node') }}</label><input type="text" name="settings[node]" data-pve="node" class="form-control" placeholder="pve"><small style="color:#888;">{{ __('proxmox.admin.node_hint') }}</small></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.pool') }}</label><input type="text" name="settings[pool]" data-pve="pool" class="form-control" placeholder="pnlcs"><small style="color:#888;">{{ __('proxmox.admin.pool_hint') }}</small></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.vmid_min') }}</label><input type="number" min="100" name="settings[vmid_min]" data-pve="vmid-min" class="form-control" placeholder="5000"></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.vmid_max') }}</label><input type="number" min="100" name="settings[vmid_max]" data-pve="vmid-max" class="form-control" placeholder="5999"></div>
-                        <div class="form-group" style="grid-column:span 2;"><small style="color:#888;">{{ __('proxmox.admin.vmid_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('proxmox.admin.backup_storage') }}</label><input type="text" name="settings[backup_storage]" data-pve="backup-storage" class="form-control" placeholder="local"><small style="color:#888;">{{ __('proxmox.admin.backup_storage_hint') }}</small></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.capacity.alert') }}</label><input type="number" min="0" max="1000" name="settings[capacity_alert]" data-pve="capacity-alert" class="form-control" placeholder="80"><small style="color:#888;">{{ __('proxmox.capacity.alert_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('proxmox.admin.ci_vendor') }}</label><input type="text" name="settings[ci_vendor]" data-pve="ci-vendor" class="form-control" placeholder="local:snippets/pnlcs-vendor.yaml"><small style="color:#888;">{{ __('proxmox.admin.ci_vendor_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('proxmox.admin.ipv4_pool') }}</label><textarea name="settings[ipv4_pool]" data-pve="ipv4" rows="3" class="form-control" style="font-family:monospace;font-size:12px;" placeholder="203.0.113.10-203.0.113.40/24 gw 203.0.113.1"></textarea><small style="color:#888;">{{ __('proxmox.admin.ipv4_pool_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="settings[verify_tls]" value="1" data-pve="verify-tls"> {{ __('proxmox.admin.verify_tls') }}</label></div>
-                    </div>
-                </div>
-                <div data-role="pnl-group" style="display:none;margin-top:15px;">
-                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="settings[verify_tls]" value="1" disabled> {{ __('admin.servers.verify_tls') }}</label>
-                </div>
-                <div data-role="ns-group" style="margin-top:15px;padding-top:15px;border-top:1px solid #eee;">
-                    <label class="form-label">{{ __('admin.servers.nameservers') }}</label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        <input type="text" name="nameserver1" class="form-control" placeholder="ns1.example.com">
-                        <input type="text" name="nameserver2" class="form-control" placeholder="ns2.example.com">
-                    </div>
-                </div>
-                <div style="margin-top:12px;">
-                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-                        <input type="checkbox" name="active" value="1" checked> {{ __('admin.servers.server_active') }}
-                    </label>
+            <div style="padding:15px;">
+                <div data-role="type-hint" class="infobox" style="display:none;margin-bottom:12px;"></div>
+                <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                    <tr>
+                        <td class="fieldlabel" width="32%">{{ __('admin.servers.server_name') }} *</td>
+                        <td class="fieldarea"><input type="text" name="name" required class="form-control" placeholder="{{ __('admin.servers.name_placeholder') }}"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.hostname') }} *</td>
+                        <td class="fieldarea"><input type="text" name="hostname" required class="form-control" placeholder="{{ __('admin.servers.hostname_placeholder') }}"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.ip_address') }}</td>
+                        <td class="fieldarea"><input type="text" name="ip_address" class="form-control" placeholder="{{ __('admin.servers.ip_placeholder') }}"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.server_type') }}</td>
+                        <td class="fieldarea">
+                            <select name="type" class="form-control" onchange="serverTypeTuning(this, '')">
+                                @foreach($serverTypes as $typeKey => $typeLabel)
+                                <option value="{{ $typeKey }}" @selected($typeKey === 'panelica')>{{ $typeLabel }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.port') }}</td>
+                        <td class="fieldarea"><input type="number" name="port" value="8443" class="form-control" style="max-width:140px;" data-role="port"></td>
+                    </tr>
+                    <tr data-role="username-group">
+                        <td class="fieldlabel" data-role="username-label">{{ __('common.form.username') }}</td>
+                        <td class="fieldarea"><input type="text" name="username" class="form-control" data-role="username" placeholder="{{ __('admin.servers.username_placeholder') }}"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel" data-role="password-label">{{ __('admin.servers.password_api_token') }}</td>
+                        <td class="fieldarea"><input type="password" name="password" class="form-control" data-role="password" placeholder=""></td>
+                    </tr>
+                    <tr data-role="hash-group">
+                        <td class="fieldlabel" data-role="hash-label">{{ __('admin.servers.access_hash') }}</td>
+                        <td class="fieldarea"><textarea name="access_hash" rows="2" class="form-control" data-role="hash" placeholder=""></textarea></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.max_accounts') }}</td>
+                        <td class="fieldarea"><input type="number" name="max_accounts" value="500" min="0" class="form-control" style="max-width:140px;"></td>
+                    </tr>
+                    <tr data-role="ns-group">
+                        <td class="fieldlabel">{{ __('admin.servers.nameservers') }}</td>
+                        <td class="fieldarea">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <input type="text" name="nameserver1" class="form-control" placeholder="ns1.example.com">
+                                <input type="text" name="nameserver2" class="form-control" placeholder="ns2.example.com">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr data-role="pnl-group" style="display:none;">
+                        <td class="fieldlabel">{{ __('admin.servers.verify_tls') }}</td>
+                        <td class="fieldarea"><label style="font-weight:400;margin:0;"><input type="checkbox" name="settings[verify_tls]" value="1" disabled> {{ __('admin.servers.verify_tls') }}</label></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('common.table.status') }}</td>
+                        <td class="fieldarea"><label style="font-weight:400;margin:0;"><input type="checkbox" name="active" value="1" checked> {{ __('admin.servers.server_active') }}</label></td>
+                    </tr>
+                </table>
+
+                <div data-role="pve-group" style="display:none;margin-top:12px;">
+                    <div style="font-weight:700;margin-bottom:6px;">{{ __('proxmox.admin.settings_title') }}</div>
+                    <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                        <tr>
+                            <td class="fieldlabel" width="32%">{{ __('proxmox.admin.node') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[node]" data-pve="node" class="form-control" placeholder="pve"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.node_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.pool') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[pool]" data-pve="pool" class="form-control" placeholder="pnlcs"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.pool_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.vmid_min') }} / {{ __('proxmox.admin.vmid_max') }}</td>
+                            <td class="fieldarea">
+                                <div style="display:flex;gap:8px;max-width:280px;">
+                                    <input type="number" min="100" name="settings[vmid_min]" data-pve="vmid-min" class="form-control" placeholder="5000">
+                                    <input type="number" min="100" name="settings[vmid_max]" data-pve="vmid-max" class="form-control" placeholder="5999">
+                                </div>
+                                <div style="font-size:11px;color:#777;">{{ __('proxmox.admin.vmid_hint') }}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.backup_storage') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[backup_storage]" data-pve="backup-storage" class="form-control" placeholder="local"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.backup_storage_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.capacity.alert') }}</td>
+                            <td class="fieldarea"><input type="number" min="0" max="1000" name="settings[capacity_alert]" data-pve="capacity-alert" class="form-control" style="max-width:140px;" placeholder="80"><div style="font-size:11px;color:#777;">{{ __('proxmox.capacity.alert_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.ci_vendor') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[ci_vendor]" data-pve="ci-vendor" class="form-control" placeholder="local:snippets/pnlcs-vendor.yaml"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.ci_vendor_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.ipv4_pool') }}</td>
+                            <td class="fieldarea"><textarea name="settings[ipv4_pool]" data-pve="ipv4" rows="3" class="form-control" style="font-family:monospace;font-size:12px;" placeholder="203.0.113.10-203.0.113.40/24 gw 203.0.113.1"></textarea><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.ipv4_pool_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.verify_tls') }}</td>
+                            <td class="fieldarea"><label style="font-weight:400;margin:0;"><input type="checkbox" name="settings[verify_tls]" value="1" data-pve="verify-tls"> {{ __('proxmox.admin.verify_tls') }}</label></td>
+                        </tr>
+                    </table>
                 </div>
             </div>
-            <div style="padding:12px 20px;border-top:1px solid #e5e5e5;display:flex;gap:8px;justify-content:flex-end;">
+            <div class="btn-container" style="margin:0;padding:10px 15px;border-top:1px solid #e5e5e5;text-align:right;">
                 <button type="button" onclick="this.closest('[id^=modal-]').style.display='none'" class="btn btn-default btn-sm">{{ __('common.actions.cancel') }}</button>
                 <button type="submit" class="btn btn-primary btn-sm">{{ __('admin.servers.add_server') }}</button>
             </div>
@@ -170,63 +233,121 @@
 {{-- Edit Server Modal --}}
 <div id="modal-edit-server" style="display:none;position:fixed;inset:0;z-index:1050;align-items:center;justify-content:center;">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);" onclick="this.parentElement.style.display='none'"></div>
-    <div style="position:relative;background:#fff;border-radius:4px;width:620px;max-width:95%;box-shadow:0 5px 30px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
-        <div style="padding:15px 20px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;">
-            <h4 style="margin:0;font-size:16px;">{{ __('admin.servers.edit_server') }}</h4>
+    <div style="position:relative;background:#fff;border-radius:4px;width:660px;max-width:95%;box-shadow:0 5px 30px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+        <div style="padding:12px 16px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;">
+            <h4 style="margin:0;font-size:15px;">{{ __('admin.servers.edit_server') }}</h4>
             <button type="button" onclick="this.closest('[id^=modal-]').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#777;">&times;</button>
         </div>
         <form id="form-edit-server" method="POST" action="">
             @csrf @method("PUT")
-            <div style="padding:20px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('admin.servers.server_name') }} *</label><input type="text" id="edit-name" name="name" required class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.hostname') }} *</label><input type="text" id="edit-hostname" name="hostname" required class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.ip_address') }}</label><input type="text" id="edit-ip" name="ip_address" class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.server_type') }}</label>
-                        <select id="edit-type" name="type" class="form-control" onchange="serverTypeTuning(this, 'edit')">
-                            @foreach($serverTypes as $typeKey => $typeLabel)
-                            <option value="{{ $typeKey }}" @selected($typeKey === 'panelica')>{{ $typeLabel }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.port') }}</label><input type="number" id="edit-port" name="port" class="form-control"></div>
-                    <div class="form-group" data-role="edit-username-group"><label class="form-label" data-role="edit-username-label">{{ __('common.form.username') }}</label><input type="text" id="edit-username" name="username" class="form-control" data-role="edit-username"></div>
-                    <div class="form-group"><label class="form-label" data-role="edit-password-label"><span data-role="edit-password-name">{{ __('common.form.new_password') }}</span> <small style="color:#999;">{{ __('admin.servers.keep_password') }}</small></label><input type="password" name="password" class="form-control" placeholder="{{ __('admin.servers.keep_secret') }}"></div>
-                    <div class="form-group" data-role="edit-hash-group"><label class="form-label" data-role="edit-hash-label">{{ __('admin.servers.access_hash') }}</label><textarea name="access_hash" rows="2" class="form-control" placeholder="{{ __('admin.servers.keep_secret') }}"></textarea></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.servers.max_accounts') }}</label><input type="number" id="edit-max-accounts" name="max_accounts" min="0" class="form-control"></div>
-                </div>
-                <div data-role="edit-pve-group" style="display:none;margin-top:15px;padding-top:15px;border-top:1px solid #eee;">
-                    <label class="form-label" style="font-weight:700;">{{ __('proxmox.admin.settings_title') }}</label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.node') }}</label><input type="text" name="settings[node]" id="edit-pve-node" class="form-control" placeholder="pve"><small style="color:#888;">{{ __('proxmox.admin.node_hint') }}</small></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.pool') }}</label><input type="text" name="settings[pool]" id="edit-pve-pool" class="form-control" placeholder="pnlcs"><small style="color:#888;">{{ __('proxmox.admin.pool_hint') }}</small></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.vmid_min') }}</label><input type="number" min="100" name="settings[vmid_min]" id="edit-pve-vmid-min" class="form-control" placeholder="5000"></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.admin.vmid_max') }}</label><input type="number" min="100" name="settings[vmid_max]" id="edit-pve-vmid-max" class="form-control" placeholder="5999"></div>
-                        <div class="form-group" style="grid-column:span 2;"><small style="color:#888;">{{ __('proxmox.admin.vmid_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('proxmox.admin.backup_storage') }}</label><input type="text" name="settings[backup_storage]" id="edit-pve-backup-storage" class="form-control" placeholder="local"><small style="color:#888;">{{ __('proxmox.admin.backup_storage_hint') }}</small></div>
-                        <div class="form-group"><label class="form-label">{{ __('proxmox.capacity.alert') }}</label><input type="number" min="0" max="1000" name="settings[capacity_alert]" id="edit-pve-capacity-alert" class="form-control" placeholder="80"><small style="color:#888;">{{ __('proxmox.capacity.alert_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('proxmox.admin.ci_vendor') }}</label><input type="text" name="settings[ci_vendor]" id="edit-pve-ci-vendor" class="form-control" placeholder="local:snippets/pnlcs-vendor.yaml"><small style="color:#888;">{{ __('proxmox.admin.ci_vendor_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('proxmox.admin.ipv4_pool') }}</label><textarea name="settings[ipv4_pool]" id="edit-pve-ipv4" rows="3" class="form-control" style="font-family:monospace;font-size:12px;" placeholder="203.0.113.10-203.0.113.40/24 gw 203.0.113.1"></textarea><small style="color:#888;">{{ __('proxmox.admin.ipv4_pool_hint') }}</small></div>
-                        <div class="form-group" style="grid-column:span 2;"><label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="settings[verify_tls]" value="1" id="edit-pve-verify-tls"> {{ __('proxmox.admin.verify_tls') }}</label></div>
-                    </div>
-                </div>
-                <div data-role="edit-pnl-group" style="display:none;margin-top:15px;">
-                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="settings[verify_tls]" value="1" id="edit-pnl-verify-tls" disabled> {{ __('admin.servers.verify_tls') }}</label>
-                </div>
-                <div data-role="edit-ns-group" style="margin-top:15px;padding-top:15px;border-top:1px solid #eee;">
-                    <label class="form-label">{{ __('admin.servers.nameservers') }}</label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        <input type="text" id="edit-ns1" name="nameserver1" class="form-control" placeholder="ns1.example.com">
-                        <input type="text" id="edit-ns2" name="nameserver2" class="form-control" placeholder="ns2.example.com">
-                    </div>
-                </div>
-                <div style="margin-top:12px;">
-                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-                        <input type="checkbox" id="edit-active" name="active" value="1"> {{ __('admin.servers.server_active') }}
-                    </label>
+            <div style="padding:15px;">
+                <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                    <tr>
+                        <td class="fieldlabel" width="32%">{{ __('admin.servers.server_name') }} *</td>
+                        <td class="fieldarea"><input type="text" id="edit-name" name="name" required class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.hostname') }} *</td>
+                        <td class="fieldarea"><input type="text" id="edit-hostname" name="hostname" required class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.ip_address') }}</td>
+                        <td class="fieldarea"><input type="text" id="edit-ip" name="ip_address" class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.server_type') }}</td>
+                        <td class="fieldarea">
+                            <select id="edit-type" name="type" class="form-control" onchange="serverTypeTuning(this, 'edit')">
+                                @foreach($serverTypes as $typeKey => $typeLabel)
+                                <option value="{{ $typeKey }}" @selected($typeKey === 'panelica')>{{ $typeLabel }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.port') }}</td>
+                        <td class="fieldarea"><input type="number" id="edit-port" name="port" class="form-control" style="max-width:140px;"></td>
+                    </tr>
+                    <tr data-role="edit-username-group">
+                        <td class="fieldlabel" data-role="edit-username-label">{{ __('common.form.username') }}</td>
+                        <td class="fieldarea"><input type="text" id="edit-username" name="username" class="form-control" data-role="edit-username"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel" data-role="edit-password-label"><span data-role="edit-password-name">{{ __('common.form.new_password') }}</span> <small style="color:#777;">{{ __('admin.servers.keep_password') }}</small></td>
+                        <td class="fieldarea"><input type="password" name="password" class="form-control" placeholder="{{ __('admin.servers.keep_secret') }}"></td>
+                    </tr>
+                    <tr data-role="edit-hash-group">
+                        <td class="fieldlabel" data-role="edit-hash-label">{{ __('admin.servers.access_hash') }}</td>
+                        <td class="fieldarea"><textarea name="access_hash" rows="2" class="form-control" placeholder="{{ __('admin.servers.keep_secret') }}"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.servers.max_accounts') }}</td>
+                        <td class="fieldarea"><input type="number" id="edit-max-accounts" name="max_accounts" min="0" class="form-control" style="max-width:140px;"></td>
+                    </tr>
+                    <tr data-role="edit-ns-group">
+                        <td class="fieldlabel">{{ __('admin.servers.nameservers') }}</td>
+                        <td class="fieldarea">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <input type="text" id="edit-ns1" name="nameserver1" class="form-control" placeholder="ns1.example.com">
+                                <input type="text" id="edit-ns2" name="nameserver2" class="form-control" placeholder="ns2.example.com">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr data-role="edit-pnl-group" style="display:none;">
+                        <td class="fieldlabel">{{ __('admin.servers.verify_tls') }}</td>
+                        <td class="fieldarea"><label style="font-weight:400;margin:0;"><input type="checkbox" name="settings[verify_tls]" value="1" id="edit-pnl-verify-tls" disabled> {{ __('admin.servers.verify_tls') }}</label></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('common.table.status') }}</td>
+                        <td class="fieldarea"><label style="font-weight:400;margin:0;"><input type="checkbox" id="edit-active" name="active" value="1"> {{ __('admin.servers.server_active') }}</label></td>
+                    </tr>
+                </table>
+
+                <div data-role="edit-pve-group" style="display:none;margin-top:12px;">
+                    <div style="font-weight:700;margin-bottom:6px;">{{ __('proxmox.admin.settings_title') }}</div>
+                    <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                        <tr>
+                            <td class="fieldlabel" width="32%">{{ __('proxmox.admin.node') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[node]" id="edit-pve-node" class="form-control" placeholder="pve"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.node_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.pool') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[pool]" id="edit-pve-pool" class="form-control" placeholder="pnlcs"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.pool_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.vmid_min') }} / {{ __('proxmox.admin.vmid_max') }}</td>
+                            <td class="fieldarea">
+                                <div style="display:flex;gap:8px;max-width:280px;">
+                                    <input type="number" min="100" name="settings[vmid_min]" id="edit-pve-vmid-min" class="form-control" placeholder="5000">
+                                    <input type="number" min="100" name="settings[vmid_max]" id="edit-pve-vmid-max" class="form-control" placeholder="5999">
+                                </div>
+                                <div style="font-size:11px;color:#777;">{{ __('proxmox.admin.vmid_hint') }}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.backup_storage') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[backup_storage]" id="edit-pve-backup-storage" class="form-control" placeholder="local"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.backup_storage_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.capacity.alert') }}</td>
+                            <td class="fieldarea"><input type="number" min="0" max="1000" name="settings[capacity_alert]" id="edit-pve-capacity-alert" class="form-control" style="max-width:140px;" placeholder="80"><div style="font-size:11px;color:#777;">{{ __('proxmox.capacity.alert_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.ci_vendor') }}</td>
+                            <td class="fieldarea"><input type="text" name="settings[ci_vendor]" id="edit-pve-ci-vendor" class="form-control" placeholder="local:snippets/pnlcs-vendor.yaml"><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.ci_vendor_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.ipv4_pool') }}</td>
+                            <td class="fieldarea"><textarea name="settings[ipv4_pool]" id="edit-pve-ipv4" rows="3" class="form-control" style="font-family:monospace;font-size:12px;" placeholder="203.0.113.10-203.0.113.40/24 gw 203.0.113.1"></textarea><div style="font-size:11px;color:#777;">{{ __('proxmox.admin.ipv4_pool_hint') }}</div></td>
+                        </tr>
+                        <tr>
+                            <td class="fieldlabel">{{ __('proxmox.admin.verify_tls') }}</td>
+                            <td class="fieldarea"><label style="font-weight:400;margin:0;"><input type="checkbox" name="settings[verify_tls]" value="1" id="edit-pve-verify-tls"> {{ __('proxmox.admin.verify_tls') }}</label></td>
+                        </tr>
+                    </table>
                 </div>
             </div>
-            <div style="padding:12px 20px;border-top:1px solid #e5e5e5;display:flex;gap:8px;justify-content:flex-end;">
+            <div class="btn-container" style="margin:0;padding:10px 15px;border-top:1px solid #e5e5e5;text-align:right;">
                 <button type="button" onclick="this.closest('[id^=modal-]').style.display='none'" class="btn btn-default btn-sm">{{ __('common.actions.cancel') }}</button>
                 <button type="submit" class="btn btn-primary btn-sm">{{ __('common.actions.save_changes') }}</button>
             </div>

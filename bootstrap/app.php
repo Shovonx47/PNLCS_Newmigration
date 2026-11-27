@@ -106,6 +106,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'banned.ip' => BlockBannedIp::class,
             'admin.auth' => AdminAuthenticate::class,
             'admin.2fa' => AdminTwoFactorVerify::class,
+            'admin.confirm' => \App\Http\Middleware\RequireAdminPasswordConfirmation::class,
             '2fa' => TwoFactorVerify::class,
             'admin.permission' => CheckAdminPermission::class,
             'client.permission' => \App\Http\Middleware\CheckClientPermission::class,

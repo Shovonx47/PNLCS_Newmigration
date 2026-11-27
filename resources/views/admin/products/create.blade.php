@@ -1,96 +1,100 @@
 @extends('admin.layouts.app')
 @section('title', __('admin.products.create_product'))
 @section('content')
+<h1>{{ __('admin.products.create_product') }}</h1>
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>{{ __('admin.products.create_product') }}</h1>
+<div class="context-btn-container" style="margin-bottom:12px;">
     <a href="{{ route('admin.products.index') }}" class="btn btn-default btn-sm">&larr; {{ __('common.actions.back') }}</a>
 </div>
 
 @if($errors->any())
-<div style="padding:10px 15px;background:#f2dede;border:1px solid #ebccd1;border-radius:4px;color:#a94442;margin-bottom:15px;font-size:13px;">
+<div class="alert alert-danger" style="margin-bottom:15px;">
     @foreach($errors->all() as $e)<div>&bull; {{ $e }}</div>@endforeach
 </div>
 @endif
 
-<form method="POST" action="{{ route('admin.products.store') }}">
-    @csrf
-    <div class="card" style="margin-bottom:15px;">
-        <div class="card-header"><strong>{{ __('admin.products.product_details') }}</strong></div>
-        <div class="card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;" x-data="{ type: '{{ old('type', 'hosting') }}' }">
-                <div class="form-group"><label class="form-label">{{ __('admin.products.product_name') }} <span style="color:#d9534f;">*</span></label><input type="text" name="name" value="{{ old('name') }}" required class="form-control"></div>
-                <div class="form-group"><label class="form-label">{{ __('admin.products.product_group') }} <span style="color:#d9534f;">*</span></label><select name="group_id" required class="form-control">@foreach($groups as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach</select></div>
-                <div class="form-group"><label class="form-label">{{ __('admin.products.product_type') }} <span style="color:#d9534f;">*</span></label><select name="type" x-model="type" class="form-control"><option value="hosting">{{ __('admin.products.type_hosting') }}</option><option value="reseller">{{ __('admin.products.type_reseller') }}</option><option value="vps">{{ __('admin.products.type_vps') }}</option><option value="ssl">{{ __('admin.products.type_ssl') }}</option><option value="other">{{ __('admin.products.type_other') }}</option></select></div>
-                <div class="form-group"><label class="form-label">{{ __('admin.products.payment_type') }} <span style="color:#d9534f;">*</span></label><select name="pay_type" class="form-control"><option value="recurring">{{ __('admin.products.pay_recurring') }}</option><option value="onetime">{{ __('admin.products.pay_onetime') }}</option><option value="free">{{ __('admin.products.pay_free') }}</option></select></div>
-                <div class="form-group"><label class="form-label">{{ __('admin.products.auto_setup') }}</label>
-                    <select name="auto_setup" class="form-control">
-                        <option value="payment">{{ __('admin.products.auto_setup_payment') }}</option>
-                        <option value="order">{{ __('admin.products.auto_setup_order') }}</option>
-                        <option value="manual">{{ __('admin.products.auto_setup_manual') }}</option>
-                    </select>
-                </div>
-                <div class="form-group" x-show="type !== 'ssl'"><label class="form-label">{{ __('admin.products.server_module') }}</label>
-                    <select name="server_type" class="form-control">
-                        <option value="">{{ __('admin.products.server_module_none') }}</option>
-                        @foreach($serverModules as $key => $label)
-                        <option value="{{ $key }}" @selected(old('server_type') === $key)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <div style="color:#777;font-size:12px;margin-top:4px;">{{ __('admin.products.server_module_hint') }}</div>
-                </div>
-                <div class="form-group" x-show="type === 'ssl'" x-cloak><label class="form-label">{{ __('admin.products.ssl_module') }}</label>
-                    <select name="ssl_module" class="form-control">
-                        <option value="">{{ __('admin.products.ssl_none') }}</option>
-                        @foreach($sslModules as $sslKey => $sslLabel)
-                        <option value="{{ $sslKey }}" @selected(old('ssl_module') === $sslKey)>{{ $sslLabel }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group"><label class="form-label">{{ __('admin.products.server_group') }}</label>
-                    <select name="server_group_id" class="form-control">
-                        <option value="">{{ __('admin.products.server_group_any') }}</option>
-                        @foreach($serverGroups as $sg)
-                        <option value="{{ $sg->id }}" @selected((string) old('server_group_id') === (string) $sg->id)>{{ $sg->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group" id="package-group">
-                    <label class="form-label">{{ __('admin.products.package') }}</label>
-                    <select name="package_name" id="package-select" class="form-control">
-                        <option value="">{{ __('admin.products.package_default') }}</option>
-                        @foreach(($packageList['packages'] ?? []) as $pkg)
-                        <option value="{{ $pkg['id'] }}" @selected(($selectedPackage ?? '') === $pkg['id'])>{{ $pkg['name'] }}</option>
-                        @endforeach
-                    </select>
-                    <div id="package-note" style="color:#777;font-size:12px;margin-top:4px;">
-                        {{ $packageList['error'] ?? __('admin.products.package_hint') }}
-                    </div>
-                </div>
-                <div class="form-group" id="pve-create-hint" style="display:none;">
-                    <label class="form-label">{{ __('proxmox.product.title') }}</label>
-                    <div style="font-size:12px;color:#555;background:#f1f5fb;border:1px solid #dbe5f3;border-radius:6px;padding:8px 10px;">{{ __('proxmox.product.create_hint') }}</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ 'Free Trial Period' }}</label>
-                    <select name="trial_days" class="form-control">
-                        @foreach([0, 1, 3, 7, 15, 30, 90] as $td)
-                        <option value="{{ $td }}" @selected((int) old('trial_days', 0) === $td)>{{ $td === 0 ? 'Disabled (0 days)' : $td.' '.($td === 1 ? 'day' : 'days') }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">{{ 'Compare / Regular Price' }}</label>
-                    <input type="number" step="0.01" min="0" name="compare_price" value="{{ old('compare_price') }}" class="form-control">
-                </div>
-                <div class="form-group" style="grid-column:span 2;">@include('admin.products.partials.description-tabs', ['product' => null, 'value' => old('description'), 'translationLanguages' => $translationLanguages ?? collect(), 'rows' => 5])</div>
-            </div>
-        </div>
-    </div>
+<style>
+    .tab-content.admin-tabs > .tab-pane { display: none; }
+    .tab-content.admin-tabs > .tab-pane.active { display: block; }
+</style>
 
-    <div class="card" style="margin-bottom:15px;">
-        <div class="card-header"><strong>{{ __('admin.products.pricing') }}</strong></div>
-        <div class="card-body">
+<form method="POST" action="{{ route('admin.products.store') }}" id="product-create-form" x-data="{ type: '{{ old('type', 'hosting') }}' }">
+    @csrf
+
+    <ul class="nav nav-tabs admin-tabs" role="tablist">
+        <li class="nav-item active"><a class="nav-link active" href="#tab-details" role="tab" data-tab-target="tab-details">{{ __('Details') }}</a></li>
+        <li class="nav-item"><a class="nav-link" href="#tab-pricing" role="tab" data-tab-target="tab-pricing">{{ __('admin.products.pricing') }}</a></li>
+        <li class="nav-item"><a class="nav-link" href="#tab-module" role="tab" data-tab-target="tab-module">{{ __('Module Settings') }}</a></li>
+    </ul>
+
+    <div class="tab-content admin-tabs">
+        <div class="tab-pane active" id="tab-details">
+            <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                <tr>
+                    <td class="fieldlabel" width="20%">{{ __('admin.products.product_type') }} *</td>
+                    <td class="fieldarea">
+                        <select name="type" x-model="type" class="form-control" style="max-width:320px;">
+                            <option value="hosting">{{ __('admin.products.type_hosting') }}</option>
+                            <option value="reseller">{{ __('admin.products.type_reseller') }}</option>
+                            <option value="vps">{{ __('admin.products.type_vps') }}</option>
+                            <option value="ssl">{{ __('admin.products.type_ssl') }}</option>
+                            <option value="other">{{ __('admin.products.type_other') }}</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ __('admin.products.product_group') }} *</td>
+                    <td class="fieldarea">
+                        <select name="group_id" required class="form-control" style="max-width:320px;">
+                            @foreach($groups as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ __('admin.products.product_name') }} *</td>
+                    <td class="fieldarea">
+                        <input type="text" name="name" value="{{ old('name') }}" required class="form-control" style="max-width:420px;">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ __('admin.products.product_details') }}</td>
+                    <td class="fieldarea">
+                        @include('admin.products.partials.description-tabs', ['product' => null, 'value' => old('description'), 'translationLanguages' => $translationLanguages ?? collect(), 'rows' => 5])
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="tab-pane" id="tab-pricing">
+            <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3" style="margin-bottom:12px;">
+                <tr>
+                    <td class="fieldlabel" width="20%">{{ __('admin.products.payment_type') }} *</td>
+                    <td class="fieldarea">
+                        <select name="pay_type" class="form-control" style="max-width:260px;">
+                            <option value="recurring">{{ __('admin.products.pay_recurring') }}</option>
+                            <option value="onetime">{{ __('admin.products.pay_onetime') }}</option>
+                            <option value="free">{{ __('admin.products.pay_free') }}</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ 'Free Trial Period' }}</td>
+                    <td class="fieldarea">
+                        <select name="trial_days" class="form-control" style="max-width:260px;">
+                            @foreach([0, 1, 3, 7, 15, 30, 90] as $td)
+                            <option value="{{ $td }}" @selected((int) old('trial_days', 0) === $td)>{{ $td === 0 ? 'Disabled (0 days)' : $td.' '.($td === 1 ? 'day' : 'days') }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ 'Compare / Regular Price' }}</td>
+                    <td class="fieldarea">
+                        <input type="number" step="0.01" min="0" name="compare_price" value="{{ old('compare_price') }}" class="form-control" style="max-width:200px;">
+                    </td>
+                </tr>
+            </table>
+
             {{-- One price, in the shop currency. A customer who chose another
                  currency sees it converted at the daily rate; a price typed
                  against each currency would not be the one charged. --}}
@@ -98,28 +102,131 @@
                 $currency = $currencies->firstWhere('is_default', true) ?? $currencies->first();
             @endphp
             @if($currency)
-            <div style="background:#f9f9f9;border:1px solid #eee;border-radius:4px;padding:15px;margin-bottom:12px;">
-                <p style="font-weight:600;font-size:13px;margin:0 0 10px;">{{ $currency->code }} ({{ $currency->prefix }})</p>
-                <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
-                    @foreach(['monthly','quarterly','semiannually','annually','biennially','triennially'] as $cycle)
-                    <div>
-                        <label class="form-label" style="text-transform:capitalize;">{{ $cycle }}</label>
-                        <input type="number" step="0.01" name="pricing[{{ $currency->id }}][{{ $cycle }}]" value="-1" class="form-control" style="font-size:12px;">
-                    </div>
-                    @endforeach
-                </div>
-                <p style="font-size:11px;color:#999;margin:6px 0 0;">{{ __('admin.products.disable_cycle_hint') }}</p>
-                <p style="font-size:11px;color:#999;margin:4px 0 0;">{{ __('admin.products.pricing_shop_currency_hint') }}</p>
+            <div class="tablebg">
+                <table class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3">
+                    <thead>
+                        <tr>
+                            <th>{{ __('common.table.currency') }}</th>
+                            @foreach(['monthly','quarterly','semiannually','annually','biennially','triennially'] as $cycle)
+                            <th style="text-transform:capitalize;">{{ $cycle }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight:600;white-space:nowrap;">{{ $currency->code }} ({{ $currency->prefix }})</td>
+                            @foreach(['monthly','quarterly','semiannually','annually','biennially','triennially'] as $cycle)
+                            <td><input type="number" step="0.01" name="pricing[{{ $currency->id }}][{{ $cycle }}]" value="-1" class="form-control" style="font-size:12px;"></td>
+                            @endforeach
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+            <p style="font-size:11px;color:#777;margin:6px 0 0;">{{ __('admin.products.disable_cycle_hint') }} {{ __('admin.products.pricing_shop_currency_hint') }}</p>
             @endif
+        </div>
+
+        <div class="tab-pane" id="tab-module">
+            <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                <tr x-show="type !== 'ssl'">
+                    <td class="fieldlabel" width="20%">{{ __('admin.products.server_module') }}</td>
+                    <td class="fieldarea">
+                        <select name="server_type" class="form-control" style="max-width:320px;">
+                            <option value="">{{ __('admin.products.server_module_none') }}</option>
+                            @foreach($serverModules as $key => $label)
+                            <option value="{{ $key }}" @selected(old('server_type') === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <div style="color:#777;font-size:12px;margin-top:4px;">{{ __('admin.products.server_module_hint') }}</div>
+                    </td>
+                </tr>
+                <tr x-show="type === 'ssl'" x-cloak>
+                    <td class="fieldlabel" width="20%">{{ __('admin.products.ssl_module') }}</td>
+                    <td class="fieldarea">
+                        <select name="ssl_module" class="form-control" style="max-width:320px;">
+                            <option value="">{{ __('admin.products.ssl_none') }}</option>
+                            @foreach($sslModules as $sslKey => $sslLabel)
+                            <option value="{{ $sslKey }}" @selected(old('ssl_module') === $sslKey)>{{ $sslLabel }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ __('admin.products.server_group') }}</td>
+                    <td class="fieldarea">
+                        <select name="server_group_id" class="form-control" style="max-width:320px;">
+                            <option value="">{{ __('admin.products.server_group_any') }}</option>
+                            @foreach($serverGroups as $sg)
+                            <option value="{{ $sg->id }}" @selected((string) old('server_group_id') === (string) $sg->id)>{{ $sg->name }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                </tr>
+                <tr id="package-group">
+                    <td class="fieldlabel">{{ __('admin.products.package') }}</td>
+                    <td class="fieldarea">
+                        <select name="package_name" id="package-select" class="form-control" style="max-width:320px;">
+                            <option value="">{{ __('admin.products.package_default') }}</option>
+                            @foreach(($packageList['packages'] ?? []) as $pkg)
+                            <option value="{{ $pkg['id'] }}" @selected(($selectedPackage ?? '') === $pkg['id'])>{{ $pkg['name'] }}</option>
+                            @endforeach
+                        </select>
+                        <div id="package-note" style="color:#777;font-size:12px;margin-top:4px;">
+                            {{ $packageList['error'] ?? __('admin.products.package_hint') }}
+                        </div>
+                    </td>
+                </tr>
+                <tr id="pve-create-hint" style="display:none;">
+                    <td class="fieldlabel">{{ __('proxmox.product.title') }}</td>
+                    <td class="fieldarea">
+                        <div class="infobox" style="margin:0;">{{ __('proxmox.product.create_hint') }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ __('admin.products.auto_setup') }}</td>
+                    <td class="fieldarea">
+                        <select name="auto_setup" class="form-control" style="max-width:360px;">
+                            <option value="payment">{{ __('admin.products.auto_setup_payment') }}</option>
+                            <option value="order">{{ __('admin.products.auto_setup_order') }}</option>
+                            <option value="manual">{{ __('admin.products.auto_setup_manual') }}</option>
+                        </select>
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
 
-    <div style="display:flex;gap:8px;">
+    <div class="btn-container">
         <button type="submit" class="btn btn-primary">{{ __('admin.products.create_product') }}</button>
         <a href="{{ route('admin.products.index') }}" class="btn btn-default">{{ __('common.actions.cancel') }}</a>
     </div>
 </form>
+
+<script>
+(function () {
+    var form = document.getElementById('product-create-form');
+    var links = form.querySelectorAll('[data-tab-target]');
+    var panes = form.querySelectorAll('.tab-content.admin-tabs > .tab-pane');
+    function showTab(id) {
+        links.forEach(function (a) {
+            var on = a.getAttribute('data-tab-target') === id;
+            a.classList.toggle('active', on);
+            if (a.parentElement) a.parentElement.classList.toggle('active', on);
+        });
+        panes.forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    }
+    links.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            e.preventDefault();
+            showTab(a.getAttribute('data-tab-target'));
+        });
+    });
+    form.addEventListener('invalid', function (e) {
+        var pane = e.target.closest('.tab-pane');
+        if (pane && !pane.classList.contains('active')) showTab(pane.id);
+    }, true);
+})();
+</script>
 @endsection
 
 @push('scripts')

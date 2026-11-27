@@ -2,29 +2,36 @@
 @section('title', __('admin.domain_pricing.title'))
 @section('content')
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>{{ __('admin.domain_pricing.title') }}</h1>
-    <div style="display:flex;gap:8px;align-items:center;">
-        <button type="button" onclick="openAddTLD()" class="btn btn-primary btn-sm">+ {{ __('admin.domain_pricing.add_tld') }}</button>
-        <button type="submit" form="tld-bulk-form" class="btn btn-danger btn-sm" id="tld-bulk-delete">{{ __('admin.domain_pricing.delete') }}</button>
-    </div>
+<h1>{{ __('admin.domain_pricing.title') }}</h1>
+
+<div class="context-btn-container" style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;">
+    <button type="button" onclick="openAddTLD()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> {{ __('admin.domain_pricing.add_tld') }}</button>
+    <a href="{{ route('admin.config.domain-pricing.export', ['search' => request('search'), 'sort' => $sort, 'direction' => $direction]) }}" class="btn btn-default btn-sm">{{ __('admin.domain_pricing.export_csv') }}</a>
+    <button type="submit" form="tld-bulk-form" class="btn btn-danger btn-sm" id="tld-bulk-delete">{{ __('admin.domain_pricing.delete') }}</button>
 </div>
 
-<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-    <form method="GET" style="display:flex;gap:8px;align-items:center;">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.domain_pricing.search_placeholder') }}" class="form-control" style="max-width:300px;">
-        <button type="submit" class="btn btn-default btn-sm">{{ __('admin.search') }}</button>
-        @if(request('search'))<a href="{{ route('admin.config.domain-pricing') }}" class="btn btn-default btn-sm">{{ __('common.actions.clear') }}</a>@endif
-    </form>
-    <div style="display:flex;gap:8px;align-items:center;">
-        <a href="{{ route('admin.config.domain-pricing.export', ['search' => request('search'), 'sort' => $sort, 'direction' => $direction]) }}" class="btn btn-default btn-sm">{{ __('admin.domain_pricing.export_csv') }}</a>
-        <form method="POST" action="{{ route('admin.config.domain-pricing.import') }}" enctype="multipart/form-data" style="display:flex;gap:6px;align-items:center;">
-            @csrf
-            <input type="file" name="file" accept=".csv,.txt" required class="form-control" style="max-width:200px;padding:4px;">
-            <button type="submit" class="btn btn-default btn-sm">{{ __('admin.domain_pricing.import_csv') }}</button>
-        </form>
-    </div>
-</div>
+<table class="form" width="100%" border="0" cellspacing="2" cellpadding="3" style="margin-bottom:14px;">
+    <tr>
+        <td class="fieldlabel" width="18%">{{ __('admin.search') }}</td>
+        <td class="fieldarea">
+            <form method="GET" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0;">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('admin.domain_pricing.search_placeholder') }}" class="form-control" style="max-width:280px;">
+                <button type="submit" class="btn btn-default btn-sm">{{ __('admin.search') }}</button>
+                @if(request('search'))<a href="{{ route('admin.config.domain-pricing') }}" class="btn btn-default btn-sm">{{ __('common.actions.clear') }}</a>@endif
+            </form>
+        </td>
+    </tr>
+    <tr>
+        <td class="fieldlabel">{{ __('admin.domain_pricing.import_csv') }}</td>
+        <td class="fieldarea">
+            <form method="POST" action="{{ route('admin.config.domain-pricing.import') }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0;">
+                @csrf
+                <input type="file" name="file" accept=".csv,.txt" required class="form-control" style="max-width:260px;">
+                <button type="submit" class="btn btn-default btn-sm">{{ __('admin.domain_pricing.import_csv') }}</button>
+            </form>
+        </td>
+    </tr>
+</table>
 
 @if($errors->any())
 <div class="alert alert-danger" style="margin-bottom:15px;">
@@ -53,11 +60,8 @@
     <input type="hidden" name="search" value="{{ request('search') }}">
 </form>
 
-<div class="card">
-    @if($tlds->isEmpty())
-    <div class="card-body" style="text-align:center;padding:40px;color:#999;">{{ __('admin.domain_pricing.no_pricing') }}</div>
-    @else
-    <table class="data-table">
+<div class="tablebg">
+    <table class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3">
         <thead><tr>
             <th style="width:30px;"><input type="checkbox" id="tld-select-all" aria-label="{{ __('admin.bulk.select_all') }}"></th>
             <th>{!! $thSort('extension', __('admin.domain_pricing.extension')) !!}</th>
@@ -69,10 +73,10 @@
             <th>{{ __('admin.domain_pricing.min_max_years') }}</th>
             <th>{!! $thSort('auto_registrar', __('common.table.registrar')) !!}</th>
             <th>{!! $thSort('enabled', __('common.table.status')) !!}</th>
-            <th style="text-align:right;">{{ __('common.table.actions') }}</th>
+            <th style="text-align:right;width:140px;">{{ __('common.table.actions') }}</th>
         </tr></thead>
         <tbody>
-        @foreach($tlds as $tld)
+        @forelse($tlds as $tld)
         <tr>
             <td><input type="checkbox" name="ids[]" form="tld-bulk-form" value="{{ $tld->id }}" class="tld-row-checkbox" aria-label="{{ $tld->extension }}"></td>
             <td style="font-family:monospace;font-weight:600;">{{ $tld->extension }}</td>
@@ -83,8 +87,8 @@
             <td>{{ $tld->grace_period }}d{{ $tld->redemption_grace_period ? ' + '.$tld->redemption_grace_period.'d' : '' }}</td>
             <td>{{ $tld->min_years }}-{{ $tld->max_years }}</td>
             <td>{{ $tld->auto_registrar ?: __('admin.domain_pricing.manual') }}</td>
-            <td><span class="badge-{{ $tld->enabled ? 'active' : 'suspended' }}">{{ $tld->enabled ? __('common.status.enabled') : __('common.status.disabled') }}</span></td>
-            <td style="text-align:right;">
+            <td><span class="whmcs-status {{ $tld->enabled ? 'active badge-active' : 'suspended badge-suspended' }}">{{ $tld->enabled ? __('common.status.enabled') : __('common.status.disabled') }}</span></td>
+            <td style="text-align:right;white-space:nowrap;">
                 <button type="button" class="btn btn-default btn-xs" onclick="openEditTLD({{ json_encode($tld) }})">{{ __('common.actions.edit') }}</button>
                 <form method="POST" action="{{ route('admin.config.domain-pricing.destroy', $tld) }}" style="display:inline;" onsubmit="return pnConfirm(event, @js(__('admin.domain_pricing.confirm_delete')))">
                     @csrf @method('DELETE')
@@ -92,44 +96,112 @@
                 </form>
             </td>
         </tr>
-        @endforeach
+        @empty
+        <tr>
+            <td colspan="11" style="text-align:center;padding:20px;color:#777;">{{ __('admin.domain_pricing.no_pricing') }}</td>
+        </tr>
+        @endforelse
         </tbody>
     </table>
-    <div style="padding:10px 15px;">{{ $tlds->withQueryString()->links() }}</div>
-    @endif
 </div>
+@if(!$tlds->isEmpty())
+<div style="margin-top:10px;">{{ $tlds->withQueryString()->links() }}</div>
+@endif
 
 <div id="modal-tld" style="display:none;position:fixed;inset:0;z-index:1050;align-items:center;justify-content:center;">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);" onclick="document.getElementById('modal-tld').style.display='none'"></div>
-    <div style="position:relative;background:#fff;border-radius:4px;width:540px;max-width:95%;box-shadow:0 5px 30px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
-        <div style="padding:15px 20px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;">
-            <h4 style="margin:0;font-size:16px;" id="tld-modal-title">{{ __('admin.domain_pricing.add_tld') }}</h4>
+    <div style="position:relative;background:#fff;border-radius:4px;width:580px;max-width:95%;box-shadow:0 5px 30px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+        <div style="padding:12px 16px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;">
+            <h4 style="margin:0;font-size:15px;" id="tld-modal-title">{{ __('admin.domain_pricing.add_tld') }}</h4>
             <button type="button" onclick="document.getElementById('modal-tld').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#777;">&times;</button>
         </div>
         <form method="POST" id="tld-form" action="">
             @csrf
             <span id="tld-method-field"></span>
-            <div style="padding:20px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="form-group" style="grid-column:span 2;"><label class="form-label">{{ __('admin.domain_pricing.extension') }}</label><input type="text" name="extension" id="tld-ext" required class="form-control" placeholder=".com"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.register_price', ['currency' => $currencySymbol]) }}</label><input type="number" name="register_price" id="tld-reg" step="0.01" required class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.transfer_price', ['currency' => $currencySymbol]) }}</label><input type="number" name="transfer_price" id="tld-trans" step="0.01" required class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.renew_price', ['currency' => $currencySymbol]) }}</label><input type="number" name="renew_price" id="tld-ren" step="0.01" required class="form-control"></div>
-                    <div class="form-group"><label class="form-label"><input type="checkbox" name="is_popular" id="tld-popular" value="1"> {{ __('admin.domain_pricing.is_popular') }}</label></div>
-                    <div class="form-group"><label class="form-label"><input type="hidden" name="epp_code" value="0"><input type="checkbox" name="epp_code" id="tld-epp" value="1" checked> {{ __('admin.domain_pricing.epp_code') }}</label></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.category') }}</label><select name="category" id="tld-cat" class="form-control"><option value="generic">{{ __('client.domain_pricing.generic') }}</option><option value="local">{{ __('client.domain_pricing.local_tlds') }}</option><option value="country">{{ __('client.domain_pricing.country_tab') }}</option><option value="new" selected>{{ __('client.domain_pricing.new_tlds') }}</option></select></div>
-                    <div class="form-group"><label class="form-label">{{ __("admin.domain_pricing.restore_price") }}</label><input type="number" name="restore_price" id="tld-restore" step="0.01" min="0" value="0" class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __("admin.domain_pricing.privacy_price") }}</label><input type="number" name="privacy_price" id="tld-privacy" step="0.01" min="0" class="form-control"><p style="font-size:11px;color:#999;margin-top:4px;">{{ __("admin.domain_pricing.privacy_price_hint") }}</p></div>
-                    <div class="form-group"><label class="form-label">{{ __("admin.domain_pricing.grace_period") }}</label><input type="number" name="grace_period" id="tld-grace" value="5" min="0" class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __("admin.domain_pricing.redemption_period") }}</label><input type="number" name="redemption_grace_period" id="tld-redemption" value="30" min="0" class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.min_years') }}</label><input type="number" name="min_years" id="tld-min" value="1" min="1" class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.max_years') }}</label><input type="number" name="max_years" id="tld-max" value="10" min="1" class="form-control"></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.auto_registrar') }}</label><select name="auto_registrar" id="tld-reg2" class="form-control"><option value="">{{ __('admin.domain_pricing.manual') }}</option>@foreach($registrars as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></div>
-                    <div class="form-group"><label class="form-label">{{ __('admin.domain_pricing.sort_order') }}</label><input type="number" name="sort_order" id="tld-sort" value="0" class="form-control"></div>
-                    <div class="form-group" style="grid-column:span 2;"><label style="font-size:13px;display:flex;align-items:center;gap:6px;"><input type="checkbox" name="enabled" value="1" id="tld-enabled" checked> {{ __('common.status.enabled') }}</label></div>
-                </div>
+            <div style="padding:15px;">
+                <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                    <tr>
+                        <td class="fieldlabel" width="35%">{{ __('admin.domain_pricing.extension') }}</td>
+                        <td class="fieldarea"><input type="text" name="extension" id="tld-ext" required class="form-control" placeholder=".com"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.register_price', ['currency' => $currencySymbol]) }}</td>
+                        <td class="fieldarea"><input type="number" name="register_price" id="tld-reg" step="0.01" required class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.transfer_price', ['currency' => $currencySymbol]) }}</td>
+                        <td class="fieldarea"><input type="number" name="transfer_price" id="tld-trans" step="0.01" required class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.renew_price', ['currency' => $currencySymbol]) }}</td>
+                        <td class="fieldarea"><input type="number" name="renew_price" id="tld-ren" step="0.01" required class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __("admin.domain_pricing.restore_price") }}</td>
+                        <td class="fieldarea"><input type="number" name="restore_price" id="tld-restore" step="0.01" min="0" value="0" class="form-control"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __("admin.domain_pricing.privacy_price") }}</td>
+                        <td class="fieldarea">
+                            <input type="number" name="privacy_price" id="tld-privacy" step="0.01" min="0" class="form-control">
+                            <div style="font-size:11px;color:#777;margin-top:2px;">{{ __("admin.domain_pricing.privacy_price_hint") }}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.category') }}</td>
+                        <td class="fieldarea">
+                            <select name="category" id="tld-cat" class="form-control">
+                                <option value="generic">{{ __('client.domain_pricing.generic') }}</option>
+                                <option value="local">{{ __('client.domain_pricing.local_tlds') }}</option>
+                                <option value="country">{{ __('client.domain_pricing.country_tab') }}</option>
+                                <option value="new" selected>{{ __('client.domain_pricing.new_tlds') }}</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __("admin.domain_pricing.grace_period") }} / {{ __("admin.domain_pricing.redemption_period") }}</td>
+                        <td class="fieldarea">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <input type="number" name="grace_period" id="tld-grace" value="5" min="0" class="form-control">
+                                <input type="number" name="redemption_grace_period" id="tld-redemption" value="30" min="0" class="form-control">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.min_years') }} / {{ __('admin.domain_pricing.max_years') }}</td>
+                        <td class="fieldarea">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <input type="number" name="min_years" id="tld-min" value="1" min="1" class="form-control">
+                                <input type="number" name="max_years" id="tld-max" value="10" min="1" class="form-control">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.auto_registrar') }}</td>
+                        <td class="fieldarea">
+                            <select name="auto_registrar" id="tld-reg2" class="form-control">
+                                <option value="">{{ __('admin.domain_pricing.manual') }}</option>
+                                @foreach($registrars as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('admin.domain_pricing.sort_order') }}</td>
+                        <td class="fieldarea"><input type="number" name="sort_order" id="tld-sort" value="0" class="form-control" style="max-width:120px;"></td>
+                    </tr>
+                    <tr>
+                        <td class="fieldlabel">{{ __('Options') }}</td>
+                        <td class="fieldarea">
+                            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+                                <label style="font-weight:400;margin:0;"><input type="checkbox" name="is_popular" id="tld-popular" value="1"> {{ __('admin.domain_pricing.is_popular') }}</label>
+                                <label style="font-weight:400;margin:0;"><input type="hidden" name="epp_code" value="0"><input type="checkbox" name="epp_code" id="tld-epp" value="1" checked> {{ __('admin.domain_pricing.epp_code') }}</label>
+                                <label style="font-weight:400;margin:0;"><input type="checkbox" name="enabled" value="1" id="tld-enabled" checked> {{ __('common.status.enabled') }}</label>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <div style="padding:12px 20px;border-top:1px solid #e5e5e5;display:flex;gap:8px;justify-content:flex-end;">
+            <div class="btn-container" style="margin:0;padding:10px 15px;border-top:1px solid #e5e5e5;text-align:right;">
                 <button type="button" onclick="document.getElementById('modal-tld').style.display='none'" class="btn btn-default btn-sm">{{ __('common.actions.cancel') }}</button>
                 <button type="submit" class="btn btn-primary btn-sm">{{ __('common.actions.save') }}</button>
             </div>

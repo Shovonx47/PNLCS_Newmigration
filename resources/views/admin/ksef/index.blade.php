@@ -1,77 +1,152 @@
 @extends('admin.layouts.app')
 @section('title', __('messages.ksef.settings_title'))
 @section('content')
-<div class="page-header">
-    <h1>{{ __('messages.ksef.settings_title') }}</h1>
+
+<h1>{{ __('messages.ksef.settings_title') }}</h1>
+
+@php
+    $ksefFilterUrl = \Illuminate\Support\Facades\Route::has('admin.ksef.index')
+        ? route('admin.ksef.index')
+        : url()->current();
+    $ksefStatusOptions = [
+        ''          => __('common.form.all'),
+        'pending'   => __('messages.ksef.status_pending'),
+        'sent'      => __('messages.ksef.status_sent'),
+        'accepted'  => __('messages.ksef.status_accepted'),
+        'rejected'  => __('messages.ksef.status_rejected'),
+        'error'     => __('messages.ksef.status_error'),
+        'corrected' => __('messages.ksef.status_corrected'),
+    ];
+    $currentKsefStatus = (string) request('status', '');
+@endphp
+
+<div class="infobox" style="margin-bottom:12px;">
+    {{ __('messages.ksef.addon_output_hint') }}
 </div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-    <p style="font-size:13px;color:var(--pn-muted);margin:0;">{{ __('messages.ksef.addon_output_hint') }}</p>
+
+<ul class="admin-tabs" role="tablist">
+    <li class="active">
+        <a href="#ksef-search-tab" class="active" onclick="var el=document.getElementById('ksef-search-pane');if(el){el.style.display=el.style.display==='none'?'block':'none';}return false;">
+            {{ __('Search/Filter') }}
+        </a>
+    </li>
+    @foreach($ksefStatusOptions as $val => $label)
+        @php $isKsefActive = ($currentKsefStatus === $val); @endphp
+        <li class="{{ $isKsefActive ? 'active' : '' }}">
+            <a href="{{ $ksefFilterUrl . ($val !== '' ? '?status=' . urlencode($val) : '') }}" class="{{ $isKsefActive ? 'active' : '' }}">{{ $label }}</a>
+        </li>
+    @endforeach
+</ul>
+
+<div class="tab-content admin-tabs" id="ksef-search-pane">
+    <div class="tab-pane active">
+        <form method="GET" action="{{ $ksefFilterUrl }}">
+            <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                <tr>
+                    <td width="15%" class="fieldlabel">{{ __('messages.ksef.status') }}</td>
+                    <td width="35%" class="fieldarea">
+                        <select name="status" class="form-control select-inline">
+                            @foreach($ksefStatusOptions as $val => $label)
+                                <option value="{{ $val }}" @selected($currentKsefStatus === $val)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td width="15%" class="fieldlabel">{{ __('messages.ksef.ksef_number') }}</td>
+                    <td width="35%" class="fieldarea">
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control input-250" placeholder="{{ __('messages.ksef.ksef_number') }}">
+                    </td>
+                </tr>
+            </table>
+            <div class="btn-container">
+                <button type="submit" class="btn btn-default">{{ __('common.actions.search') }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="context-btn-container" style="display:flex;align-items:center;justify-content:flex-end;margin:10px 0;">
     <form method="POST" action="{{ route('admin.ksef.test') }}" style="margin:0;">
         @csrf
-        <button type="submit" class="btn btn-success btn-sm" style="font-size:13px;padding:6px 14px;font-weight:600;">{{ __('messages.ksef.test') }}</button>
+        <button type="submit" class="btn btn-success btn-sm">{{ __('messages.ksef.test') }}</button>
     </form>
 </div>
 
-@if($records->isEmpty())
-    <p style="color:var(--pn-muted);font-size:13px;">{{ __('messages.ksef.none_yet') }}</p>
-@else
-    <div class="card">
-        <div class="card-body" style="padding:0;">
-            <table style="width:100%;font-size:13px;border-collapse:collapse;">
-                <tr>
-                    <th style="padding:8px;text-align:left;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.invoice') }}</th>
-                    <th style="padding:8px;text-align:left;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.client') }}</th>
-                    <th style="padding:8px;text-align:right;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.total') }}</th>
-                    <th style="padding:8px;text-align:left;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.status') }}</th>
-                    <th style="padding:8px;text-align:left;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.ksef_number') }}</th>
-                    <th style="padding:8px;text-align:left;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.sent_at') }}</th>
-                    <th style="padding:8px;text-align:right;color:var(--pn-muted);border-bottom:1px solid var(--border);">{{ __('messages.ksef.actions') }}</th>
-                </tr>
-                @foreach($records as $r)
+<div class="tablebg">
+    <table class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3">
+        <thead>
+            <tr>
+                <th>{{ __('messages.ksef.invoice') }}</th>
+                <th>{{ __('messages.ksef.client') }}</th>
+                <th style="text-align:right;">{{ __('messages.ksef.total') }}</th>
+                <th>{{ __('messages.ksef.status') }}</th>
+                <th>{{ __('messages.ksef.ksef_number') }}</th>
+                <th>{{ __('messages.ksef.sent_at') }}</th>
+                <th style="text-align:right;">{{ __('messages.ksef.actions') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($records as $r)
                 @php
                     $statusMap = [
-                        'pending' => ['label' => __('messages.ksef.status_pending'), 'color' => '#f59e0b'],
-                        'sent' => ['label' => __('messages.ksef.status_sent'), 'color' => '#337ab7'],
-                        'accepted' => ['label' => __('messages.ksef.status_accepted'), 'color' => '#46a546'],
-                        'rejected' => ['label' => __('messages.ksef.status_rejected'), 'color' => '#c43c35'],
-                        'error' => ['label' => __('messages.ksef.status_error'), 'color' => '#c43c35'],
+                        'pending'   => ['label' => __('messages.ksef.status_pending'),   'color' => '#f59e0b'],
+                        'sent'      => ['label' => __('messages.ksef.status_sent'),      'color' => '#337ab7'],
+                        'accepted'  => ['label' => __('messages.ksef.status_accepted'),  'color' => '#46a546'],
+                        'rejected'  => ['label' => __('messages.ksef.status_rejected'),  'color' => '#c43c35'],
+                        'error'     => ['label' => __('messages.ksef.status_error'),     'color' => '#c43c35'],
                         'corrected' => ['label' => __('messages.ksef.status_corrected'), 'color' => '#6c757d'],
                     ];
                     $status = $statusMap[$r->status] ?? ['label' => $r->status, 'color' => '#6c757d'];
                 @endphp
                 <tr>
-                    <td style="padding:8px;">@if($r->invoice)<a href="{{ route('admin.invoices.show', $r->invoice) }}" style="color:#337ab7;">#{{ $r->invoice->invoice_num ?? $r->invoice->id }}</a>@else&mdash;@endif</td>
-                    <td style="padding:8px;">{{ $r->invoice?->client?->display_name ?? '—' }}</td>
-                    <td style="padding:8px;text-align:right;">{{ $r->invoice ? money_fmt($r->invoice->total) : '—' }}</td>
-                    <td style="padding:8px;"><span style="display:inline-block;padding:2px 8px;border-radius:999px;background:{{ $status['color'] }}1a;color:{{ $status['color'] }};font-weight:600;font-size:12px;">{{ $status['label'] }}</span></td>
-                    <td style="padding:8px;">{{ $r->ksef_number ?? '—' }}</td>
-                    <td style="padding:8px;">{{ $r->sent_at ? $r->sent_at->format(date_fmt().' H:i') : '—' }}</td>
-                    <td style="padding:8px;text-align:right;white-space:nowrap;">
+                    <td>
+                        @if($r->invoice)
+                            <a href="{{ route('admin.invoices.show', $r->invoice) }}" style="font-family:monospace;">#{{ $r->invoice->invoice_num ?? $r->invoice->id }}</a>
+                        @else
+                            {{ '—' }}
+                        @endif
+                    </td>
+                    <td>{{ $r->invoice?->client?->display_name ?? '—' }}</td>
+                    <td style="text-align:right;font-weight:600;">{{ $r->invoice ? money_fmt($r->invoice->total) : '—' }}</td>
+                    <td>
+                        <span class="whmcs-status {{ strtolower($r->status) }}" style="display:inline-block;padding:2px 8px;border-radius:999px;background:{{ $status['color'] }}1a;color:{{ $status['color'] }};font-weight:600;font-size:12px;">
+                            {{ $status['label'] }}
+                        </span>
+                    </td>
+                    <td style="font-family:monospace;">{{ $r->ksef_number ?? '—' }}</td>
+                    <td>{{ $r->sent_at ? $r->sent_at->format(date_fmt() . ' H:i') : '—' }}</td>
+                    <td style="text-align:right;white-space:nowrap;">
                         @if(in_array($r->status, ['pending', 'error', 'rejected'], true))
                         <form method="POST" action="{{ route('admin.ksef.resend', $r) }}" style="display:inline;margin:0;">
                             @csrf
-                            <button type="submit" class="btn btn-sm btn-outline" style="font-size:12px;padding:3px 10px;">{{ __('messages.ksef.resend') }}</button>
+                            <button type="submit" class="btn btn-xs btn-default">{{ __('messages.ksef.resend') }}</button>
                         </form>
                         @endif
                         @if(in_array($r->status, ['sent', 'accepted'], true))
                         <form method="POST" action="{{ route('admin.ksef.mark-corrected', $r) }}" style="display:inline;margin:0;" onsubmit="return pnConfirm(event, @js(__('messages.ksef.confirm_corrected')));">
                             @csrf
-                            <button type="submit" class="btn btn-sm btn-outline" style="font-size:12px;padding:3px 10px;">{{ __('messages.ksef.mark_corrected') }}</button>
+                            <button type="submit" class="btn btn-xs btn-default">{{ __('messages.ksef.mark_corrected') }}</button>
                         </form>
                         @endif
                     </td>
                 </tr>
                 @if($r->error_message)
-                <tr><td colspan="7" style="padding:0 8px 8px;color:#c43c35;font-size:12px;">{{ $r->error_message }}</td></tr>
+                <tr>
+                    <td colspan="7" style="color:#c43c35;font-size:12px;background:#fff5f5;">{{ $r->error_message }}</td>
+                </tr>
                 @endif
-                @endforeach
-            </table>
-            @if($records->hasPages())
-            <div style="padding:10px 16px;border-top:1px solid #e5e7eb;">
-                {{ $records->withQueryString()->links() }}
-            </div>
-            @endif
-        </div>
-    </div>
+            @empty
+                <tr>
+                    <td colspan="7" style="text-align:center;color:#888;padding:20px;">{{ __('messages.ksef.none_yet') }}</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+
+@if($records->hasPages())
+<div style="margin-top:12px;">
+    {{ $records->withQueryString()->links() }}
+</div>
 @endif
+
 @endsection

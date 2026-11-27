@@ -1,17 +1,38 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $textDirection ?? 'ltr' }}" data-theme="{{ request()->cookie('pnlcs_theme') === 'dark' ? 'dark' : 'light' }}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ __('client.auth.reset_password_title') }} - {{ company_name() }}</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh}.card{background:var(--card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08);width:420px;max-width:95%;padding:40px}h1{font-size:22px;font-weight:700;color:var(--theme-primary,#1a4d80);margin-bottom:24px}.fg{margin-bottom:16px}.fl{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}.fc{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none}.fc:focus{border-color:var(--theme-primary,#1a4d80)}.btn{width:100%;padding:12px;background:var(--theme-primary,#1a4d80);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}.btn:hover{background:#143d66}.ae{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px}</style>    {!! hook_output('ClientAreaHeadOutput', ['user' => auth()->user()]) !!}
-    @include('partials.locale-alternates')
-@include('client.auth.partials.theme-head')
-</head>
-<body><div>@include('client.auth.partials.brand')<div class="card"><h1>{{ __('client.auth.reset_password') }}</h1>
-<?php if($errors->any()): ?><div class="ae"><?php foreach($errors->all() as $e): ?>{{ $e }} <?php endforeach; ?></div><?php endif; ?>
-<form method="POST" action="{{ route('client.password.update.reset') }}"><?php echo csrf_field(); ?>
-<input type="hidden" name="token" value="{{ $token }}">
-<div class="fg"><label class="fl">{{ __('common.form.email') }}</label><input type="email" name="email" class="fc" value="{{ $email ?? old('email') }}" required></div>
-<div class="fg"><label class="fl">{{ __('common.form.new_password') }}</label><input type="password" name="password" class="fc" minlength="8" required></div>
-<div class="fg"><label class="fl">{{ __('common.form.confirm_password') }}</label><input type="password" name="password_confirmation" class="fc" required></div>
-<button type="submit" class="btn">{{ __('client.auth.reset_password') }}</button></form></div></div>    {!! hook_output('ClientAreaFooterOutput', ['user' => auth()->user()]) !!}
-</body></html>
+@extends('client.layouts.twentyone')
+@section('no_page_header', '1')
+@section('title', __('client.auth.reset_password_title'))
+@section('content')
+
+<div class="card mw-540 mb-md-4 mt-md-4 mx-auto">
+    <div class="card-body px-sm-5 py-5">
+        <h3 class="card-title mb-4">{{ __('client.auth.reset_password') }}</h3>
+
+        @if($errors->any())
+            <div class="alert alert-danger">
+                @foreach($errors->all() as $e)
+                    <div>{{ $e }}</div>
+                @endforeach
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('client.password.update.reset') }}">
+            @csrf
+            <input type="hidden" name="token" value="{{ $token }}">
+            <div class="form-group">
+                <label for="inputEmail">{{ __('common.form.email') }}</label>
+                <input type="email" id="inputEmail" name="email" class="form-control" value="{{ $email ?? old('email') }}" required>
+            </div>
+            <div class="form-group">
+                <label for="inputPassword">{{ __('common.form.new_password') }}</label>
+                <input type="password" id="inputPassword" name="password" class="form-control" minlength="8" required autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label for="inputPasswordConfirm">{{ __('common.form.confirm_password') }}</label>
+                <input type="password" id="inputPasswordConfirm" name="password_confirmation" class="form-control" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">{{ __('client.auth.reset_password') }}</button>
+        </form>
+    </div>
+</div>
+
+@endsection

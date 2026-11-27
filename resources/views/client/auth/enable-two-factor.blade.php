@@ -1,40 +1,40 @@
 @extends('client.layouts.twentyone')
+@section('no_page_header', '1')
 @section('title', __('client.auth.enable_2fa_title'))
 @section('content')
-<a href="{{ route('client.account.security') }}" class="pn-back">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    {{ __('client.auth.back_to_security') }}
-</a>
 
-<div class="pn-page-header"><div><h1 class="h1 mb-0">{{ __('client.auth.enable_2fa_title') }}</h1></div></div>
+<div class="card mw-540 mb-md-4 mt-md-4 mx-auto">
+    <div class="card-body px-sm-5 py-5">
+        <h3 class="card-title">{{ __('client.auth.enable_2fa_title') }}</h3>
+        <p class="text-muted">{{ __('client.auth.scan_qr_code') }}</p>
 
-<div class="card" style="max-width:600px;">
-    <div class="card-header"><span class="card-title">{{ __('client.auth.setup') }}</span></div>
-    <div class="card-body">
-        <p style="margin-bottom:16px;">{{ __('client.auth.scan_qr_code') }}</p>
-
-        <div style="text-align:center;margin:20px 0;">
-            <img src="{{ $qrImage }}" width="200" height="200" alt="{{ __('client.auth.qr_code_alt') }}" style="border:4px solid var(--border,#eee);border-radius:8px;">
+        <div class="text-center my-4">
+            <img src="{{ $qrImage }}" width="200" height="200" alt="{{ __('client.auth.qr_code_alt') }}" class="img-thumbnail">
         </div>
 
-        <p style="text-align:center;font-size:13px;color:var(--muted);">{{ __('client.auth.or_enter_manually') }}</p>
-        <div style="text-align:center;margin-bottom:20px;">
-            <code style="font-size:16px;background:var(--bg-alt,#f5f5f5);padding:8px 16px;border-radius:6px;letter-spacing:2px;">{{ $secret }}</code>
+        <p class="text-center text-muted small mb-2">{{ __('client.auth.or_enter_manually') }}</p>
+        <div class="text-center mb-4">
+            <code class="p-2 bg-light border rounded d-inline-block text-monospace">{{ $secret }}</code>
         </div>
 
         @if($errors->any())
-        <div class="alert alert-warning alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
+            <div class="alert alert-danger">{{ $errors->first() }}</div>
         @endif
 
         <form method="POST" action="{{ route('client.2fa.enable') }}">
             @csrf
-            <div style="margin-bottom:16px;">
-                <label class="pn-label">{{ __('client.auth.enter_6_digit_verify') }}</label>
-                <input type="text" name="code" class="form-control" autofocus autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" style="max-width:200px;text-align:center;font-size:18px;letter-spacing:4px;">
+            <div class="form-group">
+                <label for="inputVerify2faCode">{{ __('client.auth.enter_6_digit_verify') }}</label>
+                <input type="text" id="inputVerify2faCode" name="code" class="form-control form-control-lg text-center"
+                       autofocus autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="{{ '000000' }}">
             </div>
-            <button type="submit" class="btn btn-default btn-primary">{{ __('client.auth.enable_2fa_btn') }}</button>
-            <a href="{{ route('client.account.security') }}" class="btn btn-default" style="margin-left:8px;">{{ __('common.actions.cancel') }}</a>
+            <button type="submit" class="btn btn-primary btn-block">{{ __('client.auth.enable_2fa_btn') }}</button>
+            <a href="{{ route('client.account.security') }}" class="btn btn-default btn-block mt-2">{{ __('common.actions.cancel') }}</a>
         </form>
     </div>
+    <div class="card-footer px-md-5">
+        <a href="{{ route('client.account.security') }}" class="small">&larr; {{ __('client.auth.back_to_security') }}</a>
+    </div>
 </div>
+
 @endsection

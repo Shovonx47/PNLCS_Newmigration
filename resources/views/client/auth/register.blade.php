@@ -1,160 +1,190 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $textDirection ?? 'ltr' }}" data-theme="{{ request()->cookie('pnlcs_theme') === 'dark' ? 'dark' : 'light' }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ __('client.auth.register_title') }} - {{ company_name() }}</title>
-    @include('partials.seo-meta', ['title' => __('client.auth.register_title').' - '.company_name()])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css'])
-    @include('client.auth.partials.theme-head')
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif; font-size: 13px; background: #f6f6f6; color: #333; margin: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .register-box { width: 100%; max-width: 480px; }
-        .login-logo { text-align: center; margin-bottom: 24px; }
-        .login-logo h1 { font-size: 26px; font-weight: 700; color: var(--theme-primary, #1a4d80); margin: 0 0 6px; }
-        .login-logo p { font-size: 13px; color: #777; margin: 0; }
-        .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .card-body { padding: 28px; }
-        .form-group { margin-bottom: 14px; }
-        .form-label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 4px; }
-        .form-control { display: block; width: 100%; padding: 7px 12px; font-size: 13px; color: #555; background: #fff; border: 1px solid #ccc; border-radius: 4px; transition: border-color 0.15s; }
-        .form-control:focus { border-color: #66afe9; outline: 0; box-shadow: 0 0 6px rgba(102,175,233,.5); }
-        select.form-control { height: 34px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 7px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; text-decoration: none; width: 100%; }
-        .btn-primary { background: var(--theme-accent, #337ab7); color: #fff; border-color: var(--theme-accent-dark, #2e6da4); }
-        .btn-primary:hover { background: #286090; }
-        .alert { padding: 9px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 14px; background: #f2dede; border: 1px solid #ebccd1; color: #a94442; }
-        .alert li { margin: 2px 0; }
-        .login-link { text-align: center; margin-top: 16px; font-size: 13px; color: #777; }
-        .login-link a { color: var(--theme-accent, #337ab7); font-weight: 500; text-decoration: none; }
-        .field-note { font-size: 12px; color: #999; margin-top: 3px; }
-    </style>
-    {!! hook_output('ClientAreaHeadOutput', ['user' => auth()->user()]) !!}
-    @include('partials.locale-alternates')
-</head>
-<body>
-<div class="register-box">
-    <div class="login-logo">
-        @if(!empty($customLogo))
-            <img src="{{ $customLogo }}" alt="{{ company_name() }}" style="max-height:48px; margin-bottom:8px;">
-        @else
-            <h1>{{ company_name() }}</h1>
-        @endif
-        <p>{{ __('client.auth.create_your_account') }}</p>
-    </div>
-    <div class="card">
-        <div class="card-body">
-            @if($errors->any())
-                <div class="alert">
-                    <ul style="margin:0; padding-left:18px;">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+@extends('client.layouts.twentyone')
+@section('title', __('client.auth.register_title'))
+@section('styles')
+<style>
+.register-addr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+</style>
+@endsection
+@section('content')
 
-            <form method="POST" action="{{ route('client.register.submit') }}">
-                @csrf
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="first_name">{{ __('common.form.first_name') }}<span style="color:#c43c35;">*</span></label>
-                        <input type="text" id="first_name" name="first_name" value="{{ old('first_name') }}" required class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="last_name">{{ __('common.form.last_name') }}<span style="color:#c43c35;">*</span></label>
-                        <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}" required class="form-control">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="email">{{ __('common.form.email_address') }}<span style="color:#c43c35;">*</span></label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="password">{{ __('common.form.password') }}<span style="color:#c43c35;">*</span></label>
-                    <input type="password" id="password" name="password" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="password_confirmation">{{ __('common.form.confirm_password') }}<span style="color:#c43c35;">*</span></label>
-                    <input type="password" id="password_confirmation" name="password_confirmation" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="phone_number">{{ __('client.form.phone') }} <span style="color:var(--muted); font-weight:400;">({{ __('client.form.optional') }})</span></label>
-                    <div style="display:flex;gap:6px;">
-                        <select name="phone_prefix" id="phone_prefix" class="form-control" style="width:110px !important;flex-shrink:0;">
-                            @foreach(\App\Support\Countries::PHONE_PREFIXES as $code => $prefix)
-                            <option value="{{ $prefix }}" {{ old('phone_prefix') == $prefix ? 'selected' : '' }}>{{ $code }} {{ $prefix }}</option>
-                            @endforeach
-                        </select>
-                        <input type="text" id="phone_number" name="phone_number" value="{{ old('phone_number') }}" class="form-control" style="flex:1;min-width:0;">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="country">{{ __('common.form.country') }}</label>
-                    <select id="country" name="country" class="form-control">
-                        @foreach($countries as $code => $name)
-                        <option value="{{ $code }}" {{ old('country', $detectedCountry ?? '') === $code ? 'selected' : '' }}>{{ $name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="company_name">{{ __('client.form.company') }} <span style="color:var(--muted); font-weight:400;">({{ __('client.form.optional') }})</span></label>
-                    <input type="text" id="company_name" name="company_name" value="{{ old('company_name') }}" class="form-control">
-                </div>
-                <div style="margin:18px 0 6px;padding-top:14px;border-top:1px solid #e5e5e5;">
-                    <div style="font-size:13px;font-weight:600;">{{ __('client.form.client_type') }}</div>
-                </div>
-                @php $clientType = old('client_type') ?: 'individual'; @endphp
-                <div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;">
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
-                        <input type="radio" name="client_type" value="individual" {{ $clientType === 'individual' ? 'checked' : '' }}> {{ __('client.form.client_type_individual') }}
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;">
-                        <input type="radio" name="client_type" value="company" {{ $clientType === 'company' ? 'checked' : '' }}> {{ __('client.form.client_type_company') }}
-                    </label>
-                </div>
-                <div style="margin:18px 0 6px;padding-top:14px;border-top:1px solid #e5e5e5;">
-                    <div style="font-size:13px;font-weight:600;">{{ __('common.form.billing_address') }}</div>
-                </div>
-                @include('client.partials.billing-address-fields', ['gridClass' => 'form-row', 'showPhone' => false, 'showCountry' => false])
-                <div style="margin-bottom:16px;">
-                    <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px;">
-                        <input type="checkbox" name="tos" value="1" {{ old('tos') ? 'checked' : '' }} style="margin-top:3px;" required>
-                        @php
-                            // A link to "#" reads as a document the customer can
-                            // open and is not one. Name the thing either way;
-                            // link it only when there is somewhere to go.
-                            $legalLink = function (string $url, string $label) {
-                                $url = trim($url);
-
-                                return $url === ''
-                                    ? e($label)
-                                    : '<a href="'.e($url).'" target="_blank" rel="noopener" style="color:var(--theme-accent,#337ab7);text-decoration:underline;">'.e($label).'</a>';
-                            };
-                        @endphp
-                        <span>{{ __('client.auth.i_agree_to') }} {!! $legalLink((string) \App\Models\Setting::get('TOSUrl', ''), __('client.auth.terms_of_service')) !!} {{ __('client.auth.and') }} {!! $legalLink((string) \App\Models\Setting::get('PrivacyUrl', ''), __('client.auth.privacy_policy')) !!}.</span>
-                    </label>
-                    @error('tos') <span style="color:#c43c35;font-size:12px;">{{ $message }}</span> @enderror
-                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:8px;font-size:13px;">
-                    <input type="checkbox" name="marketing_emails" value="1" @checked(old('marketing_emails')) style="margin-top:2px;flex-shrink:0;">
-                    <span>{{ __('client.marketing.signup_box') }}</span>
-                </label>
-                </div>
-                @include('client.partials.recaptcha', ['form' => 'signup'])
-                @error(\App\Services\RecaptchaService::FIELD) <span style="color:#c43c35;font-size:12px;">{{ $message }}</span> @enderror
-                <button type="submit" class="btn btn-primary" style="margin-top:4px;">{{ __('client.auth.create_account') }}</button>
-            </form>
-            @include('client.partials.google-button')
+<div id="registration">
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0 pl-3">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
+    @endif
+
+    <form method="POST" action="{{ route('client.register.submit') }}" id="frmCheckout">
+        @csrf
+
+        <div id="containerNewUserSignup">
+            <div class="card mb-4">
+                <div class="card-body p-4" id="personalInformation">
+                    <h3 class="card-title">{{ __('client.auth.create_your_account') }}</h3>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="first_name">{{ __('common.form.first_name') }} <span class="text-danger">*</span></label>
+                                <input type="text" id="first_name" name="first_name" value="{{ old('first_name') }}" required autofocus class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="last_name">{{ __('common.form.last_name') }} <span class="text-danger">*</span></label>
+                                <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="email">{{ __('common.form.email_address') }} <span class="text-danger">*</span></label>
+                                <input type="email" id="email" name="email" value="{{ old('email') }}" required class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="phone_number">
+                                    {{ __('client.form.phone') }} <span class="text-muted font-weight-normal">({{ __('client.form.optional') }})</span>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <select name="phone_prefix" id="phone_prefix" class="custom-select">
+                                            @foreach(\App\Support\Countries::PHONE_PREFIXES as $code => $prefix)
+                                                <option value="{{ $prefix }}" {{ old('phone_prefix') == $prefix ? 'selected' : '' }}>{{ $code }} {{ $prefix }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <input type="text" id="phone_number" name="phone_number" value="{{ old('phone_number') }}" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h3 class="card-title">{{ __('common.form.billing_address') }}</h3>
+
+                    @php $clientType = old('client_type') ?: 'individual'; @endphp
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label class="d-block">{{ __('client.form.client_type') }}</label>
+                                <div class="form-check form-check-inline mt-1">
+                                    <input type="radio" class="form-check-input" id="client_type_individual" name="client_type" value="individual" {{ $clientType === 'individual' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="client_type_individual">{{ __('client.form.client_type_individual') }}</label>
+                                </div>
+                                <div class="form-check form-check-inline mt-1">
+                                    <input type="radio" class="form-check-input" id="client_type_company" name="client_type" value="company" {{ $clientType === 'company' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="client_type_company">{{ __('client.form.client_type_company') }}</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="company_name">
+                                    {{ __('client.form.company') }} <span class="text-muted font-weight-normal">({{ __('client.form.optional') }})</span>
+                                </label>
+                                <input type="text" id="company_name" name="company_name" value="{{ old('company_name') }}" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <label for="country">{{ __('common.form.country') }}</label>
+                                <select id="country" name="country" class="form-control custom-select">
+                                    @foreach($countries as $code => $name)
+                                        <option value="{{ $code }}" {{ old('country', $detectedCountry ?? '') === $code ? 'selected' : '' }}>{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    @include('client.partials.billing-address-fields', ['gridClass' => 'register-addr-grid', 'showPhone' => false, 'showCountry' => false])
+                </div>
+            </div>
+        </div>
+
+        <div id="containerNewUserSecurity">
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h3 class="card-title">{{ __('common.form.password') }}</h3>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group mb-sm-0">
+                                <label for="password">{{ __('common.form.password') }} <span class="text-danger">*</span></label>
+                                <input type="password" id="password" name="password" required class="form-control" autocomplete="new-password">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group mb-0">
+                                <label for="password_confirmation">{{ __('common.form.confirm_password') }} <span class="text-danger">*</span></label>
+                                <input type="password" id="password_confirmation" name="password_confirmation" required class="form-control" autocomplete="new-password">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body p-4">
+                @php
+                    $legalLink = function (string $url, string $label) {
+                        $url = trim($url);
+
+                        return $url === ''
+                            ? e($label)
+                            : '<a href="'.e($url).'" target="_blank" rel="noopener">'.e($label).'</a>';
+                    };
+                @endphp
+                <div class="form-check mb-2">
+                    <input type="checkbox" class="form-check-input" id="tos" name="tos" value="1" {{ old('tos') ? 'checked' : '' }} required>
+                    <label class="form-check-label" for="tos">
+                        {{ __('client.auth.i_agree_to') }} {!! $legalLink((string) \App\Models\Setting::get('TOSUrl', ''), __('client.auth.terms_of_service')) !!} {{ __('client.auth.and') }} {!! $legalLink((string) \App\Models\Setting::get('PrivacyUrl', ''), __('client.auth.privacy_policy')) !!}.
+                    </label>
+                </div>
+                @error('tos')
+                    <div class="text-danger small mb-2">{{ $message }}</div>
+                @enderror
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="marketing_emails" name="marketing_emails" value="1" @checked(old('marketing_emails'))>
+                    <label class="form-check-label" for="marketing_emails">{{ __('client.marketing.signup_box') }}</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-3">
+            @include('client.partials.recaptcha', ['form' => 'signup'])
+            @error(\App\Services\RecaptchaService::FIELD)
+                <div class="text-danger small mt-1">{{ $message }}</div>
+            @enderror
+        </div>
+
+        <p class="text-center">
+            <button type="submit" class="btn btn-lg btn-primary px-5">{{ __('client.auth.create_account') }}</button>
+        </p>
+    </form>
+
+    <div class="mw-540 mx-auto text-center">
+        @include('client.partials.google-button')
     </div>
-    <div class="login-link">
+
+    <p class="text-center text-muted mt-3">
         {{ __('client.auth.already_have_account') }} <a href="{{ route('client.login') }}">{{ __('client.auth.sign_in') }}</a>
-    </div>
+    </p>
 </div>
+
+@endsection
+
+@section('scripts')
 <script>
 (function () {
     var map = {!! json_encode(\App\Support\Countries::PHONE_PREFIXES) !!};
@@ -169,6 +199,4 @@
     sync();
 })();
 </script>
-    {!! hook_output('ClientAreaFooterOutput', ['user' => auth()->user()]) !!}
-</body>
-</html>
+@endsection

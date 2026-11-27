@@ -1,96 +1,80 @@
-@extends("admin.layouts.app")
-@section("title", __("admin.whois.title"))
-@section("content")
+@extends('admin.layouts.app')
+@section('title', 'Domain WHOIS Lookup')
+@section('content')
 
-<div class="page-header">
-    <h1><i class="fas fa-search" style="margin-right:8px;color:#1a4d80;"></i> {{ __('admin.whois.title') }}</h1>
-</div>
+<h1>{{ 'Domain WHOIS Lookup' }}</h1>
 
-<div class="card" style="margin-bottom:24px;">
-    <div class="card-header" style="font-weight:600;">{{ __('admin.whois.domain_whois_lookup') }}</div>
-    <div class="card-body">
-        <form method="POST" action="{{ route('admin.whois.lookup') }}">
-            @csrf
-            @if(isset($errors) && $errors->any())
-            <div class="alert alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
-            @endif
-            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-                <div class="form-group" style="flex:1;min-width:240px;margin:0;">
-                    <label class="form-label">{{ __('admin.whois.domain_name') }}</label>
-                    <input type="text" name="domain" value="{{ $domain ?? '' }}" class="form-control"
-                        placeholder="{{ __('admin.whois.domain_placeholder') }}" required autofocus
-                        style="font-family:monospace;font-size:15px;">
-                </div>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> {{ __('admin.whois.lookup_btn') }}
-                </button>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:#94a3b8;">
-                {{ __('admin.whois.tld_support_hint') }}
-            </div>
-        </form>
-    </div>
-</div>
-
-@if($result)
-
-@if(!empty($result['parsed']))
-<div class="card" style="margin-bottom:24px;">
-    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-weight:600;"><i class="fas fa-info-circle" style="margin-right:6px;color:#1a4d80;"></i> {{ __('admin.whois.domain_information') }}: {{ $result['domain'] }}</span>
-        @if($result['available'] ?? false)
-        <span class="badge-active">{{ __('admin.whois.available') }}</span>
-        @else
-        <span class="badge-suspended">{{ __('admin.whois.registered') }}</span>
-        @endif
-    </div>
-    <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
-            @foreach($result['parsed'] as $label => $value)
-            <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border:1px solid #e2e8f0;">
-                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">{{ $label }}</div>
-                @if(is_array($value))
-                    @foreach($value as $v)
-                    <div style="font-size:13px;color:#1e293b;font-family:monospace;">{{ $v }}</div>
-                    @endforeach
-                @else
-                <div style="font-size:13px;color:#1e293b;font-family:monospace;">{{ $value }}</div>
-                @endif
-            </div>
-            @endforeach
-        </div>
-    </div>
+@if(isset($errors) && $errors->any())
+<div class="errorbox" style="max-width:740px;margin:0 auto 14px;">
+    {{ $errors->first() }}
 </div>
 @endif
 
-<div class="card">
-    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-weight:600;"><i class="fas fa-terminal" style="margin-right:6px;color:#64748b;"></i> {{ __('admin.whois.raw_response') }}</span>
-        <span style="font-size:12px;color:#94a3b8;font-family:monospace;">{{ $result['server'] ?? '' }}</span>
+<form method="POST" action="{{ route('admin.whois.lookup') }}" style="max-width:740px;margin:18px auto 26px;">
+    @csrf
+    <div style="display:flex;align-items:stretch;width:100%;">
+        <input type="text"
+               name="domain"
+               value="{{ $domain ?? '' }}"
+               placeholder="domaintolookup.com"
+               required
+               autofocus
+               style="flex:1;min-width:0;height:46px;padding:10px 16px;font-size:17px;color:#555;background:#fff;border:1px solid #ccc;border-right:0;border-radius:4px 0 0 4px;box-shadow:inset 0 1px 1px rgba(0,0,0,0.075);outline:none;">
+        <button type="submit"
+                style="height:46px;padding:0 20px;font-size:17px;font-weight:400;color:#fff;background-color:#337ab7;border:1px solid #2e6da4;border-radius:0 4px 4px 0;cursor:pointer;white-space:nowrap;">
+            {{ 'Lookup Domain' }}
+        </button>
     </div>
-    <div class="card-body" style="padding:0;">
-        <pre style="margin:0;padding:20px;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;color:#334155;background:#f8fafc;white-space:pre-wrap;word-break:break-all;max-height:600px;overflow-y:auto;">{{ $result['raw'] }}</pre>
-    </div>
-</div>
+</form>
 
-@else
+@if($result)
+    <div style="max-width:860px;margin:0 auto;">
+        @if(!empty($result['error']))
+            <div class="errorbox" style="text-align:center;">
+                {{ $result['raw'] }}
+            </div>
+        @elseif(!empty($result['available']))
+            <div class="successbox" style="text-align:center;font-size:14px;">
+                {{ 'The domain' }} <strong>{{ $result['domain'] }}</strong> {{ 'is available for registration.' }}
+            </div>
+        @else
+            <div class="infobox" style="text-align:center;font-size:14px;">
+                {{ 'The domain' }} <strong>{{ $result['domain'] }}</strong> {{ 'is registered.' }}
+                @if(!empty($result['server']))
+                    <span style="color:#666;font-size:12px;margin-left:6px;">({{ $result['server'] }})</span>
+                @endif
+            </div>
+        @endif
 
-<div class="card" style="border:1px dashed #e2e8f0;background:#fafafa;">
-    <div class="card-body" style="text-align:center;padding:48px 24px;">
-        <i class="fas fa-globe" style="font-size:48px;color:#cbd5e1;margin-bottom:16px;display:block;"></i>
-        <h3 style="font-size:18px;font-weight:700;color:#1e293b;margin-bottom:8px;">{{ __('admin.whois.whois_domain_lookup') }}</h3>
-        <p style="color:#64748b;font-size:14px;max-width:400px;margin:0 auto 16px;">
-            {{ __('admin.whois.whois_desc_text') }}
-        </p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-            @foreach(['google.com','github.io','cloudflare.com','stripe.com','panelica.com'] as $eg)
-            <button onclick="document.querySelector('[name=domain]').value='{{ $eg }}';"
-                style="padding:6px 14px;background:#eff6ff;color:#1a4d80;font-size:12px;font-weight:600;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;font-family:inherit;">{{ $eg }}</button>
-            @endforeach
+        @if(!empty($result['parsed']))
+            <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3" style="margin-bottom:14px;">
+                @foreach($result['parsed'] as $label => $value)
+                    <tr>
+                        <td width="22%" class="fieldlabel">{{ $label }}</td>
+                        <td class="fieldarea" style="font-family:monospace;font-size:12.5px;">
+                            @if(is_array($value))
+                                {{ implode(', ', $value) }}
+                            @else
+                                {{ $value }}
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </table>
+        @endif
+
+        <div class="panel" style="margin-top:12px;">
+            <div class="panel-heading" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>{{ 'WHOIS Output' }}</span>
+                @if(!empty($result['server']))
+                    <span style="font-size:12px;color:#666;font-weight:400;font-family:monospace;">{{ $result['server'] }}</span>
+                @endif
+            </div>
+            <div class="panel-body" style="padding:0;">
+                <pre style="margin:0;padding:16px;font-family:'Courier New',monospace;font-size:12px;line-height:1.55;color:#222;background:#fafafa;white-space:pre-wrap;word-break:break-word;max-height:540px;overflow-y:auto;">{{ $result['raw'] }}</pre>
+            </div>
         </div>
     </div>
-</div>
-
 @endif
 
 @endsection

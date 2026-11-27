@@ -6,10 +6,10 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+    <div class="col-12">
         <form method="POST" action="{{ route('client.login.submit') }}" class="login-form" role="form">
             @csrf
-            <div class="card mb-md-4 mt-md-4">
+            <div class="card mw-540 mx-auto mb-md-4 mt-md-4">
                 <div class="card-body px-sm-5 py-5">
                     <div class="mb-4">
                         <h6 class="h3">Login</h6>
@@ -34,7 +34,7 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <label for="password" class="form-control-label">{{ __('common.form.password') }}</label>
                             <div class="mb-2">
-                                <a href="{{ route('client.password.request') }}" class="small text-muted" tabindex="-1">{{ __('client.auth.forgot_password') }}</a>
+                                <a href="{{ route('client.password.request') }}" class="small text-muted" tabindex="-1">{{ 'Forget Password?' }}</a>
                             </div>
                         </div>
                         <div class="input-group input-group-merge">
@@ -53,18 +53,18 @@
                     @include('client.partials.recaptcha', ['form' => 'login'])
 
                     <div class="float-left">
-                        <button id="login" type="submit" class="btn btn-primary">{{ __('client.auth.sign_in') }}</button>
+                        <button id="login" type="submit" class="btn btn-primary">{{ 'Login' }}</button>
                     </div>
                     <div class="text-right">
                         <label>
                             <input type="checkbox" class="form-check-input" name="remember" />
-                            {{ __('client.auth.remember_me') }}
+                            {{ 'Remember Me' }}
                         </label>
                     </div>
                 </div>
                 <div class="card-footer px-md-5">
-                    <small>{{ __('client.auth.no_account') }}</small>
-                    <a href="{{ route('client.register') }}" class="small font-weight-bold">{{ __('common.actions.register') }}</a>
+                    <small>{{ 'Not registered?' }}</small>
+                    <a href="{{ route('client.register') }}" class="small font-weight-bold">{{ 'Create account' }}</a>
                 </div>
             </div>
         </form>

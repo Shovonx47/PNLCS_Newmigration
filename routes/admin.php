@@ -32,9 +32,11 @@ use App\Http\Controllers\Admin\ServerSyncController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SslOrderController;
+use App\Http\Controllers\Admin\SystemSetupPagesController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\UpdateController;
+use App\Http\Controllers\Admin\UtilitiesController;
 use App\Http\Controllers\Admin\VpsController;
 use App\Http\Controllers\Admin\WhmcsImportController;
 use App\Http\Controllers\Admin\WhoisController;
@@ -177,8 +179,12 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     });
 
     // =============================================
-    // Invoices
+    // Invoices & Billing
     // =============================================
+    Route::middleware('admin.permission:list_invoices|manage_invoices')->group(function () {
+        Route::get('billing/offline-cc', [InvoiceController::class, 'offlineCc'])->name('billing.offline-cc');
+        Route::get('billing/disputes', [InvoiceController::class, 'disputes'])->name('billing.disputes');
+    });
     Route::middleware('admin.permission:list_invoices')->group(function () {
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/export/csv', [InvoiceController::class, 'exportCsv'])->name('invoices.export');
@@ -218,7 +224,10 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     // =============================================
     Route::middleware('admin.permission:list_services')->group(function () {
         Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+        Route::get('service-addons', [ServiceController::class, 'serviceAddons'])->name('services.addons');
+        Route::get('cancellation-requests', [ServiceController::class, 'cancellationRequests'])->name('cancellation-requests.index');
     });
+    Route::middleware('admin.permission:manage_services')->delete('cancellation-requests/{cancellationRequest}', [ServiceController::class, 'destroyCancellationRequest'])->name('cancellation-requests.destroy');
     Route::middleware('admin.permission:view_services')->group(function () {
         Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
     });
@@ -287,6 +296,8 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     });
     // Before tickets/{ticket}, which would otherwise take "create".
     Route::middleware('admin.permission:reply_tickets')->group(function () {
+        Route::get('tickets/client-lookup', [TicketController::class, 'clientLookup'])->middleware('throttle:60,1')->name('tickets.client-lookup');
+        Route::get('tickets/client-context/{client}', [TicketController::class, 'clientContext'])->middleware('throttle:60,1')->name('tickets.client-context');
         Route::get('tickets/create', [TicketController::class, 'create'])->name('tickets.create');
         Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store');
     });
@@ -352,6 +363,7 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     Route::get('my-account', [SettingController::class, 'myAccount'])->name('my-account');
     Route::post('my-account', [SettingController::class, 'updateMyAccount'])->name('my-account.update');
     Route::post('my-notes', [SettingController::class, 'saveMyNotes'])->name('my-notes.save');
+    Route::post('confirm-password', [AuthController::class, 'confirmPassword'])->middleware('throttle:10,1')->name('confirm-password');
     Route::match(['get', 'post'], '2fa/enable', [AuthController::class, 'enable2fa'])->name('2fa.enable');
     Route::post('2fa/disable', [AuthController::class, 'disable2fa'])->name('2fa.disable');
 
@@ -371,8 +383,55 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
         // WHMCS-style System Settings hub
         Route::get('system-settings', [SettingController::class, 'systemSettings'])->name('system-settings');
 
+        // WHMCS System Settings — Additional Setup Pages
+        Route::middleware('admin.permission:manage_settings|manage_products')->group(function () {
+            Route::get('marketconnect', [SystemSetupPagesController::class, 'marketConnect'])->name('marketconnect');
+            Route::post('marketconnect/toggle', [SystemSetupPagesController::class, 'toggleMarketConnect'])->name('marketconnect.toggle');
+        });
+
+        Route::middleware('admin.permission:manage_settings|manage_orders')->group(function () {
+            Route::get('order-statuses', [SystemSetupPagesController::class, 'orderStatuses'])->name('order-statuses');
+            Route::post('order-statuses', [SystemSetupPagesController::class, 'storeOrderStatus'])->name('order-statuses.store');
+            Route::put('order-statuses/{orderStatus}', [SystemSetupPagesController::class, 'updateOrderStatus'])->name('order-statuses.update');
+            Route::delete('order-statuses/{orderStatus}', [SystemSetupPagesController::class, 'destroyOrderStatus'])->name('order-statuses.destroy');
+        });
+
+        Route::middleware('admin.permission:manage_settings|manage_security')->group(function () {
+            Route::get('signin-integrations', [SystemSetupPagesController::class, 'signInIntegrations'])->name('signin-integrations');
+            Route::post('signin-integrations', [SystemSetupPagesController::class, 'saveSignInIntegrations'])->name('signin-integrations.save');
+
+            Route::get('fraud-protection', [SystemSetupPagesController::class, 'fraudProtection'])->name('fraud-protection');
+            Route::post('fraud-protection', [SystemSetupPagesController::class, 'saveFraudProtection'])->name('fraud-protection.save');
+
+            Route::get('two-factor', [SystemSetupPagesController::class, 'twoFactor'])->name('two-factor');
+            Route::post('two-factor', [SystemSetupPagesController::class, 'saveTwoFactor'])->name('two-factor.save');
+
+            Route::get('security-questions', [SystemSetupPagesController::class, 'securityQuestions'])->name('security-questions');
+            Route::post('security-questions', [SystemSetupPagesController::class, 'storeSecurityQuestion'])->name('security-questions.store');
+            Route::put('security-questions/{id}', [SystemSetupPagesController::class, 'updateSecurityQuestion'])->name('security-questions.update');
+            Route::delete('security-questions/{id}', [SystemSetupPagesController::class, 'destroySecurityQuestion'])->name('security-questions.destroy');
+
+            Route::get('openid-connect', [SystemSetupPagesController::class, 'openIdConnect'])->name('openid-connect');
+            Route::post('openid-connect', [SystemSetupPagesController::class, 'storeOpenIdClient'])->name('openid-connect.store');
+            Route::delete('openid-connect/{id}', [SystemSetupPagesController::class, 'destroyOpenIdClient'])->name('openid-connect.destroy');
+
+            Route::get('storage-settings', [SystemSetupPagesController::class, 'storageSettings'])->name('storage-settings');
+            Route::post('storage-settings', [SystemSetupPagesController::class, 'saveStorageSettings'])->name('storage-settings.save');
+
+            Route::get('database-backups', [SystemSetupPagesController::class, 'databaseBackups'])->name('database-backups');
+            Route::post('database-backups', [SystemSetupPagesController::class, 'saveDatabaseBackups'])->name('database-backups.save');
+            Route::post('database-backups/run', [SystemSetupPagesController::class, 'runDatabaseBackup'])->middleware('throttle:6,1')->name('database-backups.run');
+            Route::get('database-backups/download/{filename}', [SystemSetupPagesController::class, 'downloadDatabaseBackup'])->name('database-backups.download');
+            Route::delete('database-backups/{filename}', [SystemSetupPagesController::class, 'destroyDatabaseBackup'])->name('database-backups.destroy');
+        });
+
+        Route::middleware('admin.permission:manage_servers|manage_settings')->group(function () {
+            Route::get('application-links', [SystemSetupPagesController::class, 'applicationLinks'])->name('application-links');
+            Route::post('application-links', [SystemSetupPagesController::class, 'saveApplicationLinks'])->name('application-links.save');
+        });
+
         // Staff & Security — manage_staff, manage_roles
-        Route::middleware('admin.permission:manage_staff')->group(function () {
+        Route::middleware(['admin.permission:manage_staff', 'admin.confirm'])->group(function () {
             Route::get('admins', [ConfigController::class, 'admins'])->name('admins');
             Route::post('admins', [ConfigController::class, 'storeAdmin'])->name('admins.store');
             Route::put('admins/{admin}', [ConfigController::class, 'updateAdmin'])->name('admins.update');
@@ -649,6 +708,7 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
 
         Route::middleware('admin.permission:view_system|manage_security')->group(function () {
             Route::get('system-database', [ConfigController::class, 'systemDatabase'])->name('system-database');
+            Route::post('system-database/optimize', [ConfigController::class, 'optimizeDatabase'])->name('system-database.optimize');
             Route::get('system-phpinfo', [ConfigController::class, 'systemPhpInfo'])->name('system-phpinfo');
         });
 
@@ -664,6 +724,7 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     // Quotes
     // =============================================
     Route::middleware('admin.permission:manage_quotes')->group(function () {
+        Route::get('quotes/client-lookup', [QuoteController::class, 'clientLookup'])->middleware('throttle:60,1')->name('quotes.client-lookup');
         Route::resource('quotes', QuoteController::class)->except(['index', 'show']);
     });
 
@@ -671,10 +732,15 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     // rest stay behind managing them.
     Route::middleware('admin.permission:list_quotes|manage_quotes')->group(function () {
         Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
+        Route::get('quotes/{quote}/print', [QuoteController::class, 'printable'])->name('quotes.print');
+        Route::get('quotes/{quote}/pdf', [QuoteController::class, 'viewPdf'])->name('quotes.pdf.view');
+        Route::get('quotes/{quote}/pdf/download', [QuoteController::class, 'downloadPdf'])->name('quotes.pdf.download');
         Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
     });
 
     Route::middleware('admin.permission:manage_quotes')->group(function () {
+        Route::post('quotes/{quote}/duplicate', [QuoteController::class, 'duplicate'])->name('quotes.duplicate');
+        Route::post('quotes/{quote}/email-pdf', [QuoteController::class, 'emailPdf'])->name('quotes.email-pdf');
         Route::post('quotes/{quote}/send', [QuoteController::class, 'send'])->name('quotes.send');
         Route::post('quotes/{quote}/convert', [QuoteController::class, 'convertToInvoice'])->name('quotes.convert');
         Route::post('quotes/{quote}/accept', [QuoteController::class, 'accept'])->name('quotes.accept');
@@ -718,9 +784,36 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
         Route::post('affiliates/{affiliate}/credit', [AffiliateController::class, 'credit'])->name('affiliates.credit');
     });
 
-    // WHOIS Lookup — no permission required
+    // WHOIS Lookup & Utilities
     Route::get('whois', [WhoisController::class, 'index'])->name('whois.index');
     Route::post('whois', [WhoisController::class, 'lookup'])->name('whois.lookup');
+
+    Route::prefix('utilities')->name('utilities.')->group(function () {
+        Route::middleware('admin.permission:manage_servers|manage_settings')->get('connect', [UtilitiesController::class, 'connect'])->name('connect');
+        Route::middleware('admin.permission:manage_services|view_activity_log')->group(function () {
+            Route::get('module-queue', [UtilitiesController::class, 'moduleQueue'])->name('module-queue');
+            Route::post('module-queue/{item}/retry', [UtilitiesController::class, 'retryModuleQueue'])->name('module-queue.retry');
+            Route::post('module-queue/{item}/dismiss', [UtilitiesController::class, 'dismissModuleQueue'])->name('module-queue.dismiss');
+            Route::get('domain-resolver', [UtilitiesController::class, 'domainResolver'])->name('domain-resolver');
+        });
+        Route::middleware('admin.permission:manage_domains|manage_settings')->group(function () {
+            Route::get('tld-sync', [UtilitiesController::class, 'tldSync'])->name('tld-sync');
+            Route::post('tld-sync', [UtilitiesController::class, 'runTldSync'])->name('tld-sync.run');
+        });
+        Route::middleware('admin.permission:manage_email_templates|manage_settings')->group(function () {
+            Route::get('email-marketer', [UtilitiesController::class, 'emailMarketer'])->name('email-marketer');
+            Route::post('email-marketer', [UtilitiesController::class, 'storeEmailMarketer'])->name('email-marketer.store');
+            Route::post('email-marketer/{id}/toggle', [UtilitiesController::class, 'toggleEmailMarketer'])->name('email-marketer.toggle');
+            Route::delete('email-marketer/{id}', [UtilitiesController::class, 'destroyEmailMarketer'])->name('email-marketer.destroy');
+        });
+        Route::middleware('admin.permission:manage_settings|view_reports')->group(function () {
+            Route::get('link-tracking', [UtilitiesController::class, 'linkTracking'])->name('link-tracking');
+            Route::post('link-tracking', [UtilitiesController::class, 'storeLinkTracking'])->name('link-tracking.store');
+            Route::delete('link-tracking/{id}', [UtilitiesController::class, 'destroyLinkTracking'])->name('link-tracking.destroy');
+            Route::get('integration-code', [UtilitiesController::class, 'integrationCode'])->name('integration-code');
+        });
+        Route::middleware('admin.permission:view_system|manage_security|manage_settings')->get('php-compat', [UtilitiesController::class, 'phpCompat'])->name('php-compat');
+    });
 
     // WHMCS Import — manage_settings
     Route::middleware('admin.permission:manage_settings')->prefix('whmcs-import')->name('whmcs-import.')->group(function () {

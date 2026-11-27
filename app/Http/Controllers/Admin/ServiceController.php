@@ -25,18 +25,109 @@ class ServiceController extends Controller
 
     public function index(Request $request)
     {
-        $query = Service::with('client', 'product');
+        $query = Service::with(['client.currency', 'product']);
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+
+        if ($request->filled('type')) {
+            $type = strtolower((string) $request->query('type'));
+            $typeGroup = match ($type) {
+                'hosting', 'hostingaccount', 'shared' => ['hosting', 'hostingaccount', 'shared'],
+                'reseller', 'reselleraccount' => ['reseller', 'reselleraccount'],
+                'server', 'vps' => ['server', 'vps'],
+                'other' => ['other'],
+                default => [$type],
+            };
+            $query->whereHas('product', fn ($p) => $p->whereIn('type', $typeGroup));
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', (int) $request->query('product_id'));
+        }
+
+        if ($request->filled('billing_cycle')) {
+            $query->where('billing_cycle', (string) $request->query('billing_cycle'));
+        }
+
+        if ($request->boolean('hide_inactive')) {
+            $query->whereHas('client', fn ($c) => $c->where('status', 'active'));
+        }
+
         // One box (#308): a domain, a username, a service id, or an IP address - an abuse report or a network
         // notice often gives nothing but the address. Service::matching() is the admin bar's rule as well.
-        if ($request->filled('q')) {
-            $query->matching((string) $request->query('q'));
+        $term = trim((string) ($request->filled('q') ? $request->query('q') : $request->query('search', '')));
+        if ($term !== '') {
+            $query->matching($term);
         }
-        $services = $query->orderBy('created_at', 'desc')->paginate(25);
 
-        return view('admin.services.index', compact('services'));
+        $inactiveClientsCount = Service::whereHas('client', fn ($c) => $c->where('status', '!=', 'active'))->count();
+        $productsList = Product::orderBy('name')->get(['id', 'name']);
+        $services = $query->orderBy('id', 'desc')->paginate(50);
+
+        return view('admin.services.index', compact('services', 'productsList', 'inactiveClientsCount'));
+    }
+
+    public function serviceAddons(Request $request)
+    {
+        $query = ServiceAddon::with(['addon', 'service.product', 'client.currency']);
+
+        if ($request->filled('status')) {
+            $query->where('status', (string) $request->query('status'));
+        }
+
+        if ($request->filled('search')) {
+            $s = trim((string) $request->query('search'));
+            $query->where(function ($q) use ($s) {
+                $q->whereHas('addon', fn ($a) => $a->where('name', 'like', "%{$s}%"))
+                    ->orWhereHas('service', fn ($svc) => $svc->where('domain', 'like', "%{$s}%"))
+                    ->orWhereHas('client', fn ($c) => $c
+                        ->where('first_name', 'like', "%{$s}%")
+                        ->orWhere('last_name', 'like', "%{$s}%")
+                        ->orWhere('company_name', 'like', "%{$s}%")
+                        ->orWhere('email', 'like', "%{$s}%"));
+            });
+        }
+
+        $addons = $query->orderByDesc('id')->paginate(50);
+
+        return view('admin.services.addons', compact('addons'));
+    }
+
+    public function cancellationRequests(Request $request)
+    {
+        $showCompleted = $request->boolean('completed', false);
+        $query = \App\Models\CancellationRequest::with(['service.product', 'service.client']);
+
+        if ($showCompleted) {
+            $query->whereNotNull('processed_at');
+        } else {
+            $query->whereNull('processed_at');
+        }
+
+        if ($request->filled('search')) {
+            $s = trim((string) $request->query('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('reason', 'like', "%{$s}%")
+                    ->orWhereHas('service', fn ($svc) => $svc
+                        ->where('domain', 'like', "%{$s}%")
+                        ->orWhereHas('client', fn ($c) => $c
+                            ->where('first_name', 'like', "%{$s}%")
+                            ->orWhere('last_name', 'like', "%{$s}%")));
+            });
+        }
+
+        $requests = $query->orderByDesc('id')->paginate(50);
+
+        return view('admin.services.cancellations', compact('requests', 'showCompleted'));
+    }
+
+    public function destroyCancellationRequest(\App\Models\CancellationRequest $cancellationRequest)
+    {
+        $cancellationRequest->delete();
+
+        return back()->with('success', 'Cancellation request removed.');
     }
 
     public function show(Service $service)

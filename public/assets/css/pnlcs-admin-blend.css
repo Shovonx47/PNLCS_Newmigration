@@ -1,0 +1,569 @@
+/* ==========================================================================
+   PNLCS — Genuine WHMCS Blend Admin Stylesheet
+   Ported directly from WHMCS admin/templates/blend/css/all.css & theme.min.css
+   ========================================================================== */
+
+.contentarea {
+    background-color: #ffffff;
+    border-left: 1px solid #ccc;
+    padding: 15px 20px 25px;
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    color: #333;
+}
+
+.contentarea > h1,
+.whmcs-page-title {
+    font-size: 22px !important;
+    font-weight: 300 !important;
+    color: #333 !important;
+    margin: 0 0 14px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid #eee !important;
+    line-height: 1.3 !important;
+}
+
+/* ── WHMCS Form Table (table.form) ── */
+table.form {
+    width: 100%;
+    background-color: #fff;
+    margin: 0 0 10px 0;
+    padding: 0;
+    border: 3px solid #E2E7E9;
+    border-collapse: separate;
+    border-spacing: 2px;
+    border-radius: 4px;
+}
+table.form td {
+    padding: 5px 8px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+table.form td.fieldlabel {
+    background-color: #ffffff;
+    text-align: right;
+    width: 18%;
+    color: #333;
+    font-weight: 400;
+    padding-right: 12px;
+    white-space: nowrap;
+}
+table.form td.fieldlabel.label-top {
+    vertical-align: top;
+    padding-top: 10px;
+}
+table.form td.fieldarea {
+    background-color: #efefef;
+    text-align: left;
+    color: #333;
+}
+table.form td.fieldarea .form-control,
+table.form td.fieldarea input[type="text"],
+table.form td.fieldarea input[type="email"],
+table.form td.fieldarea input[type="number"],
+table.form td.fieldarea input[type="password"],
+table.form td.fieldarea input[type="date"],
+table.form td.fieldarea input[type="url"],
+table.form td.fieldarea select,
+table.form td.fieldarea textarea {
+    font-size: 13px;
+}
+table.form td.fieldarea .input-inline,
+.select-inline,
+.input-inline {
+    display: inline-block !important;
+    width: auto !important;
+    vertical-align: middle;
+}
+.input-100 { width: 100px !important; display: inline-block !important; }
+.input-150 { width: 150px !important; display: inline-block !important; }
+.input-200 { width: 200px !important; display: inline-block !important; }
+.input-250 { width: 250px !important; display: inline-block !important; }
+.input-300 { width: 300px !important; display: inline-block !important; }
+.input-400 { width: 400px !important; max-width: 100%; display: inline-block !important; }
+
+@media (max-width: 767px) {
+    table.form tr,
+    table.form tr td.fieldlabel,
+    table.form tr td.fieldarea {
+        display: block;
+        width: 100% !important;
+        text-align: left;
+        white-space: normal;
+    }
+    table.form tr td.fieldlabel {
+        font-weight: 600;
+        background-color: #efefef;
+        padding-bottom: 2px;
+    }
+}
+
+/* ── WHMCS DataTable (div.tablebg > table.datatable) ── */
+div.tablebg {
+    margin: 8px 0 14px;
+    overflow-x: auto;
+}
+table.datatable {
+    width: 100%;
+    margin: 0 0 8px 0;
+    padding: 0;
+    border-collapse: separate;
+    border-spacing: 1px;
+    background: #dcdcdc;
+}
+table.datatable th {
+    padding: 5px 8px;
+    font-weight: 700;
+    font-size: 12px;
+    background-color: var(--theme-table-header-bg, #1A4D80);
+    border: 0;
+    border-radius: 2px;
+    text-align: center;
+    color: #fff;
+    white-space: nowrap;
+}
+table.datatable th.text-left { text-align: left; }
+table.datatable th a { color: #fff; text-decoration: none; }
+table.datatable th a:hover { text-decoration: underline; }
+table.datatable td {
+    padding: 4px 8px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #EBEBEB;
+    font-size: 12.5px;
+    color: #333;
+    vertical-align: middle;
+}
+table.datatable tbody tr:nth-child(even) td {
+    background-color: #f9f9f9;
+}
+table.datatable tbody tr:hover td {
+    background-color: #EFF2F9 !important;
+}
+table.datatable td a {
+    color: #202F60;
+}
+table.datatable td a:hover {
+    color: #1A4D80;
+    text-decoration: underline;
+}
+
+/* Ensure addon & Bootstrap .table / .table-striped inside Admin ContentArea also wear WHMCS Blend #1A4D80 headers */
+.contentarea table.table thead th,
+.contentarea table.table-striped thead th {
+    background-color: var(--theme-table-header-bg, #1A4D80);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border: 0;
+}
+.contentarea table.table tbody td,
+.contentarea table.table-striped tbody td {
+    padding: 5px 10px;
+    font-size: 12.5px;
+    border-bottom: 1px solid #EBEBEB;
+    vertical-align: middle;
+}
+.contentarea table.table tbody tr:hover td,
+.contentarea table.table-striped tbody tr:hover td {
+    background-color: #EFF2F9;
+}
+
+/* ── WHMCS Admin Tabs & Search/Filter Box ── */
+ul.admin-tabs,
+ul.client-tabs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+ul.admin-tabs > li,
+ul.client-tabs > li {
+    margin-bottom: -1px;
+}
+ul.admin-tabs > li > a,
+ul.client-tabs > li > a {
+    margin-right: 4px;
+    padding: 5px 12px 4px;
+    font-size: 12px;
+    background-color: #efefef;
+    border: 1px solid #ccc;
+    border-radius: 4px 4px 0 0;
+    text-decoration: none !important;
+    color: #202F60;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+ul.admin-tabs > li > a:hover,
+ul.client-tabs > li > a:hover {
+    background-color: #e4e4e4;
+    color: #1A4D80;
+}
+ul.admin-tabs > li.active > a,
+ul.client-tabs > li.active > a {
+    background-color: #ffffff;
+    border-bottom-color: #ffffff;
+    font-weight: 700;
+    color: #333;
+}
+div.tab-content.admin-tabs,
+div.tab-content.client-tabs {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: 0;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 0 0 4px 4px;
+}
+div.tab-content.admin-tabs > .tab-pane,
+div.tab-content.client-tabs > .tab-pane {
+    display: none;
+}
+div.tab-content.admin-tabs > .tab-pane.active,
+div.tab-content.client-tabs > .tab-pane.active {
+    display: block;
+}
+.context-btn-container {
+    margin: 0 0 12px 0;
+    padding: 8px 10px;
+    background-color: #f6f6f6;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── WHMCS Info / Success / Error Boxes & Centered Button Bar ── */
+.infobox {
+    margin: 10px 0 14px;
+    padding: 8px 14px;
+    background-color: #FAF6D4;
+    border: 1px solid #E6C26E;
+    color: #333;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.infobox strong, .infobox span.title { color: #BE8007; font-weight: 700; }
+
+.successbox {
+    margin: 10px 0 14px;
+    padding: 8px 14px;
+    background-color: #D9E6C3;
+    border: 1px solid #77AB13;
+    color: #222;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.successbox strong, .successbox span.title { color: #547c0b; font-weight: 700; }
+
+.errorbox {
+    margin: 10px 0 14px;
+    padding: 8px 14px;
+    background-color: #F2D4CE;
+    border: 1px solid #AE432E;
+    color: #a80000;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.errorbox strong, .errorbox span.title { color: #AE432E; font-weight: 700; }
+
+.contentbox {
+    text-align: center;
+    background-color: #f7f7f7;
+    border: 1px dashed #cccccc;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.btn-container {
+    text-align: center;
+    padding: 12px 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.whmcs-record-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #555;
+    margin: 8px 0 4px;
+}
+
+/* ── WHMCS Status Text & Labels ── */
+.textgreen { color: #779500 !important; font-weight: 600; }
+.textred { color: #cc0000 !important; font-weight: 600; }
+.textblue { color: #224488 !important; }
+.textorange { color: #ff6600 !important; font-weight: 600; }
+.textgrey { color: #888888 !important; }
+
+.whmcs-status {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #fff !important;
+    text-transform: uppercase;
+    border-radius: 3px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.whmcs-status.active, .whmcs-status.paid, .whmcs-status.answered, .whmcs-status.accepted { background-color: #46A546; }
+.whmcs-status.pending, .whmcs-status.customer-reply, .whmcs-status.collections, .whmcs-status.on-hold { background-color: #F89406; }
+.whmcs-status.suspended, .whmcs-status.open, .whmcs-status.refunded, .whmcs-status.in-progress, .whmcs-status.delivered { background-color: #0768B8; }
+.whmcs-status.terminated, .whmcs-status.unpaid, .whmcs-status.overdue, .whmcs-status.expired, .whmcs-status.dead, .whmcs-status.failed { background-color: #C43C35; }
+.whmcs-status.cancelled, .whmcs-status.closed, .whmcs-status.inactive, .whmcs-status.draft { background-color: #999999; }
+.whmcs-status.fraud { background-color: #111111; }
+
+/* ── WHMCS Client Summary Page (clientssummary.tpl) ── */
+.client-summary-name {
+    margin: 4px 0 12px;
+    font-size: 20px;
+    font-weight: 400;
+    color: #222;
+}
+.clientsummaryactions {
+    float: right;
+    margin: 0 0 8px 12px;
+    padding: 5px 14px;
+    border: 1px dashed #BEDCF3;
+    background-color: #EDF5FC;
+    font-size: 12.5px;
+    border-radius: 4px;
+}
+.client-summary-panels {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+}
+@media (max-width: 1199px) {
+    .client-summary-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+    .client-summary-panels { grid-template-columns: 1fr; }
+    .clientsummaryactions { float: none; margin: 0 0 10px; }
+}
+.clientssummarybox {
+    background-color: #f4f4f4;
+    padding: 10px;
+    margin: 0 0 8px 0;
+    border-radius: 5px;
+    border: 1px solid #e6e6e6;
+}
+.clientssummarybox .title {
+    text-align: center;
+    padding: 0 0 8px 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1A4D80;
+}
+table.clientssummarystats {
+    width: 100%;
+    border: 3px solid #fff;
+    border-radius: 4px;
+    border-collapse: collapse;
+}
+table.clientssummarystats td {
+    padding: 3px 6px;
+    background-color: #fff;
+    font-size: 11.5px;
+    color: #333;
+    vertical-align: top;
+}
+table.clientssummarystats tr.altrow td,
+table.clientssummarystats tr:nth-child(even) td {
+    background-color: #f8f8f8;
+}
+.clientssummarybox ul {
+    list-style: none;
+    margin: 8px 0 0 0;
+    padding: 0 0 0 4px;
+}
+.clientssummarybox ul li {
+    margin: 0 0 4px 0;
+    font-size: 12px;
+}
+.clientssummarybox ul li a {
+    color: #202F60;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.clientssummarybox ul li a:hover {
+    color: #1A4D80;
+    text-decoration: underline;
+}
+.clientssummarybox ul li img {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+/* ── WHMCS View Ticket (viewticket.tpl) ── */
+h2.ticket-subject {
+    font-size: 20px;
+    font-weight: 400;
+    color: #333;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.ticketlastreply {
+    display: inline-block;
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 12px;
+}
+#ticketreplies .reply {
+    margin: 0 0 12px 0;
+    border: 1px solid #dce2e8;
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+    display: flex;
+}
+#ticketreplies .reply.staff {
+    border-color: #c5d9ed;
+    background: #f7fbff;
+}
+#ticketreplies .reply.note {
+    border-color: #f1d28a;
+    background: #fffdf4;
+}
+#ticketreplies .reply .leftcol {
+    width: 205px;
+    flex-shrink: 0;
+    padding: 12px 14px;
+    background: #f5f7fa;
+    border-right: 1px solid #e5e9ef;
+    text-align: right;
+}
+#ticketreplies .reply.staff .leftcol {
+    background: #eaf3fc;
+    border-right-color: #d4e4f4;
+}
+#ticketreplies .reply.note .leftcol {
+    background: #fdf5dc;
+    border-right-color: #f1dfa4;
+}
+#ticketreplies .reply .submitter .name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #222;
+}
+#ticketreplies .reply .submitter .title {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 1px 7px;
+    font-size: 10.5px;
+    font-weight: 700;
+    border-radius: 3px;
+    text-transform: uppercase;
+    background: #e2e8f0;
+    color: #475569;
+}
+#ticketreplies .reply.staff .submitter .title {
+    background: #1A4D80;
+    color: #fff;
+}
+#ticketreplies .reply.note .submitter .title {
+    background: #d97706;
+    color: #fff;
+}
+#ticketreplies .reply .rightcol {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+#ticketreplies .reply .postedon {
+    padding: 6px 14px;
+    font-size: 11.5px;
+    color: #777;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#ticketreplies .reply .msgwrap {
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #222;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+@media (max-width: 700px) {
+    #ticketreplies .reply { flex-direction: column; }
+    #ticketreplies .reply .leftcol { width: 100%; text-align: left; border-right: 0; border-bottom: 1px solid #e5e9ef; }
+}
+
+/* ── WHMCS Blend Exact Left Sidebar Styling ── */
+.sidebar {
+    background-color: #f6f6f6;
+}
+.sidebar .sidebar-header {
+    margin: 8px 0 4px;
+    padding: 4px 8px;
+    background-color: #dcdcdc;
+    color: #444;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.sidebar .sidebar-header:first-child {
+    margin-top: 0;
+}
+.sidebar .sidebar-header i {
+    width: 18px;
+    text-align: center;
+    color: #888;
+    margin-right: 3px;
+}
+.sidebar ul.menu {
+    padding: 2px 0 4px;
+}
+.sidebar ul.menu li a {
+    padding: 1px 10px;
+    color: #222;
+    font-size: 11.5px;
+    line-height: 1.65;
+    text-decoration: underline;
+}
+.sidebar ul.menu li a:hover {
+    color: #1A4D80;
+    background: transparent;
+    text-decoration: underline;
+}
+.sidebar ul.menu li a.active {
+    color: #1A4D80;
+    font-weight: 700;
+    background: transparent;
+    text-decoration: underline;
+}
+.sidebar .whmcs-sb-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #333;
+    margin: 3px 0 2px;
+}
+

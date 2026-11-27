@@ -14,13 +14,42 @@ class TicketController extends Controller
     {
         $query = Ticket::with('department', 'client');
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $st = (string) $request->status;
+            if ($st === 'any') {
+                // Explicit "- Any -": show all tickets regardless of status
+            } elseif ($st === 'awaiting') {
+                $query->whereIn('status', ['Open', 'Customer-Reply']);
+            } elseif ($st === 'flagged') {
+                $query->whereNotNull('flag')->whereRaw('LOWER(status) <> ?', ['closed']);
+            } elseif ($st === 'active') {
+                $query->whereRaw('LOWER(status) <> ?', ['closed']);
+            } else {
+                $query->where('status', $st);
+            }
         }
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
         }
         if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
+        }
+        if ($request->boolean('flagged')) {
+            $query->whereNotNull('flag');
+        }
+        if ($request->filled('search')) {
+            $s = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('tid', 'like', "%{$s}%")
+                    ->orWhere('title', 'like', "%{$s}%")
+                    ->orWhere('message', 'like', "%{$s}%");
+            });
+        }
+        if ($request->filled('email')) {
+            $em = trim((string) $request->input('email'));
+            $query->where(function ($q) use ($em) {
+                $q->where('email', 'like', "%{$em}%")
+                    ->orWhereHas('client', fn ($c) => $c->where('email', 'like', "%{$em}%"));
+            });
         }
         // Tickets with no account behind them: the public contact form, or
         // mail from an unknown sender. Where contact-form spam collects.
@@ -41,52 +70,253 @@ class TicketController extends Controller
     public function create(Request $request)
     {
         $client = $request->filled('client') ? $this->findClient((string) $request->input('client')) : null;
+        if ($client) {
+            $client->loadMissing('currency:id,code,prefix,suffix', 'contacts');
+        }
+
+        $initialClients = \App\Models\Client::orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(150)
+            ->get(['id', 'first_name', 'last_name', 'company_name', 'email']);
+
+        if ($client && ! $initialClients->contains('id', $client->id)) {
+            $initialClients->prepend($client);
+        }
+
+        $clientOptions = $initialClients->map(fn (\App\Models\Client $c) => $this->serializeTicketClient($c))->values();
+
+        $servicesCollection = $client
+            ? \App\Models\Service::where('client_id', $client->id)
+                ->with('product.group')
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get()
+            : collect();
+
+        $totalServicesCount = $client ? \App\Models\Service::where('client_id', $client->id)->count() : 0;
+
+        $predefined = \App\Models\TicketPredefinedCategory::with(['replies' => fn ($q) => $q->orderBy('name')])
+            ->orderBy('name')
+            ->get()
+            ->filter(fn ($cat) => $cat->replies->isNotEmpty())
+            ->values();
+
+        $kbArticles = class_exists(\App\Models\KbArticle::class)
+            ? \App\Models\KbArticle::where('private', false)->orderBy('title')->limit(100)->get(['id', 'title'])
+            : collect();
 
         return view('admin.tickets.create', [
             'client' => $client,
+            'selectedClientOption' => $client ? $this->serializeTicketClient($client) : null,
+            'clientOptions' => $clientOptions,
             'departments' => TicketDepartment::orderBy('sort_order')->get(['id', 'name']),
-            'services' => $client ? \App\Models\Service::where('client_id', $client->id)->with('product:id,name')->orderByDesc('id')->get(['id', 'product_id', 'domain', 'module_data']) : collect(),
+            'services' => $servicesCollection,
+            'serializedServices' => $client ? $servicesCollection->map(fn ($s) => $this->serializeClientService($s, $client))->values() : collect(),
+            'totalServicesCount' => $totalServicesCount,
+            'serializedContacts' => $client ? $client->contacts->map(fn ($ct) => [
+                'id' => $ct->id,
+                'name' => trim($ct->first_name . ' ' . $ct->last_name),
+                'email' => (string) $ct->email,
+            ])->values() : collect(),
+            'predefined' => $predefined,
+            'kbArticles' => $kbArticles,
+        ]);
+    }
+
+    public function clientLookup(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $query = \App\Models\Client::query();
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
+                if (ctype_digit($q)) {
+                    $sub->orWhere('id', (int) $q);
+                }
+                $sub->orWhere('first_name', 'like', '%' . $q . '%')
+                    ->orWhere('last_name', 'like', '%' . $q . '%')
+                    ->orWhere('company_name', 'like', '%' . $q . '%')
+                    ->orWhere('email', 'like', '%' . $q . '%')
+                    ->orWhere('phone_number', 'like', '%' . $q . '%');
+            });
+        }
+
+        $clients = $query->orderBy('first_name')->orderBy('last_name')->limit(40)->get(['id', 'first_name', 'last_name', 'company_name', 'email']);
+
+        return response()->json([
+            'clients' => $clients->map(fn (\App\Models\Client $c) => $this->serializeTicketClient($c))->values(),
+        ]);
+    }
+
+    public function clientContext(Request $request, \App\Models\Client $client)
+    {
+        $client->loadMissing('currency:id,code,prefix,suffix', 'contacts');
+        $showAll = $request->boolean('all', false);
+
+        $svcQuery = \App\Models\Service::where('client_id', $client->id)
+            ->with('product.group')
+            ->orderByRaw("CASE WHEN LOWER(status) = 'active' THEN 0 WHEN LOWER(status) = 'pending' THEN 1 WHEN LOWER(status) = 'suspended' THEN 2 ELSE 3 END")
+            ->orderByDesc('id');
+
+        $totalCount = (clone $svcQuery)->count();
+        $services = $showAll ? $svcQuery->limit(200)->get() : $svcQuery->limit(10)->get();
+
+        return response()->json([
+            'client' => $this->serializeTicketClient($client),
+            'services' => $services->map(fn ($s) => $this->serializeClientService($s, $client))->values(),
+            'total_services' => $totalCount,
+            'contacts' => $client->contacts->map(fn ($ct) => [
+                'id' => $ct->id,
+                'name' => trim($ct->first_name . ' ' . $ct->last_name),
+                'email' => (string) $ct->email,
+            ])->values(),
         ]);
     }
 
     public function store(Request $request)
     {
+        $hasClientInput = $request->filled('client');
+
         $v = $request->validate([
-            'client' => 'required|string|max:255',
+            'client' => [$hasClientInput ? 'required' : 'nullable', 'nullable', 'string', 'max:255'],
+            'name' => [$hasClientInput ? 'nullable' : 'required', 'nullable', 'string', 'max:255'],
+            'email' => [$hasClientInput ? 'nullable' : 'required', 'nullable', 'email', 'max:255'],
+            'send_email' => 'nullable|boolean',
+            'cc' => 'nullable|string|max:255',
             'department_id' => 'required|exists:ticket_departments,id',
             'subject' => 'required|string|max:255',
             'message' => 'required|string',
             'priority' => 'required|in:Low,Medium,High',
             'related_service' => 'nullable|integer',
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,gif,pdf,doc,docx,txt,zip,csv',
         ]);
 
-        $client = $this->findClient($v['client']);
-        if (! $client) {
-            return back()->withInput()->withErrors(['client' => __('admin.tickets.open_no_client')]);
-        }
-        if (! empty($v['related_service']) && ! \App\Models\Service::where('id', $v['related_service'])->where('client_id', $client->id)->exists()) {
+        $client = null;
+        if ($hasClientInput) {
+            $client = $this->findClient((string) $v['client']);
+            if (! $client) {
+                return back()->withInput()->withErrors(['client' => __('admin.tickets.open_no_client')]);
+            }
+            if (! empty($v['related_service']) && ! \App\Models\Service::where('id', $v['related_service'])->where('client_id', $client->id)->exists()) {
+                return back()->withInput()->withErrors(['related_service' => __('admin.tickets.open_service_not_theirs')]);
+            }
+        } elseif (! empty($v['related_service'])) {
             return back()->withInput()->withErrors(['related_service' => __('admin.tickets.open_service_not_theirs')]);
         }
+
+        $ccNormalized = null;
+        if (! empty($v['cc'])) {
+            $rawParts = preg_split('/[\s,;]+/', (string) $v['cc'], -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $validCc = [];
+            foreach ($rawParts as $part) {
+                $cleanAddr = trim($part);
+                if (! filter_var($cleanAddr, FILTER_VALIDATE_EMAIL)) {
+                    return back()->withInput()->withErrors(['cc' => 'Invalid CC recipient email address: ' . $cleanAddr]);
+                }
+                $validCc[strtolower($cleanAddr)] = $cleanAddr;
+            }
+            if ($validCc !== []) {
+                $ccNormalized = mb_substr(implode(', ', array_slice(array_values($validCc), 0, 10)), 0, 255);
+            }
+        }
+
+        $ticketName = $client
+            ? (trim((string) ($v['name'] ?? '')) !== '' ? trim((string) $v['name']) : trim($client->first_name . ' ' . $client->last_name))
+            : trim((string) ($v['name'] ?? ''));
+
+        $ticketEmail = $client
+            ? (trim((string) ($v['email'] ?? '')) !== '' ? trim((string) $v['email']) : (string) $client->email)
+            : trim((string) ($v['email'] ?? ''));
 
         // Staff wrote the first message, so the next move is the customer's:
         // the ticket starts as Answered, like one staff have replied to.
         $ticket = app(\App\Services\TicketService::class)->createTicket([
             'department_id' => $v['department_id'],
-            'client_id' => $client->id,
-            'name' => trim($client->first_name.' '.$client->last_name),
-            'email' => $client->email,
+            'client_id' => $client?->id,
+            'name' => $ticketName,
+            'email' => $ticketEmail,
+            'cc' => $ccNormalized,
             'title' => $v['subject'],
             'message' => $v['message'],
             'priority' => $v['priority'],
             'admin' => (string) auth('admin')->user()?->username,
             'status' => 'Answered',
+            'editor' => 'markdown',
             'service' => ! empty($v['related_service']) ? (string) $v['related_service'] : null,
         ]);
+
+        // TODO(security): Integrate antivirus malware scanning and CDR active-content stripping for uploaded ticket attachments when an external scanner service is configured.
+        if ($request->hasFile('attachments')) {
+            $storedPaths = [];
+            foreach ((array) $request->file('attachments') as $uploadedFile) {
+                if ($uploadedFile && $uploadedFile->isValid()) {
+                    $storedPaths[] = $uploadedFile->store("ticket-attachments/{$ticket->id}", 'local');
+                }
+            }
+            if ($storedPaths !== []) {
+                $joined = implode('|', $storedPaths);
+                $ticket->update(['attachment' => mb_substr($joined, 0, 255)]);
+            }
+        }
+
+        $sendClientEmail = $request->boolean('send_email', true);
+
         // As every other door does; isAdmin tells the customer's mail that
         // staff opened it, and leaves support's own alert out.
-        event(new \App\Events\TicketOpened($ticket, true));
+        event(new \App\Events\TicketOpened($ticket, true, $sendClientEmail));
 
         return redirect()->route('admin.tickets.show', $ticket)->with('success', __('admin.tickets.open_done', ['tid' => $ticket->tid]));
+    }
+
+    private function serializeTicketClient(\App\Models\Client $c): array
+    {
+        $fullName = trim($c->first_name . ' ' . $c->last_name);
+        $company = trim((string) $c->company_name);
+        $label = $fullName;
+        if ($company !== '') {
+            $label .= ' (' . $company . ')';
+        }
+        $label .= ' - #' . $c->id;
+
+        return [
+            'id' => $c->id,
+            'label' => $label,
+            'name' => $fullName,
+            'company' => $company,
+            'email' => (string) $c->email,
+        ];
+    }
+
+    private function serializeClientService(\App\Models\Service $s, \App\Models\Client $client): array
+    {
+        $cur = $client->currency;
+        $formattedAmount = $cur
+            ? (($cur->prefix ?? '') . number_format((float) $s->amount, 2) . ($cur->suffix ?? ''))
+            : money_fmt((float) $s->amount);
+
+        $groupPrefix = $s->product?->group?->name ? ($s->product->group->name . ' - ') : '';
+        $prodTitle = $groupPrefix . ($s->product?->name ?? $s->whmcs_product_name ?? __('admin.tickets.service'));
+
+        $signupDate = $s->registration_date
+            ? \Carbon\Carbon::parse($s->registration_date)->format(date_fmt())
+            : ($s->created_at ? $s->created_at->format(date_fmt()) : '-');
+
+        $nextDue = $s->next_due_date
+            ? \Carbon\Carbon::parse($s->next_due_date)->format(date_fmt())
+            : '-';
+
+        return [
+            'id' => $s->id,
+            'product_title' => $prodTitle,
+            'domain' => (string) ($s->domain ?? ''),
+            'amount' => $formattedAmount,
+            'billing_cycle' => cycle_label($s->billing_cycle),
+            'signup_date' => $signupDate,
+            'next_due_date' => $nextDue,
+            'status' => status_label($s->status),
+            'status_slug' => strtolower((string) $s->status),
+        ];
     }
 
     private function findClient(string $input): ?\App\Models\Client

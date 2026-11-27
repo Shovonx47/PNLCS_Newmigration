@@ -13,5 +13,6 @@ class TicketOpened
     public function __construct(
         public Ticket $ticket,
         public bool $isAdmin = false,
+        public bool $sendClientEmail = true,
     ) {}
 }

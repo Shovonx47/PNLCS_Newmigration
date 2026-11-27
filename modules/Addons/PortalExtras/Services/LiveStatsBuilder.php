@@ -39,7 +39,7 @@ class LiveStatsBuilder
                     $q->select(DB::raw(1))
                         ->from('services')
                         ->whereColumn('services.client_id', 'clients.id')
-                        ->whereDate('services.reg_date', '<', $todayDate);
+                        ->whereDate('services.registration_date', '<', $todayDate);
                 })
                 ->count();
             // Bulk WHMCS migration creates imported clients in a single batch on import day; if >50 rows share today's date with no today orders, treat as 0 new signups today.

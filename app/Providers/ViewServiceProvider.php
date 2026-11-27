@@ -26,6 +26,11 @@ class ViewServiceProvider extends ServiceProvider
                     (SELECT COUNT(*) FROM tickets WHERE status IN ('Open','Customer-Reply')) as open_tickets,
                     (SELECT COUNT(*) FROM tickets WHERE status = 'Open') as open_tickets_only,
                     (SELECT COUNT(*) FROM tickets WHERE status = 'Customer-Reply') as awaiting_tickets,
+                    (SELECT COUNT(*) FROM tickets WHERE status = 'Answered') as answered_tickets,
+                    (SELECT COUNT(*) FROM tickets WHERE status = 'On Hold') as on_hold_tickets,
+                    (SELECT COUNT(*) FROM tickets WHERE status = 'In Progress') as in_progress_tickets,
+                    (SELECT COUNT(*) FROM tickets WHERE status = 'Closed') as closed_tickets,
+                    (SELECT COUNT(*) FROM tickets WHERE flag IS NOT NULL AND status NOT IN ('Closed')) as flagged_tickets,
                     (SELECT COUNT(*) FROM tickets WHERE status NOT IN ('Closed')) as active_tickets,
                     (SELECT COUNT(*) FROM tickets WHERE priority = 'High' AND status NOT IN ('Closed')) as high_priority_tickets
             ");
@@ -33,6 +38,7 @@ class ViewServiceProvider extends ServiceProvider
             $view->with('sidebarCounts', $counts ?: (object) [
                 'pending_orders' => 0, 'unpaid_invoices' => 0, 'overdue_invoices' => 0, 'pending_payment_notifications' => 0,
                 'open_tickets' => 0, 'open_tickets_only' => 0, 'awaiting_tickets' => 0,
+                'answered_tickets' => 0, 'on_hold_tickets' => 0, 'in_progress_tickets' => 0, 'closed_tickets' => 0, 'flagged_tickets' => 0,
                 'active_tickets' => 0, 'high_priority_tickets' => 0,
             ]);
 

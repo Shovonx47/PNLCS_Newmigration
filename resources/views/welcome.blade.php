@@ -1,214 +1,261 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $textDirection ?? 'ltr' }}" data-theme="{{ request()->cookie('pnlcs_theme') === 'dark' ? 'dark' : 'light' }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $brandName ?? 'PNLCS' }} — {{ __('client.welcome.meta_title_suffix') }}</title>
-    @include('partials.seo-meta', ['title' => ($brandName ?? 'PNLCS').' — '.__('client.welcome.meta_title_suffix'), 'description' => __('client.welcome.meta_description', ['brand' => $brandName ?? 'PNLCS'])])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-    @if(!empty($customFavicon))
-    <link rel="icon" href="{{ $customFavicon }}" type="image/png">
-    @endif
-    @if(!empty($themeCssVars))
-    <style id="theme-vars">{!! $themeCssVars !!}</style>
-    @endif
-    @include('sections.styles')
-    @if(!empty($activeThemeAssets))
-    <link rel="stylesheet" href="{{ $activeThemeAssets }}/css/theme.css">
-    @endif
-    {!! hook_output('ClientAreaHeadOutput', ['user' => auth()->user()]) !!}
-    @include('partials.locale-alternates')
-</head>
-<body x-data="{ mobileMenu: false }">
+@extends('client.layouts.twentyone')
+@section('title', __('client.nav.portal_home'))
+@section('no_page_header', '1')
+@section('full_width', '1')
 
-    {!! hook_output('ClientAreaTopOutput', ['user' => auth('web')->user()]) !!}
+@section('hero_banner')
+@php
+    $heroSection = ($sections ?? collect())->firstWhere('slug', 'hero');
+    $heroContent = $sectionContent['hero'] ?? collect();
+    $customHeroTitle = isset($heroContent['title']) ? trim((string) $heroContent['title']->content_value) : '';
+    $customHeroSub = isset($heroContent['subtitle']) ? trim((string) $heroContent['subtitle']->content_value) : '';
 
-    {{-- Fixed sections: topbar + navigation --}}
-    @include('sections.topbar')
-    @include('sections.navigation', ['apps' => $apps ?? []])
-
-    {{-- Dynamic sections from DB --}}
-    @foreach($sections as $section)
-        @if($section->is_enabled && $section->slug !== 'footer' && view()->exists("sections.{$section->slug}"))
-            @include("sections.{$section->slug}", [
-                'section' => $section,
-                'content' => $sectionContent[$section->slug] ?? collect(),
-                'products' => $products ?? collect(),
-                'domainPricing' => $domainPricing ?? collect(),
-                'apps' => $apps ?? [],
-            ])
-        @endif
-    @endforeach
-
-    {{-- Fixed section: footer --}}
-    @include('sections.footer', [
-        'content' => $sectionContent['footer'] ?? collect(),
-    ])
-
-    {{-- Alpine.js --}}
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    {{-- Three.js Globe Animation --}}
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script>
-    (function() {
-        const canvas = document.getElementById('heroCanvas');
-        if (!canvas) return;
-
-        const cs = getComputedStyle(document.documentElement);
-        function themeColor(name, fallback) {
-            const v = cs.getPropertyValue('--theme-' + name).trim();
-            return v || fallback;
-        }
-        const colPrimary = new THREE.Color(themeColor('welcome-primary', '#2563eb'));
-        const colAccent = new THREE.Color(themeColor('welcome-accent', '#10b981'));
-        const colSecondary = new THREE.Color(themeColor('welcome-secondary', '#7c3aed'));
-
-        const W = canvas.clientWidth, H = canvas.clientHeight;
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-        renderer.setSize(W, H);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 100);
-        camera.position.z = 4.5;
-
-        const globeGeo = new THREE.IcosahedronGeometry(1.5, 3);
-        const globeMat = new THREE.MeshBasicMaterial({ color: colPrimary, wireframe: true, transparent: true, opacity: 0.18 });
-        const globe = new THREE.Mesh(globeGeo, globeMat);
-        scene.add(globe);
-
-        const glowGeo = new THREE.SphereGeometry(1.48, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({ color: colPrimary, transparent: true, opacity: 0.04 });
-        scene.add(new THREE.Mesh(glowGeo, glowMat));
-
-        const dotCount = 120;
-        const dotGeo = new THREE.BufferGeometry();
-        const dotPos = new Float32Array(dotCount * 3);
-        const dotCol = new Float32Array(dotCount * 3);
-        for (let i = 0; i < dotCount; i++) {
-            const phi = Math.acos(2 * Math.random() - 1);
-            const theta = Math.random() * Math.PI * 2;
-            const r = 1.52;
-            dotPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
-            dotPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-            dotPos[i*3+2] = r * Math.cos(phi);
-            const c = [colAccent, colPrimary, colSecondary][i % 3];
-            dotCol[i*3] = c.r; dotCol[i*3+1] = c.g; dotCol[i*3+2] = c.b;
-        }
-        dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPos, 3));
-        dotGeo.setAttribute('color', new THREE.BufferAttribute(dotCol, 3));
-        const dotMat = new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.85 });
-        const dots = new THREE.Points(dotGeo, dotMat);
-        scene.add(dots);
-
-        function makeRing(radius, color, tilt) {
-            const ringGeo = new THREE.RingGeometry(radius - 0.005, radius + 0.005, 128);
-            const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.rotation.x = tilt;
-            return ring;
-        }
-        const ring1 = makeRing(2.0, colAccent, 1.2);
-        const ring2 = makeRing(2.3, colSecondary, 0.6);
-        scene.add(ring1, ring2);
-
-        const satGroup = new THREE.Group();
-        const satCount = 6;
-        const sats = [];
-        for (let i = 0; i < satCount; i++) {
-            const sg = new THREE.SphereGeometry(0.035, 8, 8);
-            const sm = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? colAccent : colSecondary });
-            const sat = new THREE.Mesh(sg, sm);
-            sat.userData = { radius: 1.9 + Math.random() * 0.5, speed: 0.3 + Math.random() * 0.4, offset: (i / satCount) * Math.PI * 2, tilt: 0.5 + Math.random() * 1.2 };
-            satGroup.add(sat);
-            sats.push(sat);
-        }
-        scene.add(satGroup);
-
-        const lineCount = 20;
-        const lineMat = new THREE.LineBasicMaterial({ color: colAccent, transparent: true, opacity: 0.12 });
-        const lineGroup = new THREE.Group();
-        for (let i = 0; i < lineCount; i++) {
-            const a = Math.floor(Math.random() * dotCount);
-            const b = Math.floor(Math.random() * dotCount);
-            const lg = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(dotPos[a*3], dotPos[a*3+1], dotPos[a*3+2]),
-                new THREE.Vector3(dotPos[b*3], dotPos[b*3+1], dotPos[b*3+2])
-            ]);
-            lineGroup.add(new THREE.Line(lg, lineMat));
-        }
-        scene.add(lineGroup);
-
-        let mouseX = 0, mouseY = 0;
-        document.addEventListener('mousemove', function(e) {
-            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-        });
-
-        let time = 0;
-        function animate() {
-            requestAnimationFrame(animate);
-            time += 0.005;
-            globe.rotation.y = time * 0.3 + mouseX * 0.15;
-            globe.rotation.x = Math.sin(time * 0.2) * 0.1 + mouseY * 0.1;
-            dots.rotation.y = globe.rotation.y;
-            dots.rotation.x = globe.rotation.x;
-            lineGroup.rotation.y = globe.rotation.y;
-            lineGroup.rotation.x = globe.rotation.x;
-            ring1.rotation.z = time * 0.15;
-            ring2.rotation.z = -time * 0.1;
-            for (const sat of sats) {
-                const d = sat.userData;
-                const t = time * d.speed + d.offset;
-                sat.position.x = d.radius * Math.cos(t) * Math.cos(d.tilt * 0.3);
-                sat.position.y = d.radius * Math.sin(t) * Math.sin(d.tilt);
-                sat.position.z = d.radius * Math.sin(t) * Math.cos(d.tilt);
-            }
-            lineMat.opacity = 0.08 + Math.sin(time * 3) * 0.06;
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', function() {
-            const w = canvas.clientWidth, h = canvas.clientHeight;
-            if (w && h) {
-                renderer.setSize(w, h);
-                camera.aspect = w / h;
-                camera.updateProjectionMatrix();
-            }
-        });
-    })();
-    </script>
-    {{-- Dark mode toggle JS --}}
-    <script>
-    function toggleDarkMode() {
-        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        var newMode = isDark ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newMode);
-        document.cookie = 'pnlcs_theme=' + newMode + ';path=/;max-age=31536000;SameSite=Lax';
-        var li = document.getElementById('lightIcon');
-        var di = document.getElementById('darkIcon');
-        if (li && di) {
-            li.style.display = isDark ? '' : 'none';
-            di.style.display = isDark ? 'none' : '';
+    $dynHeroTitle = '';
+    if ($heroSection && $heroSection->is_enabled) {
+        try {
+            $dynHeroTitle = trim((string) \App\Models\DynamicTranslation::where('locale', app()->getLocale())
+                ->where('group', 'sections')
+                ->where('key', 'hero.title')
+                ->value('value'));
+        } catch (\Throwable $e) {
+            $dynHeroTitle = '';
         }
     }
-    (function() {
-        var m = document.cookie.match(/pnlcs_theme=(\w+)/);
-        if (m && m[1] === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            var li = document.getElementById('lightIcon');
-            var di = document.getElementById('darkIcon');
-            if (li) li.style.display = '';
-            if (di) di.style.display = 'none';
+
+    $heroTitle = $dynHeroTitle !== ''
+        ? $dynHeroTitle
+        : ($customHeroTitle !== '' ? $customHeroTitle : __('client.domain_search.secure_your_domain_short'));
+@endphp
+<form method="GET" action="{{ route('client.domain.search') }}" id="frmDomainHomepage">
+    <div class="home-domain-search bg-white">
+        <div class="container">
+            <div class="p-5 clearfix">
+                <h2 class="text-center">{{ inline_markup($heroTitle) }}</h2>
+                @if($customHeroSub !== '')
+                    <p class="text-center text-muted mb-0 mt-2">{{ inline_markup($customHeroSub) }}</p>
+                @endif
+                <div class="input-group-wrapper">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="domain" placeholder="{{ __('client.domain_search.example_domain') }}" autocapitalize="none">
+                        <span class="input-group-append d-none d-sm-block">
+                            <button type="submit" class="btn btn-primary" id="btnDomainSearch">
+                                {{ __('common.actions.search') }}
+                            </button>
+                            <button type="submit" id="btnTransfer" formaction="{{ route('client.domains.transfer') }}" class="btn btn-success">
+                                {{ __('client.domain_search.transfer') }}
+                            </button>
+                        </span>
+                    </div>
+                </div>
+                <div class="row d-sm-none">
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-primary btn-block" id="btnDomainSearch2">{{ __('common.actions.search') }}</button>
+                    </div>
+                    <div class="col-6">
+                        <button type="submit" id="btnTransfer2" formaction="{{ route('client.domains.transfer') }}" class="btn btn-success btn-block">{{ __('client.domain_search.transfer') }}</button>
+                    </div>
+                </div>
+
+                @php
+                    $spotlightSetting = trim((string) (\App\Models\Setting::get('SpotlightTLDs', '') ?: \App\Models\Setting::get('FeatureTlds', '')));
+                    $featuredTlds = collect();
+                    if ($spotlightSetting !== '' && isset($domainPricing) && $domainPricing->isNotEmpty()) {
+                        $spotlightExts = array_filter(array_map('trim', explode(',', $spotlightSetting)));
+                        $featuredTlds = $domainPricing->filter(fn ($tld) => in_array($tld->extension, $spotlightExts, true))->values();
+                    }
+                @endphp
+                @if($featuredTlds->isNotEmpty())
+                    <ul class="tld-logos">
+                        @foreach($featuredTlds->take(3) as $tld)
+                            <li>
+                                <strong>{{ $tld->extension }}</strong>
+                                {{ display_money_fmt($tld->register_price) }}
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <a href="{{ route('client.domain.pricing') }}" class="btn btn-link btn-sm float-right">{{ __('client.domain_search.view_all_pricing') }}</a>
+            </div>
+        </div>
+    </div>
+</form>
+@endsection
+
+@section('content')
+@php
+    $productGroups = collect($products ?? [])
+        ->pluck('group')
+        ->filter(fn ($g) => $g && ! $g->hidden)
+        ->unique('id')
+        ->sortBy([['sort_order', 'asc'], ['id', 'asc']])
+        ->values();
+    if ($productGroups->isEmpty()) {
+        try {
+            $productGroups = \App\Models\ProductGroup::where('hidden', false)
+                ->whereHas('products', fn ($q) => $q->where('hidden', false)->where('retired', false))
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+        } catch (\Throwable $e) {
+            $productGroups = collect();
         }
-    })();
-    </script>
-    {!! hook_output('ClientAreaFooterOutput', ['user' => auth()->user()]) !!}
-</body>
-</html>
+    }
+@endphp
+
+<h2 class="text-center m-4">{{ __('client.homepage.products_and_services') }}</h2>
+
+<div class="card-columns home">
+    @foreach($productGroups as $pg)
+        <div class="card mb-3">
+            <div class="card-body p-lg-4 p-xl-5 text-center">
+                <h3 class="card-title pricing-card-title">
+                    {{ $pg->name }}
+                </h3>
+                <p>{{ html_entity_decode((string) ($pg->tagline ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</p>
+                <a href="{{ route('client.store', ['group' => $pg->slug ?? $pg->id]) }}" class="btn btn-block btn-outline-primary">
+                    {{ __('client.homepage.browse_products') }}
+                </a>
+            </div>
+        </div>
+    @endforeach
+
+    <div class="card mb-3">
+        <div class="card-body p-lg-4 p-xl-5 text-center">
+            <h3 class="card-title pricing-card-title">
+                {{ __('client.homepage.register_new_domain') }}
+            </h3>
+            <p>{{ __('client.homepage.secure_your_domain') }}</p>
+            <a href="{{ route('client.domain.search') }}" class="btn btn-block btn-outline-primary">
+                {{ __('client.homepage.domain_search') }}
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body p-lg-4 p-xl-5 text-center">
+            <h3 class="card-title pricing-card-title">
+                {{ __('client.homepage.transfer_your_domain') }}
+            </h3>
+            <p>{{ __('client.homepage.transfer_extend') }}</p>
+            <a href="{{ route('client.domains.transfer') }}" class="btn btn-block btn-outline-primary">
+                {{ __('client.homepage.transfer_your_domain') }}
+            </a>
+        </div>
+    </div>
+</div>
+
+@if(!empty($apps))
+    <h2 class="text-center m-4">{{ __('sections.apps.title') !== 'sections.apps.title' ? __('sections.apps.title') : 'One-Click Applications' }}</h2>
+    <div class="row mb-4 oca__grid">
+        @foreach($apps as $app)
+            @php($appLine = ($app['tagline'] ?? '') ?: ($app['description'] ?? ''))
+            <div class="col-md-4 col-sm-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h4 class="h5 mb-2">{{ $app['name'] ?? '' }}</h4>
+                        @if($appLine !== '')
+                            <p class="text-muted small mb-3">{{ $appLine }}</p>
+                        @endif
+                        <a href="{{ route('client.store', ['app' => $app['slug'] ?? '']) }}" class="btn btn-sm btn-outline-primary">
+                            {{ __('sections.apps.cta') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif
+
+<h2 class="text-center m-4">{{ __('client.homepage.how_can_we_help') }}</h2>
+
+<div class="row my-5 action-icon-btns">
+    <div class="col-6 col-md-4 col-lg">
+        <a href="{{ route('client.announcements.index') }}" class="card-accent-teal">
+            <figure class="ico-container">
+                <i class="fal fa-bullhorn"></i>
+            </figure>
+            {{ __('client.nav.announcements') }}
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="{{ \Illuminate\Support\Facades\Route::has('client.network-status') ? route('client.network-status') : route('client.contact') }}" class="card-accent-pomegranate">
+            <figure class="ico-container">
+                <i class="fal fa-server"></i>
+            </figure>
+            {{ __('client.nav.network_status') }}
+        </a>
+    </div>
+    @if(kb_enabled())
+    <div class="col-6 col-md-4 col-lg">
+        <a href="{{ route('client.kb.index') }}" class="card-accent-sun-flower">
+            <figure class="ico-container">
+                <i class="fal fa-book"></i>
+            </figure>
+            {{ __('client.homepage.knowledgebase') }}
+        </a>
+    </div>
+    @endif
+    <div class="col-6 col-md-4 offset-md-2 offset-lg-0 col-lg">
+        <a href="{{ \Illuminate\Support\Facades\Route::has('client.downloads.index') ? route('client.downloads.index') : route('client.kb.index') }}" class="card-accent-asbestos">
+            <figure class="ico-container">
+                <i class="fal fa-download"></i>
+            </figure>
+            {{ __('client.homepage.downloads') }}
+        </a>
+    </div>
+    <div class="col-6 offset-3 offset-md-0 col-md-4 col-lg">
+        <a href="{{ auth('web')->check() ? route('client.tickets.create') : route('client.contact') }}" class="card-accent-green">
+            <figure class="ico-container">
+                <i class="fal fa-life-ring"></i>
+            </figure>
+            {{ __('client.homepage.submit_ticket') }}
+        </a>
+    </div>
+</div>
+
+<h2 class="text-center m-4">{{ __('client.homepage.your_account') }}</h2>
+
+<div class="row my-5 action-icon-btns">
+    <div class="col-6 col-md-4 col-lg">
+        <a href="{{ auth('web')->check() ? route('client.home') : route('client.login') }}" class="card-accent-midnight-blue">
+            <figure class="ico-container">
+                <i class="fal fa-home"></i>
+            </figure>
+            {{ __('client.homepage.your_account') }}
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="{{ route('client.services.index') }}" class="card-accent-midnight-blue">
+            <figure class="ico-container">
+                <i class="far fa-cubes"></i>
+            </figure>
+            {{ __('client.homepage.manage_services') }}
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="{{ route('client.domains.index') }}" class="card-accent-midnight-blue">
+            <figure class="ico-container">
+                <i class="fal fa-globe"></i>
+            </figure>
+            {{ __('client.homepage.manage_domains') }}
+        </a>
+    </div>
+    <div class="col-6 col-md-4 offset-md-2 offset-lg-0 col-lg">
+        <a href="{{ route('client.tickets.index') }}" class="card-accent-midnight-blue">
+            <figure class="ico-container">
+                <i class="fal fa-comments"></i>
+            </figure>
+            {{ __('client.homepage.support_requests') }}
+        </a>
+    </div>
+    <div class="col-6 offset-3 offset-md-0 col-md-4 col-lg">
+        <a href="{{ route('client.invoices.index') }}" class="card-accent-midnight-blue">
+            <figure class="ico-container">
+                <i class="fal fa-credit-card"></i>
+            </figure>
+            {{ __('client.homepage.make_a_payment') }}
+        </a>
+    </div>
+</div>
+@endsection

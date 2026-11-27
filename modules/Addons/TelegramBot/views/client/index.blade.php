@@ -1,67 +1,59 @@
-@extends('client.layouts.app')
-@section('title', 'Telegram')
+@extends('client.layouts.twentyone')
+@section('title', 'Telegram Notifications')
 
 @section('content')
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">Telegram</h1>
-        <p class="pn-page-subtitle">Invoice, service and support alerts in your Telegram chat.</p>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fab fa-telegram-plane fa-fw"></i>&nbsp;{{ 'Telegram Connection' }}</h5>
     </div>
-</div>
-
-<div class="pn-card" style="margin-bottom:16px;">
-    <div class="pn-card-header">
-        <span class="pn-card-title">Connection</span>
-    </div>
-    <div class="pn-card-body" style="padding:18px;">
+    <div class="card-body">
         @if($row->connected())
-            <p style="font-size:14px;color:var(--text);margin:0 0 14px;">
-                <strong style="color:#065f46;">&#10003; Connected</strong>
-                @if($row->telegram_username) as <strong>@{{ $row->telegram_username }}</strong> @endif
-                since {{ $row->connected_at?->format('d M Y') }}.
-                Alerts are {{ $row->notify_enabled ? 'on' : 'muted' }}.
+            <p class="mb-3">
+                <span class="label label-success mr-1">&#10003; {{ 'Connected' }}</span>
+                @if($row->telegram_username) {{ 'as' }} <strong>{{ '@' . $row->telegram_username }}</strong> @endif
+                {{ 'since ' . ($row->connected_at?->format('d M Y') ?? '') . '. Alerts are ' . ($row->notify_enabled ? 'on' : 'muted') . '.' }}
             </p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <form method="POST" action="{{ route('client.telegram.test') }}">@csrf
-                    <button class="btn btn-outline btn-sm" type="submit">Send test message</button>
+            <div class="d-flex flex-wrap">
+                <form method="POST" action="{{ route('client.telegram.test') }}" class="mr-2 mb-2">@csrf
+                    <button class="btn btn-default btn-sm" type="submit">{{ 'Send test message' }}</button>
                 </form>
-                <form method="POST" action="{{ route('client.telegram.toggle') }}">@csrf
-                    <button class="btn btn-outline btn-sm" type="submit">{{ $row->notify_enabled ? 'Mute alerts' : 'Unmute alerts' }}</button>
+                <form method="POST" action="{{ route('client.telegram.toggle') }}" class="mr-2 mb-2">@csrf
+                    <button class="btn btn-default btn-sm" type="submit">{{ $row->notify_enabled ? 'Mute alerts' : 'Unmute alerts' }}</button>
                 </form>
-                <form method="POST" action="{{ route('client.telegram.disconnect') }}">@csrf
-                    <button class="btn btn-danger btn-sm" type="submit">Disconnect</button>
+                <form method="POST" action="{{ route('client.telegram.disconnect') }}" class="mb-2">@csrf
+                    <button class="btn btn-danger btn-sm" type="submit">{{ 'Disconnect' }}</button>
                 </form>
             </div>
         @else
-            <p style="font-size:14px;color:var(--text);margin:0 0 14px;">
-                Open Telegram, press Start, and this chat starts receiving your invoice and service messages.
-            </p>
+            <p class="text-muted">{{ 'Open Telegram, press Start, and this chat starts receiving your invoice and service messages.' }}</p>
             <form method="POST" action="{{ route('client.telegram.connect') }}">@csrf
-                <button class="btn btn-primary btn-sm" type="submit">Connect Telegram</button>
+                <button class="btn btn-primary" type="submit"><i class="fab fa-telegram-plane"></i> {{ 'Connect Telegram' }}</button>
             </form>
         @endif
     </div>
 </div>
 
-<div class="pn-card">
-    <div class="pn-card-header">
-        <span class="pn-card-title">Recent messages</span>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history fa-fw"></i>&nbsp;{{ 'Recent Messages' }}</h5>
     </div>
-    <div class="pn-card-body-flush">
-        @forelse($messages as $message)
-        <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">
-                {{ $message->created_at?->format('d M Y H:i') }} &middot; {{ $message->event }}
-                @if($message->status !== 'sent') &middot; <span style="color:#b45309;">{{ $message->status }}</span> @endif
-            </div>
-            <div style="font-size:13.5px;color:var(--text);">{{ $message->event === 'Test' || $message->event === 'AdminTest' ? 'Test message' : \Illuminate\Support\Str::limit(strip_tags((string) $message->body), 160) }}</div>
+    @if($messages->isEmpty())
+        <div class="card-body text-center text-muted py-4">
+            <i class="fab fa-telegram-plane fa-2x mb-2 d-block"></i>
+            {{ 'No messages yet.' }}
         </div>
-        @empty
-        <div style="text-align:center;padding:44px 20px;color:var(--muted);">
-            <i class="ri-telegram-line" style="font-size:30px;display:block;margin-bottom:8px;opacity:.5;"></i>
-            <div style="font-size:13.5px;">No messages yet.</div>
+    @else
+        <div class="list-group list-group-flush">
+            @foreach($messages as $message)
+                <div class="list-group-item">
+                    <div class="small text-muted mb-1">
+                        {{ $message->created_at?->format('d M Y H:i') }} &middot; {{ $message->event }}
+                        @if($message->status !== 'sent') &middot; <span class="text-warning">{{ $message->status }}</span> @endif
+                    </div>
+                    <div>{{ $message->event === 'Test' || $message->event === 'AdminTest' ? 'Test message' : \Illuminate\Support\Str::limit(strip_tags((string) $message->body), 160) }}</div>
+                </div>
+            @endforeach
         </div>
-        @endforelse
-    </div>
+    @endif
 </div>
 @endsection

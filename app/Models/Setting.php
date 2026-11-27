@@ -13,6 +13,7 @@ class Setting extends Model {
     public const SECRETS = [
         'SMTPPassword', 'GoogleClientSecret', 'GithubClientSecret', 'RecaptchaSecretKey',
         'OpenAIApiKey', 'TwilioAuthToken', 'FraudLabsApiKey', 'MaxMindLicenseKey',
+        'FacebookClientSecret', 'TwitterClientSecret', 'StorageS3SecretKey', 'DbBackupFtpPassword',
         // The key sent to an operator-added official rate publisher (#372).
         'OfficialRateApiKey',
     ];

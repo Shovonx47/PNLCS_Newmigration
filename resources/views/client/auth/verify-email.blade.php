@@ -1,51 +1,41 @@
-@extends("client.layouts.twentyone")
-@section("title", __("client.email_verify.title"))
-@section("content")
+@extends('client.layouts.twentyone')
+@section('no_page_header', '1')
+@section('title', __('client.email_verify.title'))
+@section('content')
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="h1 mb-0">{{ __('client.email_verify.title') }}</h1>
+<div class="card mw-540 mb-md-4 mt-md-4 mx-auto">
+    <div class="card-body px-sm-5 py-5">
+        <h3 class="card-title">{{ __('client.email_verify.title') }}</h3>
         <p class="text-muted">{{ __('client.email_verify.subtitle') }}</p>
-    </div>
-</div>
 
-<div class="card" style="max-width:640px;">
-    <div class="card-body">
-        {{-- The address is spelled out: a typo in it is the single most common
-             reason the mail never arrives, and the customer cannot spot one
-             they were never shown. --}}
-        <p style="margin:0 0 14px;">
-            {{-- trans_markup escapes the address as part of the sentence, so
-                 it is not escaped again here. --}}
+        <p>
             {{ trans_markup('client.email_verify.sent_to', ['email' => '<strong>'.auth()->user()->email.'</strong>']) }}
         </p>
 
         @if($errors->has('code'))
-        <div class="alert alert-warning alert-danger">{{ $errors->first('code') }}</div>
+            <div class="alert alert-danger">{{ $errors->first('code') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('client.verification.code') }}" style="margin:0 0 14px;">
+        <form method="POST" action="{{ route('client.verification.code') }}" class="mb-3">
             @csrf
             <div class="form-group">
-                <label class="form-label" for="code">{{ __('client.email_verify.code_label') }}</label>
-                <input type="text" id="code" name="code" required autofocus autocomplete="one-time-code" inputmode="numeric" maxlength="12" class="form-control" style="max-width:220px; font-size:20px; letter-spacing:6px; text-align:center;">
+                <label for="code">{{ __('client.email_verify.code_label') }}</label>
+                <input type="text" id="code" name="code" required autofocus autocomplete="one-time-code"
+                       inputmode="numeric" maxlength="12" class="form-control form-control-lg text-center">
             </div>
-            <button type="submit" class="btn btn-primary">{{ __('client.email_verify.code_submit') }}</button>
+            <button type="submit" class="btn btn-primary btn-block">{{ __('client.email_verify.code_submit') }}</button>
         </form>
 
-        <p style="margin:0 0 18px;color:var(--muted);font-size:13px;">
+        <p class="text-muted small mb-0">
             {{ __('client.email_verify.hint', ['minutes' => \App\Http\Controllers\Client\EmailVerificationController::CODE_MINUTES]) }}
         </p>
-
-        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-            <form method="POST" action="{{ route('client.verification.send') }}" style="display:inline;">
-                @csrf
-                <button type="submit" class="btn btn-default">{{ __('client.email_verify.resend') }}</button>
-            </form>
-
-            {{-- The way out of a wrong address, which resending cannot fix. --}}
-            <a href="{{ route('client.account.profile') }}" class="btn btn-default">{{ __('client.email_verify.change_email') }}</a>
-        </div>
+    </div>
+    <div class="card-footer px-md-5 d-flex justify-content-between align-items-center flex-wrap">
+        <form method="POST" action="{{ route('client.verification.send') }}" class="m-0">
+            @csrf
+            <button type="submit" class="btn btn-default btn-sm">{{ __('client.email_verify.resend') }}</button>
+        </form>
+        <a href="{{ route('client.account.profile') }}" class="btn btn-default btn-sm">{{ __('client.email_verify.change_email') }}</a>
     </div>
 </div>
 

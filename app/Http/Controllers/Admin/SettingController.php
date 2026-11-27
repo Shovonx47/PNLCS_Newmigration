@@ -866,7 +866,35 @@ class SettingController extends Controller
 
     public function systemSettings()
     {
-        return view('admin.config.system-settings');
+        $companyName = trim((string) Setting::get('CompanyName', ''));
+        $systemEmail = trim((string) Setting::get('Email', ''));
+        $hasLogo = trim((string) Setting::get('LogoUrl', '')) !== '' || trim((string) Setting::get('active_theme', '')) !== '';
+        $hasCurrency = \App\Models\Currency::count() > 0;
+        $hasGateway = \App\Models\GatewaySettings::distinct()->count('gateway') > 0;
+        $hasServer = \App\Models\Server::where('disabled', false)->count() > 0;
+        $hasProduct = \App\Models\Product::where('retired', false)->count() > 0;
+        $hasRegistrar = \App\Models\RegistrarSettings::distinct()->count('registrar') > 0;
+        $hasDomainPricing = \App\Models\DomainPricing::where('enabled', true)->count() > 0;
+        $hasSupportDept = \App\Models\TicketDepartment::where('hidden', false)->count() > 0;
+        $hasCronRun = \App\Models\ScheduledTaskRun::whereNotNull('last_run_at')->exists();
+
+        $setupTasks = [
+            ['title' => 'Configure Company Identity & System Email', 'done' => ($companyName !== '' && $systemEmail !== ''), 'url' => route('admin.settings.general')],
+            ['title' => 'Customize Logo & Storefront Appearance',    'done' => $hasLogo,          'url' => route('admin.settings.appearance')],
+            ['title' => 'Configure Currencies & Exchange Rates',     'done' => $hasCurrency,      'url' => route('admin.config.currencies')],
+            ['title' => 'Activate at Least One Payment Gateway',     'done' => $hasGateway,       'url' => route('admin.config.gateways')],
+            ['title' => 'Add a Hosting / Provisioning Server',       'done' => $hasServer,        'url' => route('admin.config.servers')],
+            ['title' => 'Create Your First Product or Service',      'done' => $hasProduct,       'url' => route('admin.products.index')],
+            ['title' => 'Connect a Domain Registrar Module',         'done' => $hasRegistrar,     'url' => route('admin.config.registrars')],
+            ['title' => 'Configure TLD Extensions & Domain Pricing', 'done' => $hasDomainPricing, 'url' => route('admin.config.domain-pricing')],
+            ['title' => 'Set Up Support Ticket Departments',         'done' => $hasSupportDept,   'url' => route('admin.config.ticket-departments')],
+            ['title' => 'Verify Scheduled Automation & Cron Tasks',  'done' => $hasCronRun,       'url' => route('admin.config.automation')],
+        ];
+
+        $doneCount = collect($setupTasks)->where('done', true)->count();
+        $setupPercent = count($setupTasks) > 0 ? (int) round(($doneCount / count($setupTasks)) * 100) : 0;
+
+        return view('admin.config.system-settings', compact('setupTasks', 'setupPercent'));
     }
 
     public function saveMyNotes(Request $request)

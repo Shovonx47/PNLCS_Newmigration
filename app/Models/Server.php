@@ -19,4 +19,5 @@ class Server extends Model {
     }
 
     public function groups() { return $this->belongsToMany(ServerGroup::class, "server_group_server"); }
+    public function services() { return $this->hasMany(Service::class); }
 }

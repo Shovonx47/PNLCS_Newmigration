@@ -29,7 +29,15 @@ class DomainController extends Controller
             $query->where('registrar', $request->registrar);
         }
         if ($request->filled('search')) {
-            $query->where('domain', 'like', "%{$request->search}%");
+            $s = trim((string) $request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('domain', 'like', "%{$s}%")
+                    ->orWhereHas('client', fn ($c) => $c
+                        ->where('first_name', 'like', "%{$s}%")
+                        ->orWhere('last_name', 'like', "%{$s}%")
+                        ->orWhere('company_name', 'like', "%{$s}%")
+                        ->orWhere('email', 'like', "%{$s}%"));
+            });
         }
 
         // Only the columns the screen offers. Anything else used to be handed

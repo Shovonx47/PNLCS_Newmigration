@@ -2,126 +2,135 @@
 @section('title', __('client.security.title'))
 @section('content')
 
-<div class="pn-page-header">
-    <h1>{{ __('client.security.title') }}</h1>
-</div>
-
-<div class="card" style="margin-bottom:20px;">
-    <div class="card-header">{{ __('client.security.two_factor') }}</div>
+<div class="card mb-4">
     <div class="card-body">
-        <p style="font-size:13px; color:#555; margin-bottom:16px;">
-            {{ __('client.security.2fa_desc') }}
-        </p>
+        <h3 class="card-title">{{ __('client.security.two_factor') }}</h3>
+        <p class="text-muted">{{ __('client.security.2fa_desc') }}</p>
+
         @if($twoFactorEnabled ?? false)
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:#dff0d8; border:1px solid #d6e9c6; border-radius:4px; margin-bottom:14px;">
-            <span style="font-size:13px; color:#3c763d; font-weight:500;">&#10003; {{ __('client.security.2fa_enabled') }}</span>
-            <form method="POST" action="{{ route('client.2fa.disable') }}" style="margin:0;">
-                @csrf
-                <input type="password" name="password" placeholder="{{ __('client.security.your_password') }}" class="form-control form-control-sm" style="width:160px;display:inline-block;margin-right:6px;" required>
-                <button type="submit" class="btn btn-danger btn-sm">{{ __('common.actions.disable') }}</button>
-            </form>
-        </div>
-        {{-- The backup codes are flashed here once, right after 2FA is switched
-             on (AuthController::enable2fa). Nothing showed them, so a customer
-             who lost their phone held codes they had never seen. --}}
-        @if(is_array(session('backup_codes')) && session('backup_codes'))
-        <div style="padding:12px 14px; border:1px solid #faebcc; background:#fcf8e3; border-radius:4px; margin-bottom:14px;">
-            <div style="font-size:13px; font-weight:600; margin-bottom:6px;">{{ __('client.security.backup_codes_title') }}</div>
-            <p style="font-size:12.5px; margin:0 0 10px;">{{ __('client.security.backup_codes_hint') }}</p>
-            <ul style="list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:6px; font-family:ui-monospace, Menlo, monospace; font-size:14px;">
-                @foreach(session('backup_codes') as $backupCode)
-                <li>{{ $backupCode }}</li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
+            <div class="alert alert-success d-flex justify-content-between align-items-center flex-wrap">
+                <span class="font-weight-bold mb-2 mb-sm-0">
+                    <i class="fas fa-check-circle mr-1"></i>{{ __('client.security.2fa_enabled') }}
+                </span>
+                <form method="POST" action="{{ route('client.2fa.disable') }}" class="form-inline">
+                    @csrf
+                    <input type="password" name="password" placeholder="{{ __('client.security.your_password') }}" class="form-control form-control-sm mr-2" required>
+                    <button type="submit" class="btn btn-danger btn-sm">{{ __('common.actions.disable') }}</button>
+                </form>
+            </div>
+
+            @if(is_array(session('backup_codes')) && session('backup_codes'))
+                <div class="alert alert-warning mb-0">
+                    <h5 class="h6 font-weight-bold mb-1">{{ __('client.security.backup_codes_title') }}</h5>
+                    <p class="small mb-2">{{ __('client.security.backup_codes_hint') }}</p>
+                    <div class="row">
+                        @foreach(session('backup_codes') as $backupCode)
+                            <div class="col-6 col-sm-4 col-md-3 mb-1">
+                                <code class="text-monospace">{{ $backupCode }}</code>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         @else
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:var(--bg); border:1px solid #e0e0e0; border-radius:4px; margin-bottom:14px;">
-            <span style="font-size:13px; color:var(--muted);">{{ __('client.security.2fa_not_enabled') }}</span>
-            <a href="{{ route('client.2fa.enable') }}" class="btn btn-success btn-sm">{{ __('client.auth.enable_2fa_btn') }}</a>
-        </div>
+            <div class="alert alert-warning">{{ __('client.security.2fa_not_enabled') }}</div>
+            <a href="{{ route('client.2fa.enable') }}" class="btn btn-success">
+                {{ __('client.auth.enable_2fa_btn') }}
+            </a>
         @endif
     </div>
 </div>
 
 @if($phoneVerifyAvailable ?? false)
-<div class="card" style="margin-bottom:20px;">
-    <div class="card-header">{{ __('client.phone_verify.title') }}</div>
-    <div class="card-body">
-        @if($client?->phone_verified_at)
-        <div style="padding:12px 14px; background:#dff0d8; border:1px solid #d6e9c6; border-radius:4px;">
-            <span style="font-size:13px; color:#3c763d; font-weight:500;">&#10003; {{ __('client.phone_verify.verified_label') }} ({{ $client->full_phone }})</span>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title">{{ __('client.phone_verify.title') }}</h3>
+            @if($client?->phone_verified_at)
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle mr-1"></i>{{ __('client.phone_verify.verified_label') }} ({{ $client->full_phone }})
+                </div>
+            @elseif(! $client?->full_phone)
+                <p class="text-muted mb-0">{{ __('client.phone_verify.no_phone') }}</p>
+            @elseif(session('phone_code_sent'))
+                <p class="text-muted">{{ __('client.phone_verify.enter_code_hint') }}</p>
+                <form method="POST" action="{{ route('client.account.phone.verify_check') }}" class="form-inline">
+                    @csrf
+                    <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
+                           placeholder="{{ __('client.phone_verify.code_placeholder') }}"
+                           class="form-control form-control-sm mr-2" required>
+                    <button type="submit" class="btn btn-success btn-sm">{{ __('client.phone_verify.confirm_btn') }}</button>
+                </form>
+                @error('code')
+                    <div class="text-danger small mt-2">{{ $message }}</div>
+                @enderror
+            @else
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <span class="text-muted mb-2 mb-sm-0">{{ __('client.phone_verify.unverified_label') }} ({{ $client->full_phone }})</span>
+                    <form method="POST" action="{{ route('client.account.phone.verify') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-primary btn-sm">{{ __('client.phone_verify.send_btn') }}</button>
+                    </form>
+                </div>
+                @error('phone')
+                    <div class="text-danger small mt-2">{{ $message }}</div>
+                @enderror
+            @endif
         </div>
-        @elseif(! $client?->full_phone)
-        <p style="font-size:13px; color:var(--muted); margin:0;">{{ __('client.phone_verify.no_phone') }}</p>
-        @elseif(session('phone_code_sent'))
-        <p style="font-size:13px; color:#555; margin-bottom:12px;">{{ __('client.phone_verify.enter_code_hint') }}</p>
-        <form method="POST" action="{{ route('client.account.phone.verify_check') }}" style="display:flex; gap:8px; align-items:center; margin:0;">
-            @csrf
-            <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="{{ __('client.phone_verify.code_placeholder') }}" class="form-control form-control-sm" style="width:140px;" required>
-            <button type="submit" class="btn btn-success btn-sm">{{ __('client.phone_verify.confirm_btn') }}</button>
-        </form>
-        @error('code')<p style="font-size:12px;color:#a94442;margin:8px 0 0;">{{ $message }}</p>@enderror
-        @else
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <span style="font-size:13px; color:var(--muted);">{{ __('client.phone_verify.unverified_label') }} ({{ $client->full_phone }})</span>
-            <form method="POST" action="{{ route('client.account.phone.verify') }}" style="margin:0;">
-                @csrf
-                <button type="submit" class="btn btn-primary btn-sm">{{ __('client.phone_verify.send_btn') }}</button>
-            </form>
-        </div>
-        @error('phone')<p style="font-size:12px;color:#a94442;margin:8px 0 0;">{{ $message }}</p>@enderror
-        @endif
     </div>
-</div>
 @endif
 
 @if($sessionsSupported ?? false)
-<div class="card">
-    <div class="card-header">{{ __('client.security.active_sessions') }}</div>
-    <div class="card-body" style="padding:0;">
-        <table class="table table-list">
-            <thead>
-                <tr>
-                    <th>{{ __('client.security.device_ip') }}</th>
-                    <th>{{ __('client.security.last_activity') }}</th>
-                    <th>{{ __('client.security.action') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($sessions ?? [] as $session)
-                <tr>
-                    <td>
-                        <div style="font-weight:500; font-size:13px;">{{ $session->ip_address }}</div>
-                        <div style="font-size:12px; color:var(--muted);">{{ $session->user_agent ? Str::limit($session->user_agent, 60) : '-' }}</div>
-                    </td>
-                    <td style="color:var(--muted); font-size:12px;">{{ $session->last_activity ? \Carbon\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() : '-' }}</td>
-                    <td>
-                        @if($session->id !== session()->getId())
-                        <form method="POST" action="{{ route('client.account.security.logout_session', $session->id) }}" style="margin:0;">
-                            @csrf
-                            <button type="submit" class="btn btn-danger btn-xs">{{ __('client.security.revoke') }}</button>
-                        </form>
-                        @else
-                        <span style="font-size:12px; color:#46a546; font-weight:500;">{{ __('client.security.current') }}</span>
-                        @endif
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="3" style="text-align:center; padding:24px; color:var(--muted);">{{ __('client.security.no_sessions') }}</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title h5 mb-0">{{ __('client.security.active_sessions') }}</h3>
+        </div>
+        <div class="table-container clearfix">
+            <table class="table table-list mb-0">
+                <thead>
+                    <tr>
+                        <th>{{ __('client.security.device_ip') }}</th>
+                        <th>{{ __('client.security.last_activity') }}</th>
+                        <th>{{ __('client.security.action') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($sessions ?? [] as $session)
+                        <tr>
+                            <td>
+                                <div class="font-weight-bold">{{ $session->ip_address }}</div>
+                                <div class="small text-muted">{{ $session->user_agent ? Str::limit($session->user_agent, 60) : '-' }}</div>
+                            </td>
+                            <td class="text-muted small">
+                                {{ $session->last_activity ? \Carbon\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() : '-' }}
+                            </td>
+                            <td>
+                                @if($session->id !== session()->getId())
+                                    <form method="POST" action="{{ route('client.account.security.logout_session', $session->id) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-danger btn-sm">{{ __('client.security.revoke') }}</button>
+                                    </form>
+                                @else
+                                    <span class="badge badge-success">{{ __('client.security.current') }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">{{ __('client.security.no_sessions') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 @endif
 
-<div class="card">
-    <div class="card-header">{{ __('client.security.login_history') }}</div>
-    <div class="card-body" style="padding:0;">
-        <table class="table table-list">
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title h5 mb-0">{{ __('client.security.login_history') }}</h3>
+    </div>
+    <div class="table-container clearfix">
+        <table class="table table-list mb-0">
             <thead>
                 <tr>
                     <th>{{ __('client.security.login_when') }}</th>
@@ -131,41 +140,46 @@
             </thead>
             <tbody>
                 @forelse($logins ?? [] as $login)
-                <tr>
-                    <td style="font-size:13px; white-space:nowrap;">{{ $login->created_at?->format(date_fmt().' H:i') }}</td>
-                    <td>
-                        <div style="font-weight:500; font-size:13px;">{{ $login->ip_address ?: '-' }}</div>
-                        <div style="font-size:12px; color:var(--muted);">{{ \App\Services\LoginRecorder::describe($login->user_agent) }}@if($login->method === 'google') · {{ __('client.security.via_google') }}@endif</div>
-                    </td>
-                    <td>
-                        @if($login->successful)
-                        <span style="font-size:12px; color:#46a546; font-weight:500;">{{ __('client.security.login_ok') }}</span>
-                        @else
-                        <span style="font-size:12px; color:#c0392b; font-weight:500;">{{ __('client.security.login_failed') }}</span>
-                        @endif
-                    </td>
-                </tr>
+                    <tr>
+                        <td class="text-nowrap">{{ $login->created_at?->format(date_fmt().' H:i') }}</td>
+                        <td>
+                            <div class="font-weight-bold">{{ $login->ip_address ?: '-' }}</div>
+                            <div class="small text-muted">
+                                {{ \App\Services\LoginRecorder::describe($login->user_agent) }}@if($login->method === 'google') &middot; {{ __('client.security.via_google') }}@endif
+                            </div>
+                        </td>
+                        <td>
+                            @if($login->successful)
+                                <span class="badge badge-success">{{ __('client.security.login_ok') }}</span>
+                            @else
+                                <span class="badge badge-danger">{{ __('client.security.login_failed') }}</span>
+                            @endif
+                        </td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="3" style="text-align:center; padding:24px; color:var(--muted);">{{ __('client.security.no_logins') }}</td>
-                </tr>
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">{{ __('client.security.no_logins') }}</td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
-        <div style="font-size:12px; color:var(--muted); padding:10px 16px;">{{ __('client.security.login_history_hint') }}@if(\App\Services\LoginRecorder::mailEnabled()) {{ __('client.security.login_history_mail') }}@endif</div>
+    </div>
+    <div class="card-footer text-muted small">
+        {{ __('client.security.login_history_hint') }}@if(\App\Services\LoginRecorder::mailEnabled()) {{ __('client.security.login_history_mail') }}@endif
     </div>
 </div>
+
 @if($ownsAccount ?? false)
-<div class="card">
-    <div class="card-header">{{ __('client.security.your_data') }}</div>
-    <div class="card-body">
-        <p style="font-size:13px; color:var(--muted); margin-top:0;">{{ __('client.security.your_data_desc') }}</p>
-        <form method="POST" action="{{ route('client.account.personal-data') }}" style="margin:0;">
-            @csrf
-            <button type="submit" class="btn btn-outline btn-sm">{{ __('client.security.download_data') }}</button>
-        </form>
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">{{ __('client.security.your_data') }}</h3>
+            <p class="text-muted">{{ __('client.security.your_data_desc') }}</p>
+            <form method="POST" action="{{ route('client.account.personal-data') }}">
+                @csrf
+                <button type="submit" class="btn btn-default btn-sm">{{ __('client.security.download_data') }}</button>
+            </form>
+        </div>
     </div>
-</div>
 @endif
 
 @endsection

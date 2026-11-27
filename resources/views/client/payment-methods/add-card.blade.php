@@ -1,73 +1,64 @@
-@extends("client.layouts.twentyone")
-@section("title", __("client.payment_methods.add_card_title"))
-@section("content")
+@extends('client.layouts.twentyone')
+@section('title', __('client.payment_methods.add_card_title'))
+@section('content')
 
 {{-- The card never touches this server. The gateway's own script holds the
      number, the browser sends it straight to them, and what comes back here is
-     an id. The key printed into the page below is the publishable one, which is
-     what it is for; the secret key is read only by the module, server side. --}}
+     an id. --}}
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="h1 mb-0">{{ __('client.payment_methods.add_card_title') }}</h1>
-        <p class="text-muted">{{ __('client.payment_methods.add_card_subtitle') }}</p>
-    </div>
-    <div>
-        <a href="{{ route('client.payment-methods.index') }}" class="btn btn-outline btn-sm">{{ __('client.actions.back') }}</a>
-    </div>
-</div>
-
-{{-- Stripe is the only gateway this page knows how to draw, and it is the
-     only one that implements the vaulting capability. A second one would add
-     its own block here the way the invoice page does, rather than being handed
-     a card field wired to nothing. --}}
 @if($publishableKey && $clientSecret && $gateway === 'stripe')
-<div class="card" style="max-width:640px">
-    <div class="card-header"><span class="card-title">{{ __('client.payment_methods.card_details') }}</span></div>
-    <div class="card-body">
-        <div id="card-element" style="border:1.5px solid var(--border);padding:12px;border-radius:var(--radius-sm);background:var(--bg)"></div>
-        <div id="card-error" class="text-sm" style="color:var(--danger,#dc2626);margin-top:8px;min-height:18px"></div>
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                <h3 class="card-title mb-0">{{ __('client.payment_methods.add_card_title') }}</h3>
+                <a href="{{ route('client.payment-methods.index') }}" class="btn btn-default btn-sm">{{ __('client.actions.back') }}</a>
+            </div>
+            <p class="text-muted mb-4">{{ __('client.payment_methods.add_card_subtitle') }}</p>
 
-        {{-- The terms the card is being stored under, on the screen where it is
-             stored. Stripe's rule for charging a card with the customer away is
-             that the agreement names what will be charged, when, and how to
-             stop it; all three are here rather than in a policy page nobody
-             opens. --}}
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:16px">
-            <p class="text-muted text-sm" style="margin:0 0 8px">{{ __('client.payment_methods.consent_terms') }}</p>
-            <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer">
-                <input type="checkbox" id="card-consent" style="margin-top:3px">
-                <span>{{ __('client.payment_methods.consent_label', ['company' => company_name()]) }}</span>
-            </label>
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label">{{ __('client.payment_methods.card_details') }}</label>
+                <div class="col-md-9">
+                    <div id="card-element" class="form-control h-auto py-3"></div>
+                    <div id="card-error" class="text-danger small mt-2"></div>
+                </div>
+            </div>
+
+            <div class="form-group row mb-0">
+                <div class="col-md-9 offset-md-3">
+                    <div class="alert alert-light border mb-3">
+                        <p class="text-muted small mb-2">{{ __('client.payment_methods.consent_terms') }}</p>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="card-consent">
+                            <label class="form-check-label small" for="card-consent">
+                                {{ __('client.payment_methods.consent_label', ['company' => company_name()]) }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="button" id="card-submit" class="btn btn-primary" disabled>
+                        {{ __('client.payment_methods.store_card_button') }}
+                    </button>
+                    <a href="{{ route('client.payment-methods.index') }}" class="btn btn-default ml-2">
+                        {{ __('client.actions.back') }}
+                    </a>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('client.payment-methods.store-card') }}" id="card-form" class="d-none">
+                @csrf
+                <input type="hidden" name="session_id" id="card-session">
+                <input type="hidden" name="gateway" value="{{ $gateway }}">
+                <input type="hidden" name="consent" id="card-consent-value" value="0">
+            </form>
         </div>
-
-        <button type="button" id="card-submit" class="btn btn-primary" style="margin-top:16px" disabled>
-            {{ __('client.payment_methods.store_card_button') }}
-        </button>
-
-        {{-- A real form, posted by the script once the gateway has finished.
-             It carries the session id and the answer to the consent box, and
-             it carries the CSRF token as a field rather than a header so that
-             it does not depend on anything else being on the page. --}}
-        <form method="POST" action="{{ route('client.payment-methods.store-card') }}" id="card-form" style="display:none">
-            @csrf
-            <input type="hidden" name="session_id" id="card-session">
-            {{-- Which gateway opened the session that is about to be confirmed.
-                 More than one module can store cards now, and the id below
-                 means nothing to the wrong one: without this the confirmation
-                 was sent to whichever gateway happened to sort first. --}}
-            <input type="hidden" name="gateway" value="{{ $gateway }}">
-            <input type="hidden" name="consent" id="card-consent-value" value="0">
-        </form>
     </div>
-</div>
 @else
-<div class="alert alert-warning">{{ __('client.payment_methods.card_unavailable') }}</div>
+    <div class="alert alert-warning">{{ __('client.payment_methods.card_unavailable') }}</div>
 @endif
 
 @endsection
 
-@section("scripts")
+@section('scripts')
 @if($publishableKey && $clientSecret && $gateway === 'stripe')
 <script src="https://js.stripe.com/v3/"></script>
 <script>
@@ -83,9 +74,6 @@
     var form = document.getElementById("card-form");
     var busy = false;
 
-    // Nothing is sent to the gateway until the box is ticked. The button is
-    // disabled rather than the tick being checked on submit, so that there is
-    // no moment where a card is handed over by somebody who has not agreed.
     function sync() { button.disabled = busy || !consent.checked; }
     consent.addEventListener("change", sync);
     card.addEventListener("change", function (e) {
@@ -100,8 +88,6 @@
         errorBox.textContent = "";
         button.textContent = @json(__('client.payment_methods.storing'));
 
-        // confirmCardSetup carries out 3-D Secure itself when the bank asks
-        // for it, in a modal, and resolves once it is finished either way.
         stripe.confirmCardSetup(@json($clientSecret), { payment_method: { card: card } })
             .then(function (result) {
                 if (result.error) {
@@ -112,8 +98,6 @@
                     return;
                 }
 
-                // The id, and only the id. The server reads the session back
-                // from the gateway and believes that, not this.
                 document.getElementById("card-session").value = result.setupIntent.id;
                 document.getElementById("card-consent-value").value = "1";
                 form.submit();

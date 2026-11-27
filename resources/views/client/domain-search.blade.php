@@ -1,197 +1,231 @@
-@extends("client.layouts.twentyone")
-@section("title", __("client.domain_search.title"))
-@section("content")
-<div class="pn-page-header"><div><h1 class="h1 mb-0">{{ __('client.domain_search.heading') }}</h1><p class="text-muted">{{ __('client.domain_search.subtitle') }}</p></div></div>
-<div style="max-width:100%;padding:0;">
+@extends('client.layouts.twentyone')
+@section('title', __('client.domain_search.title'))
+@section('content')
 
-    <div style="text-align:center;margin-bottom:32px;">
-        <h1 style="font-size:32px;font-weight:800;color:#1a4d80;margin-bottom:8px;">{{ __('client.domain_search.find_perfect') }}</h1>
-        <p style="color:var(--muted);font-size:16px;">{{ __('client.domain_search.search_desc') }}</p>
-    </div>
+<div class="domain-checker-container card mb-4">
+    <div class="card-body p-4 text-center">
+        <h2 class="h3 mb-2">{{ __('client.domain_search.find_perfect') }}</h2>
+        <p class="text-muted mb-4">{{ __('client.domain_search.search_desc') }}</p>
 
-    <form method="GET" action="{{ route('client.domain.search') }}" id="domain-search-form" style="margin-bottom:32px;">
-        <div style="display:flex;background:var(--card);border:2px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-            <input type="text" name="domain" id="domain-input"
-                value="{{ $searchDomain ? explode('.', $searchDomain)[0] : old('domain') }}"
-                placeholder="{{ __('client.domain_search.placeholder') }}" required
-                style="flex:1;border:none;outline:none;padding:16px 20px;font-size:18px;font-family:inherit;color:var(--text);background:transparent;min-width:0;">
-            <div style="display:flex;align-items:center;border-left:1px solid var(--border);">
-                <select name="tld" id="tld-select" style="border:none;outline:none;font-size:16px;font-weight:600;color:#1a4d80;background:transparent;padding:0 12px;cursor:pointer;font-family:inherit;height:58px;">
-                    @foreach($tlds->whereIn('extension', ['.com','.net','.org','.io','.dev','.app','.co','.ai','.me','.xyz']) as $t)
-                    <option value="{{ $t->extension }}" {{ ($results['tld'] ?? '.com') === $t->extension ? 'selected' : '' }}>{{ $t->extension }}</option>
-                    @endforeach
-                    <optgroup label="{{ __('client.domain_search.more_tlds') }}">
-                        @foreach($tlds->reject(fn($t) => in_array($t->extension, ['.com','.net','.org','.io','.dev','.app','.co','.ai','.me','.xyz'])) as $t)
-                        <option value="{{ $t->extension }}" {{ ($results['tld'] ?? '') === $t->extension ? 'selected' : '' }}>{{ $t->extension }}</option>
+        <form method="GET" action="{{ route('client.domain.search') }}" id="domain-search-form">
+            <div class="input-group input-group-lg">
+                <input type="text" name="domain" id="domain-input"
+                    class="form-control"
+                    value="{{ $searchDomain ? explode('.', $searchDomain)[0] : old('domain') }}"
+                    placeholder="{{ __('client.domain_search.placeholder') }}" required>
+                <div class="input-group-append">
+                    <select name="tld" id="tld-select" class="custom-select form-control h-100">
+                        @foreach($tlds->whereIn('extension', ['.com','.net','.org','.io','.dev','.app','.co','.ai','.me','.xyz']) as $t)
+                            <option value="{{ $t->extension }}" {{ ($results['tld'] ?? '.com') === $t->extension ? 'selected' : '' }}>{{ $t->extension }}</option>
                         @endforeach
-                    </optgroup>
-                </select>
+                        <optgroup label="{{ __('client.domain_search.more_tlds') }}">
+                            @foreach($tlds->reject(fn($t) => in_array($t->extension, ['.com','.net','.org','.io','.dev','.app','.co','.ai','.me','.xyz'])) as $t)
+                                <option value="{{ $t->extension }}" {{ ($results['tld'] ?? '') === $t->extension ? 'selected' : '' }}>{{ $t->extension }}</option>
+                            @endforeach
+                        </optgroup>
+                    </select>
+                    <button type="submit" class="btn btn-primary px-4">{{ __('common.actions.search') }}</button>
+                </div>
             </div>
-            <button type="submit" style="padding:0 32px;background:#1a4d80;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;">{{ __('common.actions.search') }}</button>
-        </div>
-    </form>
+        </form>
+    </div>
+</div>
 
-    @if($results)
+@if($results)
     @php $primary = $results['primary']; @endphp
     @if($primary)
-    <div style="background:var(--card);border-radius:12px;border:2px solid {{ ($primary['checked'] ?? true) ? ($primary['available'] ? '#22c55e' : '#ef4444') : '#f59e0b' }};padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-        <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:44px;height:44px;border-radius:50%;background:{{ ($primary['checked'] ?? true) ? ($primary['available'] ? '#dcfce7' : '#fee2e2') : '#fef3c7' }};display:flex;align-items:center;justify-content:center;">
-                @if($primary['available'] && ($primary['checked'] ?? true))
-                <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                @else
-                <svg width="22" height="22" fill="none" stroke="#dc2626" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                @endif
-            </div>
-            <div>
-                <div style="font-size:22px;font-weight:700;color:var(--text);">{{ $primary['domain'] }}</div>
-                @php $primaryChecked = $primary['checked'] ?? true; @endphp
-                <div style="font-size:14px;color:{{ ! $primaryChecked ? '#b45309' : ($primary['available'] ? '#16a34a' : '#dc2626') }};font-weight:600;">
-                    @if(! $primaryChecked)
-                        {{ __('client.domain_search.could_not_check') }}
+        @php $primaryChecked = $primary['checked'] ?? true; @endphp
+        <div class="card mb-4 {{ ! $primaryChecked ? 'border-warning' : ($primary['available'] ? 'border-success' : 'border-danger') }}">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    @if($primary['available'] && $primaryChecked)
+                        <i class="fas fa-check-circle text-success fa-2x mr-3"></i>
+                    @elseif(! $primaryChecked)
+                        <i class="fas fa-exclamation-circle text-warning fa-2x mr-3"></i>
                     @else
-                        {{ $primary['available'] ? __('client.domain_search.available') : __('client.domain_search.already_registered') }}
+                        <i class="fas fa-times-circle text-danger fa-2x mr-3"></i>
+                    @endif
+                    <div>
+                        <h4 class="mb-0 font-weight-bold">{{ $primary['domain'] }}</h4>
+                        <div class="small font-weight-bold {{ ! $primaryChecked ? 'text-warning' : ($primary['available'] ? 'text-success' : 'text-danger') }}">
+                            @if(! $primaryChecked)
+                                {{ __('client.domain_search.could_not_check') }}
+                            @else
+                                {{ $primary['available'] ? __('client.domain_search.available') : __('client.domain_search.already_registered') }}
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    @if($primary['available'] && $primaryChecked)
+                        <div class="text-right mr-3">
+                            <div class="h4 mb-0 font-weight-bold text-primary">
+                                {{ domain_money_fmt($primary['price']) }}<small class="text-muted font-weight-normal">/{{ __('client.domain_search.per_year') }}</small>
+                            </div>
+                            <div class="small text-muted">{{ __('client.domain_search.renews_at') }} {{ domain_money_fmt($primary['renew_price']) }}/{{ __('client.domain_search.per_year') }}</div>
+                            @if(($primary['grace_period'] ?? 0) > 0)
+                                <div class="small text-muted" title="{{ __('client.domain_search.grace_note') }}">{{ __('client.domain_search.grace') }}: {{ $primary['grace_period'] }} {{ __('client.domain_search.days') }}</div>
+                            @endif
+                            @if(($primary['restore_price'] ?? 0) > 0)
+                                <div class="small text-muted" title="{{ __('client.domain_search.restore_note') }}">{{ __('client.domain_search.restore') }}: {{ domain_money_fmt($primary['restore_price']) }}</div>
+                            @endif
+                        </div>
+                        <form method="POST" action="{{ route('client.cart.add-domain') }}">
+                            @csrf
+                            <input type="hidden" name="domain" value="{{ $primary['domain'] }}">
+                            <input type="hidden" name="type" value="register">
+                            <input type="hidden" name="years" value="1">
+                            <button type="submit" class="btn btn-success btn-lg">{{ __('common.actions.add_to_cart') }}</button>
+                        </form>
+                    @else
+                        <a href="{{ route('client.domains.transfer', ['domain' => $primary['domain']]) }}" class="btn btn-default">
+                            {{ __('client.domains.transfer_domain') }}
+                        </a>
                     @endif
                 </div>
             </div>
         </div>
-        <div style="display:flex;align-items:center;gap:20px;">
-            @if($primary['available'] && ($primary['checked'] ?? true))
-            <div style="text-align:right;">
-                <div style="font-size:24px;font-weight:800;color:#1a4d80;">{{ domain_money_fmt($primary['price']) }}<span style="font-size:13px;font-weight:400;color:var(--muted);">/{{ __('client.domain_search.per_year') }}</span></div>
-                <div style="font-size:11px;color:var(--muted);">{{ __('client.domain_search.renews_at') }} {{ domain_money_fmt($primary['renew_price']) }}/{{ __('client.domain_search.per_year') }}</div>
-                @if(($primary['grace_period'] ?? 0) > 0)
-                <div style="font-size:11px;color:var(--muted);margin-top:2px;" title="{{ __('client.domain_search.grace_note') }}">{{ __('client.domain_search.grace') }}: {{ $primary['grace_period'] }} {{ __('client.domain_search.days') }}</div>
-                @endif
-                @if(($primary['restore_price'] ?? 0) > 0)
-                <div style="font-size:11px;color:var(--muted);" title="{{ __('client.domain_search.restore_note') }}">{{ __('client.domain_search.restore') }}: {{ domain_money_fmt($primary['restore_price']) }}</div>
-                @endif
-            </div>
-            <form method="POST" action="{{ route('client.cart.add-domain') }}">
-                @csrf
-                <input type="hidden" name="domain" value="{{ $primary['domain'] }}">
-                <input type="hidden" name="type" value="register">
-                <input type="hidden" name="years" value="1">
-                <button type="submit" style="padding:12px 24px;background:#06d6a0;color:var(--text);font-weight:700;font-size:15px;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">{{ __('common.actions.add_to_cart') }}</button>
-            </form>
-            @else
-            <a href="{{ route('client.domains.transfer', ['domain' => $primary['domain']]) }}" style="padding:12px 24px;background:#64748b;color:#fff;font-weight:700;font-size:15px;border:none;border-radius:8px;cursor:pointer;font-family:inherit;text-decoration:none;">{{ __('client.domains.transfer_domain') }}</a>
-            @endif
-        </div>
-    </div>
     @endif
 
     @if(!empty($results['alternatives']))
-    <div style="margin-bottom:40px;">
-        <h3 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">{{ __('client.domain_search.other_options') }}</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
-            @foreach($results['alternatives'] as $alt)
-            @if($alt)
-            <div style="background:var(--card);border:1px solid {{ $alt['available'] ? '#bbf7d0' : '#fecaca' }};border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <div style="width:28px;height:28px;border-radius:50%;background:{{ ($alt['checked'] ?? true) ? ($alt['available'] ? '#dcfce7' : '#fee2e2') : '#fef3c7' }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        @if($alt['available'] && ($alt['checked'] ?? true))
-                        <svg width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        @else
-                        <svg width="14" height="14" fill="none" stroke="#dc2626" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                        @endif
-                    </div>
-                    <div>
-                        <div style="font-weight:600;color:var(--text);font-size:15px;">{{ $alt['domain'] }}</div>
-                        <div style="font-size:12px;color:{{ ! ($alt['checked'] ?? true) ? '#b45309' : ($alt['available'] ? '#16a34a' : '#dc2626') }};font-weight:600;">{{ ! ($alt['checked'] ?? true) ? __('client.domain_search.could_not_check_short') : ($alt['available'] ? __('client.domain_search.available_short') : __('client.domain_search.taken')) }}</div>
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-                    @if($alt['available'] && ($alt['checked'] ?? true))
-                    <div style="font-size:15px;font-weight:700;color:#1a4d80;">{{ domain_money_fmt($alt['price']) }}<span style="font-size:11px;font-weight:400;color:var(--muted);">/{{ __('client.domain_search.per_year') }}</span></div>
-                    <form method="POST" action="{{ route('client.cart.add-domain') }}">
-                        @csrf
-                        <input type="hidden" name="domain" value="{{ $alt['domain'] }}">
-                        <input type="hidden" name="type" value="register">
-                        <input type="hidden" name="years" value="1">
-                        <button type="submit" style="padding:6px 14px;background:#1a4d80;color:#fff;font-size:12px;font-weight:600;border:none;border-radius:6px;cursor:pointer;font-family:inherit;">{{ __('common.actions.add') }}</button>
-                    </form>
-                    @else
-                    <span style="font-size:13px;color:var(--muted);">{{ ($alt['checked'] ?? true) ? __('client.domain_search.taken') : __('client.domain_search.could_not_check_short') }}</span>
-                    @endif
-                </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">{{ __('client.domain_search.other_options') }}</h3>
             </div>
-            @endif
-            @endforeach
+            <div class="table-container clearfix">
+                <table class="table table-list mb-0">
+                    <tbody>
+                        @foreach($results['alternatives'] as $alt)
+                            @if($alt)
+                                @php $altChecked = $alt['checked'] ?? true; @endphp
+                                <tr>
+                                    <td class="font-weight-bold">
+                                        <i class="fas {{ ($alt['available'] && $altChecked) ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' }} mr-2"></i>
+                                        {{ $alt['domain'] }}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ ! $altChecked ? 'badge-warning' : ($alt['available'] ? 'badge-success' : 'badge-secondary') }}">
+                                            {{ ! $altChecked ? __('client.domain_search.could_not_check_short') : ($alt['available'] ? __('client.domain_search.available_short') : __('client.domain_search.taken')) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-right font-weight-bold">
+                                        @if($alt['available'] && $altChecked)
+                                            {{ domain_money_fmt($alt['price']) }}<small class="text-muted font-weight-normal">/{{ __('client.domain_search.per_year') }}</small>
+                                        @else
+                                            <span class="text-muted">&mdash;</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-right">
+                                        @if($alt['available'] && $altChecked)
+                                            <form method="POST" action="{{ route('client.cart.add-domain') }}" class="d-inline">
+                                                @csrf
+                                                <input type="hidden" name="domain" value="{{ $alt['domain'] }}">
+                                                <input type="hidden" name="type" value="register">
+                                                <input type="hidden" name="years" value="1">
+                                                <button type="submit" class="btn btn-primary btn-sm">{{ __('common.actions.add') }}</button>
+                                            </form>
+                                        @else
+                                            <span class="text-muted small">{{ $altChecked ? __('client.domain_search.taken') : __('client.domain_search.could_not_check_short') }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+@endif
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+        <h2 class="card-title h5 mb-0">{{ __('client.nav.domain_pricing') }}</h2>
+        <input type="text" id="ds-filter" class="form-control form-control-sm w-auto mt-2 mt-sm-0" placeholder="{{ __('client.domain_pricing.filter') }}" oninput="dsApply()">
+    </div>
+    <div class="card-body py-2 border-bottom">
+        <div class="btn-group btn-group-sm flex-wrap" id="ds-tabs" role="group">
+            <button type="button" onclick="dsFilter('popular')" id="ds-tab-popular" class="btn btn-primary">{{ __('client.domain_pricing.popular') }}</button>
+            <button type="button" onclick="dsFilter('generic')" id="ds-tab-generic" class="btn btn-default">{{ __('client.domain_pricing.generic') }}</button>
+            <button type="button" onclick="dsFilter('local')" id="ds-tab-local" class="btn btn-default">{{ __('client.domain_pricing.local_tlds') }}</button>
+            <button type="button" onclick="dsFilter('country')" id="ds-tab-country" class="btn btn-default">{{ __('client.domain_pricing.country_tab') }}</button>
+            <button type="button" onclick="dsFilter('new')" id="ds-tab-new" class="btn btn-default">{{ __('client.domain_pricing.new_tlds') }}</button>
         </div>
     </div>
-    @endif
-    @endif
-
-    <div style="background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:32px;">
-        <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-            <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0;">{{ __('client.nav.domain_pricing') }}</h2>
-            <input type="text" id="ds-filter" placeholder="{{ __('client.domain_pricing.filter') }}" oninput="dsApply()" style="border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;outline:none;font-family:inherit;width:150px;">
-        </div>
-        <div style="padding:12px 24px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;" id="ds-tabs">
-            <button type="button" onclick="dsFilter('popular')" id="ds-tab-popular" style="padding:6px 14px;background:#1a4d80;color:#fff;border:1px solid #1a4d80;border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;">{{ __('client.domain_pricing.popular') }}</button>
-            <button type="button" onclick="dsFilter('generic')" id="ds-tab-generic" style="padding:6px 14px;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;">{{ __('client.domain_pricing.generic') }}</button>
-            <button type="button" onclick="dsFilter('local')" id="ds-tab-local" style="padding:6px 14px;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;">{{ __('client.domain_pricing.local_tlds') }}</button>
-            <button type="button" onclick="dsFilter('country')" id="ds-tab-country" style="padding:6px 14px;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;">{{ __('client.domain_pricing.country_tab') }}</button>
-            <button type="button" onclick="dsFilter('new')" id="ds-tab-new" style="padding:6px 14px;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:20px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit;">{{ __('client.domain_pricing.new_tlds') }}</button>
-        </div>
-        <table style="width:100%;border-collapse:collapse;">
+    <div class="table-container clearfix">
+        <table class="table table-list mb-0">
             <thead>
-                <tr style="background:var(--bg);">
-                    <th style="padding:10px 16px;text-align:left;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('client.domain_search.extension') }}</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('common.actions.register') }}</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('client.domain_search.transfer') }}</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('client.domain_search.renew') }}</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('client.domain_search.grace') }}</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('client.domain_search.restore') }}</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">{{ __('client.security.action') }}</th>
+                <tr>
+                    <th>{{ __('client.domain_search.extension') }}</th>
+                    <th class="text-center">{{ __('common.actions.register') }}</th>
+                    <th class="text-center">{{ __('client.domain_search.transfer') }}</th>
+                    <th class="text-center">{{ __('client.domain_search.renew') }}</th>
+                    <th class="text-center">{{ __('client.domain_search.grace') }}</th>
+                    <th class="text-center">{{ __('client.domain_search.restore') }}</th>
+                    <th class="text-center">{{ __('client.security.action') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($tlds as $tld)
-                <tr class="ds-row" data-cats="{{ $tld->category }}{{ $tld->is_popular ? ',popular' : '' }}" data-ext="{{ $tld->extension }}" style="border-top:1px solid var(--border);">
-                    <td style="padding:10px 16px;font-family:monospace;font-weight:700;color:#1a4d80;font-size:15px;">{{ $tld->extension }}</td>
-                    <td style="padding:10px 16px;text-align:center;font-weight:600;color:var(--text);">{{ domain_money_fmt($tld->register_price) }}</td>
-                    <td style="padding:10px 16px;text-align:center;color:var(--muted);">{{ domain_money_fmt($tld->transfer_price) }}</td>
-                    <td style="padding:10px 16px;text-align:center;color:var(--muted);">{{ domain_money_fmt($tld->renew_price) }}</td>
-                    <td style="padding:10px 16px;text-align:center;color:var(--muted);">{{ $tld->grace_period > 0 ? $tld->grace_period . ' ' . __('client.domain_search.days') : '-' }}</td>
-                    <td style="padding:10px 16px;text-align:center;color:var(--muted);">@if($tld->restore_price > 0){{ domain_money_fmt($tld->restore_price) }}@else<span title="{{ __("client.domain_search.no_restore_title") }}" style="display:inline-block;padding:2px 8px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap;">{{ __("client.domain_search.no_restore") }}</span>@endif</td>
-                    <td style="padding:10px 16px;text-align:center;">
-                        <a href="{{ route('client.domain.search') }}?tld={{ $tld->extension }}" style="padding:5px 12px;background:#eff6ff;color:#1a4d80;font-size:12px;font-weight:600;border:1px solid #bfdbfe;border-radius:5px;text-decoration:none;">{{ __('common.actions.search') }}</a>
-                    </td>
-                </tr>
+                    <tr class="ds-row" data-cats="{{ $tld->category }}{{ $tld->is_popular ? ',popular' : '' }}" data-ext="{{ $tld->extension }}">
+                        <td class="text-monospace font-weight-bold text-primary">{{ $tld->extension }}</td>
+                        <td class="text-center font-weight-bold">{{ domain_money_fmt($tld->register_price) }}</td>
+                        <td class="text-center text-muted">{{ domain_money_fmt($tld->transfer_price) }}</td>
+                        <td class="text-center text-muted">{{ domain_money_fmt($tld->renew_price) }}</td>
+                        <td class="text-center text-muted">{{ $tld->grace_period > 0 ? $tld->grace_period . ' ' . __('client.domain_search.days') : '-' }}</td>
+                        <td class="text-center text-muted">
+                            @if($tld->restore_price > 0)
+                                {{ domain_money_fmt($tld->restore_price) }}
+                            @else
+                                <span title="{{ __('client.domain_search.no_restore_title') }}" class="badge badge-danger">{{ __('client.domain_search.no_restore') }}</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ route('client.domain.search') }}?tld={{ $tld->extension }}" class="btn btn-default btn-sm">{{ __('common.actions.search') }}</a>
+                        </td>
+                    </tr>
                 @endforeach
             </tbody>
         </table>
     </div>
-
 </div>
 
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-top:20px;">
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">{{ __("client.domain_search.legend_title") }}</div>
-        <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.7;">
-            <li>{{ __("client.domain_search.legend_grace") }}</li>
-            <li>{{ __("client.domain_search.legend_restore") }}</li>
-            <li style="color:var(--text);"><strong>{{ __("client.domain_search.legend_local") }}</strong></li>
-            <li style="color:var(--text);"><strong>{{ __("client.domain_search.legend_data") }}</strong></li>
-            <li>{{ __("client.domain_search.legend_notice") }}</li>
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title h6 mb-0">{{ __('client.domain_search.legend_title') }}</h3>
+    </div>
+    <div class="card-body">
+        <ul class="mb-0 pl-3 text-muted small">
+            <li>{{ __('client.domain_search.legend_grace') }}</li>
+            <li>{{ __('client.domain_search.legend_restore') }}</li>
+            <li class="text-body"><strong>{{ __('client.domain_search.legend_local') }}</strong></li>
+            <li class="text-body"><strong>{{ __('client.domain_search.legend_data') }}</strong></li>
+            <li>{{ __('client.domain_search.legend_notice') }}</li>
         </ul>
     </div>
+</div>
 
+@endsection
 
+@section('scripts')
 <script>
 var dsCurrent = 'popular';
 function dsFilter(cat) {
     dsCurrent = cat;
     document.querySelectorAll('#ds-tabs button').forEach(function(b) {
-        b.style.background = 'var(--card)'; b.style.color = 'var(--muted)'; b.style.border = '1px solid var(--border)';
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-default');
     });
     var a = document.getElementById('ds-tab-' + cat);
-    if (a) { a.style.background = '#1a4d80'; a.style.color = '#fff'; a.style.border = '1px solid #1a4d80'; }
+    if (a) {
+        a.classList.remove('btn-default');
+        a.classList.add('btn-primary');
+    }
     dsApply();
 }
 function dsApply() {
-    var q = (document.getElementById('ds-filter').value || '').toLowerCase().trim();
+    var filterEl = document.getElementById('ds-filter');
+    var q = (filterEl ? filterEl.value : '').toLowerCase().trim();
     var n = 0;
     document.querySelectorAll('.ds-row').forEach(function(row) {
         var cats = (row.dataset.cats || '').split(',');
@@ -205,5 +239,4 @@ function dsApply() {
 }
 dsApply();
 </script>
-
 @endsection

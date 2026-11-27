@@ -91,12 +91,24 @@ class ConfigController extends Controller
 
     // ===== STAFF =====
 
-    public function admins()
+    public function admins(Request $request)
     {
+        $admins = Admin::with('role')->orderBy('username')->get();
+        $editingAdmin = null;
+
+        if ($request->query('action') === 'manage' && $request->filled('id')) {
+            $editingAdmin = Admin::with('role')->findOrFail((int) $request->query('id'));
+        }
+
         return view('admin.config.admins', [
-            'admins' => Admin::with('role')->get(),
-            'roles' => AdminRole::all(),
+            'admins' => $admins,
+            'activeAdmins' => $admins->where('is_disabled', false)->values(),
+            'disabledAdmins' => $admins->where('is_disabled', true)->values(),
+            'editingAdmin' => $editingAdmin,
+            'manageMode' => $request->query('action') === 'manage',
+            'roles' => AdminRole::orderBy('name')->get(),
             'departments' => TicketDepartment::orderBy('sort_order')->get(),
+            'languages' => Language::active()->orderBy('sort_order')->get(),
         ]);
     }
 
@@ -168,18 +180,36 @@ class ConfigController extends Controller
 
     public function storeAdmin(Request $request)
     {
-        $v = $request->validate([
-            'username' => 'required|unique:admins',
-            'email' => 'required|email|unique:admins',
+        if ($request->boolean('verify_current_admin_password')) {
+            $acting = auth('admin')->user();
+            if (! $acting || ! Hash::check((string) $request->input('current_admin_password', ''), (string) $acting->password)) {
+                return back()->withInput($request->except(['password', 'password_confirmation', 'current_admin_password']))
+                    ->withErrors(['current_admin_password' => 'Your current administrator password could not be verified.']);
+            }
+        }
+
+        $rules = [
+            'username' => 'required|string|max:80|unique:admins',
+            'email' => 'required|email|max:255|unique:admins',
             'password' => 'required|min:6',
-            'first_name' => 'required',
-            'last_name' => 'required',
+            'first_name' => 'required|string|max:120',
+            'last_name' => 'required|string|max:120',
             'role_id' => ['required', 'exists:admin_roles,id', $this->grantableRole()],
-        ]);
+            'signature' => 'nullable|string|max:5000',
+            'language' => 'nullable|string|max:16',
+            'is_disabled' => 'nullable|boolean',
+        ];
+        if ($request->has('password_confirmation') && $request->filled('password_confirmation')) {
+            $rules['password'] = 'required|min:6|confirmed';
+        }
+
+        $v = $request->validate($rules);
         $v['password'] = Hash::make($v['password']);
+        $v['is_disabled'] = $request->boolean('is_disabled', false);
+
         Admin::create($v + $this->ticketAlertSettings($request));
 
-        return back()->with('success', __('messages.success.admin_created_successfully'));
+        return redirect()->route('admin.config.admins')->with('success', __('messages.success.admin_created_successfully'));
     }
 
     public function updateAdmin(Request $request, Admin $admin)
@@ -188,22 +218,45 @@ class ConfigController extends Controller
         // Only somebody who could have granted that account's role may.
         abort_unless($admin->role && $this->canGrant($admin->role), 403);
 
-        $v = $request->validate([
-            'username' => 'required|unique:admins,username,'.$admin->id,
-            'email' => 'required|email|unique:admins,email,'.$admin->id,
-            'first_name' => 'required',
-            'last_name' => 'required',
+        if ($request->boolean('verify_current_admin_password')) {
+            $acting = auth('admin')->user();
+            if (! $acting || ! Hash::check((string) $request->input('current_admin_password', ''), (string) $acting->password)) {
+                return back()->withInput($request->except(['password', 'password_confirmation', 'current_admin_password']))
+                    ->withErrors(['current_admin_password' => 'Your current administrator password could not be verified.']);
+            }
+        }
+
+        $rules = [
+            'username' => 'required|string|max:80|unique:admins,username,'.$admin->id,
+            'email' => 'required|email|max:255|unique:admins,email,'.$admin->id,
+            'first_name' => 'required|string|max:120',
+            'last_name' => 'required|string|max:120',
             'role_id' => ['required', 'exists:admin_roles,id', $this->grantableRole()],
             'password' => 'nullable|min:6',
-        ]);
+            'signature' => 'nullable|string|max:5000',
+            'language' => 'nullable|string|max:16',
+            'is_disabled' => 'nullable|boolean',
+        ];
+        if ($request->filled('password') && $request->filled('password_confirmation')) {
+            $rules['password'] = 'nullable|min:6|confirmed';
+        }
+
+        $v = $request->validate($rules);
         if (empty($v['password'])) {
             unset($v['password']);
         } else {
             $v['password'] = Hash::make($v['password']);
         }
+
+        if ($request->has('is_disabled_present') || $request->has('is_disabled')) {
+            $v['is_disabled'] = ($admin->id === (int) auth('admin')->id())
+                ? false
+                : $request->boolean('is_disabled');
+        }
+
         $admin->update($v + $this->ticketAlertSettings($request));
 
-        return back()->with('success', __('messages.success.admin_updated_successfully'));
+        return redirect()->route('admin.config.admins')->with('success', __('messages.success.admin_updated_successfully'));
     }
 
     public function destroyAdmin(Admin $admin)
@@ -1382,10 +1435,19 @@ class ConfigController extends Controller
 
     // ===== NETWORK ISSUES =====
 
-    public function networkIssues()
+    public function networkIssues(Request $request)
     {
+        $status = strtolower(trim((string) $request->query('status', '')));
+        $query = NetworkIssue::query();
+        if ($status === 'open') {
+            $query->whereIn('status', ['open', 'investigating']);
+        } elseif (in_array($status, ['scheduled', 'resolved'], true)) {
+            $query->where('status', $status);
+        }
+
         return view('admin.config.network-issues', [
-            'networkIssues' => NetworkIssue::orderBy('id', 'desc')->get(),
+            'networkIssues' => $query->orderBy('id', 'desc')->get(),
+            'currentStatus' => $status,
             // Offered as suggestions for "Affected"; any text is accepted.
             'serverNames' => Server::orderBy('name')->pluck('name')->filter()->unique()->values(),
         ]);
@@ -1402,10 +1464,22 @@ class ConfigController extends Controller
 
     // ===== BILLABLE ITEMS =====
 
-    public function billableItems()
+    public function billableItems(Request $request)
     {
+        $status = strtolower(trim((string) $request->query('status', $request->query('filter', ''))));
+        $query = BillableItem::with('client');
+
+        if ($status === 'uninvoiced') {
+            $query->whereNull('invoice_id');
+        } elseif ($status === 'recurring') {
+            $query->where(function ($q) {
+                $q->where('recur', '>', 0)->orWhereNotNull('recur_cycle');
+            });
+        }
+
         return view('admin.config.billable-items', [
-            'billableItems' => BillableItem::with('client')->orderBy('id', 'desc')->paginate(25),
+            'billableItems' => $query->orderBy('id', 'desc')->paginate(25),
+            'currentFilter' => $status,
             'clients' => Client::orderBy('first_name')->get(['id', 'first_name', 'last_name', 'company_name']),
         ]);
     }
@@ -1460,7 +1534,31 @@ class ConfigController extends Controller
 
     public function systemDatabase()
     {
-        return view('admin.config.system-database');
+        $tables = collect(\Illuminate\Support\Facades\DB::select('SHOW TABLE STATUS'));
+        $tableCount = $tables->count();
+        $totalBytes = $tables->sum(fn ($t) => ((int) ($t->Data_length ?? 0)) + ((int) ($t->Index_length ?? 0)));
+        $totalRows = $tables->sum(fn ($t) => (int) ($t->Rows ?? 0));
+        $dbSize = $totalBytes >= 1048576
+            ? number_format($totalBytes / 1048576, 2) . ' MB'
+            : number_format($totalBytes / 1024, 1) . ' KB';
+
+        return view('admin.config.system-database', compact('tables', 'tableCount', 'dbSize', 'totalRows'));
+    }
+
+    public function optimizeDatabase()
+    {
+        $tables = collect(\Illuminate\Support\Facades\DB::select('SHOW TABLE STATUS'))->pluck('Name')->filter();
+        foreach ($tables as $tbl) {
+            if (preg_match('/^[a-zA-Z0-9_]+$/', (string) $tbl)) {
+                try {
+                    \Illuminate\Support\Facades\DB::select('OPTIMIZE TABLE `' . $tbl . '`');
+                } catch (\Throwable) {
+                    // Ignore engines that do not support optimize
+                }
+            }
+        }
+
+        return back()->with('success', 'All database tables have been optimized successfully.');
     }
 
     public function systemPhpInfo()

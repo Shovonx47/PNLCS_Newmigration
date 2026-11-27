@@ -8,17 +8,31 @@ use App\Models\Invoice;
 use App\Models\Quote;
 use App\Models\QuoteItem;
 use App\Models\TaxRule;
+use Illuminate\Support\Str;
 
 class QuoteService
 {
-    public function createQuote(Client $client, array $data): Quote
+    public function createQuote(?Client $client, array $data): Quote
     {
         $quote = Quote::create([
-            'client_id' => $client->id,
+            'client_id' => $client?->id,
+            'first_name' => $client ? null : ($data['first_name'] ?? null),
+            'last_name' => $client ? null : ($data['last_name'] ?? null),
+            'company_name' => $client ? null : ($data['company_name'] ?? null),
+            'email' => $client ? null : ($data['email'] ?? null),
+            'address1' => $client ? null : ($data['address1'] ?? null),
+            'address2' => $client ? null : ($data['address2'] ?? null),
+            'city' => $client ? null : ($data['city'] ?? null),
+            'state' => $client ? null : ($data['state'] ?? null),
+            'postcode' => $client ? null : ($data['postcode'] ?? null),
+            'country' => $client ? null : ($data['country'] ?? null),
+            'phone_prefix' => $client ? null : ($data['phone_prefix'] ?? null),
+            'phone_number' => $client ? null : ($data['phone_number'] ?? null),
+            'currency_id' => $client ? $client->currency_id : ($data['currency_id'] ?? null),
             'subject' => $data['subject'],
             'date' => $data['date'] ?? now()->toDateString(),
             'valid_until' => $data['valid_until'],
-            'status' => 'Draft',
+            'status' => $data['status'] ?? $data['stage'] ?? 'Draft',
             'notes' => $data['notes'] ?? null,
             'customer_notes' => $data['customer_notes'] ?? null,
             'proposal' => $data['proposal'] ?? null,
@@ -38,9 +52,17 @@ class QuoteService
 
     public function addItem(Quote $quote, array $itemData): QuoteItem
     {
-        $quantity = max(1, (float) ($itemData['quantity'] ?? 1));
+        $quantity = max(0.01, (float) ($itemData['quantity'] ?? 1));
         $unitPrice = max(0, (float) ($itemData['unit_price'] ?? 0));
-        $discount = max(0, (float) ($itemData['discount'] ?? 0));
+        $discountPercent = min(100, max(0, (float) ($itemData['discount_percent'] ?? 0)));
+
+        if (array_key_exists('discount', $itemData) && $itemData['discount'] !== null && $itemData['discount'] !== '') {
+            $discount = max(0, (float) $itemData['discount']);
+        } elseif ($discountPercent > 0) {
+            $discount = round(($quantity * $unitPrice) * ($discountPercent / 100), 2);
+        } else {
+            $discount = 0.0;
+        }
 
         $item = QuoteItem::create([
             'quote_id' => $quote->id,
@@ -48,6 +70,7 @@ class QuoteService
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
             'discount' => $discount,
+            'discount_percent' => $discountPercent,
             'taxable' => (bool) ($itemData['taxable'] ?? true),
             'sort_order' => (int) ($itemData['sort_order'] ?? 0),
         ]);
@@ -96,24 +119,67 @@ class QuoteService
 
     public function updateQuote(Quote $quote, array $data): Quote
     {
-        $quote->update([
+        $attributes = [
             'subject' => $data['subject'] ?? $quote->subject,
             'date' => $data['date'] ?? $quote->date,
             'valid_until' => $data['valid_until'] ?? $quote->valid_until,
-            'notes' => $data['notes'] ?? $quote->notes,
-            'customer_notes' => $data['customer_notes'] ?? $quote->customer_notes,
-            'proposal' => $data['proposal'] ?? $quote->proposal,
-        ]);
+            'status' => $data['status'] ?? $data['stage'] ?? $quote->status,
+            'notes' => array_key_exists('notes', $data) ? $data['notes'] : $quote->notes,
+            'customer_notes' => array_key_exists('customer_notes', $data) ? $data['customer_notes'] : $quote->customer_notes,
+            'proposal' => array_key_exists('proposal', $data) ? $data['proposal'] : $quote->proposal,
+        ];
+
+        if (($data['client_type'] ?? null) === 'existing' && ! empty($data['client_id'])) {
+            $client = Client::find($data['client_id']);
+            if ($client) {
+                $attributes['client_id'] = $client->id;
+                $attributes['currency_id'] = $client->currency_id;
+                $attributes['first_name'] = null;
+                $attributes['last_name'] = null;
+                $attributes['company_name'] = null;
+                $attributes['email'] = null;
+                $attributes['address1'] = null;
+                $attributes['address2'] = null;
+                $attributes['city'] = null;
+                $attributes['state'] = null;
+                $attributes['postcode'] = null;
+                $attributes['country'] = null;
+                $attributes['phone_prefix'] = null;
+                $attributes['phone_number'] = null;
+            }
+        } elseif (($data['client_type'] ?? null) === 'new') {
+            $attributes['client_id'] = null;
+            foreach (['first_name', 'last_name', 'company_name', 'email', 'address1', 'address2', 'city', 'state', 'postcode', 'country', 'phone_prefix', 'phone_number', 'currency_id'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $attributes[$field] = $data[$field];
+                }
+            }
+        }
+
+        $quote->update($attributes);
 
         if (isset($data['items'])) {
             $quote->items()->delete();
             foreach ($data['items'] as $i => $itemData) {
+                $quantity = max(0.01, (float) ($itemData['quantity'] ?? 1));
+                $unitPrice = max(0, (float) ($itemData['unit_price'] ?? 0));
+                $discountPercent = min(100, max(0, (float) ($itemData['discount_percent'] ?? 0)));
+
+                if (array_key_exists('discount', $itemData) && $itemData['discount'] !== null && $itemData['discount'] !== '') {
+                    $discount = max(0, (float) $itemData['discount']);
+                } elseif ($discountPercent > 0) {
+                    $discount = round(($quantity * $unitPrice) * ($discountPercent / 100), 2);
+                } else {
+                    $discount = 0.0;
+                }
+
                 QuoteItem::create([
                     'quote_id' => $quote->id,
                     'description' => $itemData['description'],
-                    'quantity' => max(1, (float) ($itemData['quantity'] ?? 1)),
-                    'unit_price' => max(0, (float) ($itemData['unit_price'] ?? 0)),
-                    'discount' => max(0, (float) ($itemData['discount'] ?? 0)),
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'discount' => $discount,
+                    'discount_percent' => $discountPercent,
                     'taxable' => (bool) ($itemData['taxable'] ?? true),
                     'sort_order' => $i,
                 ]);
@@ -122,6 +188,53 @@ class QuoteService
         }
 
         return $quote->fresh('items');
+    }
+
+    public function duplicateQuote(Quote $quote): Quote
+    {
+        $quote->load('items');
+
+        $copy = Quote::create([
+            'client_id' => $quote->client_id,
+            'first_name' => $quote->first_name,
+            'last_name' => $quote->last_name,
+            'company_name' => $quote->company_name,
+            'email' => $quote->email,
+            'address1' => $quote->address1,
+            'address2' => $quote->address2,
+            'city' => $quote->city,
+            'state' => $quote->state,
+            'postcode' => $quote->postcode,
+            'country' => $quote->country,
+            'phone_prefix' => $quote->phone_prefix,
+            'phone_number' => $quote->phone_number,
+            'currency_id' => $quote->currency_id,
+            'subject' => $quote->subject,
+            'date' => now()->toDateString(),
+            'valid_until' => now()->addDays(30)->toDateString(),
+            'status' => 'Draft',
+            'notes' => $quote->notes,
+            'customer_notes' => $quote->customer_notes,
+            'proposal' => $quote->proposal,
+            'subtotal' => 0,
+            'tax' => 0,
+            'total' => 0,
+        ]);
+
+        foreach ($quote->items as $idx => $item) {
+            QuoteItem::create([
+                'quote_id' => $copy->id,
+                'description' => $item->description,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+                'discount' => $item->discount,
+                'discount_percent' => $item->discount_percent ?? 0,
+                'taxable' => (bool) $item->taxable,
+                'sort_order' => $idx,
+            ]);
+        }
+
+        return $this->recalculateTotals($copy)->fresh('items');
     }
 
     public function sendQuote(Quote $quote): Quote
@@ -170,6 +283,33 @@ class QuoteService
 
         $quote->load('items', 'client');
 
+        $client = $quote->client;
+        if (! $client) {
+            if ($quote->email) {
+                $client = Client::where('email', $quote->email)->first();
+            }
+            if (! $client) {
+                $client = Client::create([
+                    'first_name' => $quote->first_name ?: 'Client',
+                    'last_name' => $quote->last_name ?: ('#' . $quote->id),
+                    'company_name' => $quote->company_name,
+                    'email' => $quote->email ?: ('quote-' . $quote->id . '-' . Str::lower(Str::random(6)) . '@prospect.local'),
+                    'address1' => $quote->address1 ?? '',
+                    'address2' => $quote->address2,
+                    'city' => $quote->city ?? '',
+                    'state' => $quote->state ?? '',
+                    'postcode' => $quote->postcode ?? '',
+                    'country' => $quote->country ?: 'BD',
+                    'phone_prefix' => $quote->phone_prefix,
+                    'phone_number' => $quote->phone_number ?? '',
+                    'currency_id' => $quote->currency_id,
+                    'status' => 'active',
+                ]);
+            }
+            $quote->update(['client_id' => $client->id]);
+            $quote->setRelation('client', $client);
+        }
+
         $items = [];
 
         foreach ($quote->items as $item) {
@@ -187,7 +327,7 @@ class QuoteService
             ];
         }
 
-        $invoice = app(InvoiceService::class)->createInvoice($quote->client, $items, [
+        $invoice = app(InvoiceService::class)->createInvoice($client, $items, [
             'due_date' => now()->addDays(30)->toDateString(),
             // Not $quote->notes: those are the admin's notes, and invoice
             // notes are printed on the customer's PDF. A reference to the

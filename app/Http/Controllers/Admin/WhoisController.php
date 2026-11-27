@@ -58,10 +58,19 @@ class WhoisController extends Controller
         "studio"    => "whois.donuts.co",
         "design"    => "whois.donuts.co",
         "email"     => "whois.donuts.co",
+        "bd"        => "whois.btcl.net.bd",
+        "com.bd"    => "whois.btcl.net.bd",
+        "net.bd"    => "whois.btcl.net.bd",
+        "org.bd"    => "whois.btcl.net.bd",
+        "co.uk"     => "whois.nic.uk",
     ];
 
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->filled('domain')) {
+            return $this->lookup($request);
+        }
+
         return view("admin.whois", ["result" => null, "domain" => null, "server" => null]);
     }
 
@@ -111,13 +120,17 @@ class WhoisController extends Controller
 
         $raw    = $this->doWhoisLookup($domain, $whoisServer);
         $parsed = $this->parseWhois($raw);
+        $available = (bool) preg_match('/(no match for|not found|no data found|no entries found|domain not found|status:\s*free|is available)/i', $raw)
+            && empty($parsed['Registrar'])
+            && empty($parsed['Creation Date']);
 
         $result = [
-            "raw"    => $raw ?: "(No response received)",
-            "domain" => $domain,
-            "server" => $whoisServer,
-            "parsed" => $parsed,
-            "error"  => false,
+            "raw"       => $raw ?: "(No response received)",
+            "domain"    => $domain,
+            "server"    => $whoisServer,
+            "parsed"    => $parsed,
+            "available" => $available,
+            "error"     => false,
         ];
 
         return view("admin.whois", ["result" => $result, "domain" => $domain, "server" => $whoisServer]);

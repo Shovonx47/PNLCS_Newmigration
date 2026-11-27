@@ -358,6 +358,18 @@ class SoftcentsFullImporter
         Setting::set('DefaultPaymentMethod', 'piprapay', 'general');
         Setting::set('customer_currency_choice', '1', 'billing');
 
+        // Align homepage hero content with the WHMCS Twenty-One domain search heading.
+        if (class_exists(\App\Models\HomepageContent::class)) {
+            \App\Models\HomepageContent::updateOrCreate(
+                ['section_slug' => 'hero', 'content_key' => 'title'],
+                ['content_value' => 'Secure your domain name', 'content_type' => 'text']
+            );
+            \App\Models\HomepageContent::updateOrCreate(
+                ['section_slug' => 'hero', 'content_key' => 'subtitle'],
+                ['content_value' => '', 'content_type' => 'text']
+            );
+        }
+
         Language::updateOrCreate(
             ['code' => 'bn'],
             [
@@ -820,8 +832,8 @@ class SoftcentsFullImporter
                 ['slug' => $slug],
                 [
                     'name' => $name,
-                    'headline' => html_entity_decode(trim(Mojibake::repair((string) ($row['headline'] ?? ''))), ENT_QUOTES, 'UTF-8') ?: null,
-                    'tagline' => trim(Mojibake::repair((string) ($row['tagline'] ?? ''))) ?: null,
+                    'headline' => html_entity_decode(trim(Mojibake::repair((string) ($row['headline'] ?? ''))), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?: null,
+                    'tagline' => html_entity_decode(trim(Mojibake::repair((string) ($row['tagline'] ?? ''))), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?: null,
                     'order_form_template' => trim((string) ($row['orderfrmtpl'] ?? '')) ?: 'standard_cart',
                     'hidden' => (int) ($row['hidden'] ?? 0) === 1,
                     'sort_order' => (int) ($row['order'] ?? 0),

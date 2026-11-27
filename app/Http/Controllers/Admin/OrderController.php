@@ -25,6 +25,21 @@ class OrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('search')) {
+            $s = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($s) {
+                if (ctype_digit($s)) {
+                    $q->orWhere('id', (int) $s);
+                }
+                $q->orWhere('order_num', 'like', "%{$s}%")
+                    ->orWhereHas('client', fn ($c) => $c
+                        ->where('first_name', 'like', "%{$s}%")
+                        ->orWhere('last_name', 'like', "%{$s}%")
+                        ->orWhere('company_name', 'like', "%{$s}%")
+                        ->orWhere('email', 'like', "%{$s}%"));
+            });
+        }
+
         $orders = $query->orderBy('created_at', 'desc')->paginate(25);
 
         return view('admin.orders.index', compact('orders'));

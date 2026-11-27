@@ -2,121 +2,173 @@
 @section("title", __("admin.invoices.title"))
 @section("content")
 
-<div class="page-header">
-    <h1>{{ __('admin.invoices.title') }}</h1>
-    <a href="{{ route("admin.invoices.create") }}" class="btn btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        {{ __('admin.invoices.create_invoice') }}
-    </a>
-</div>
+<h1>{{ __('admin.invoices.title') }}</h1>
 
-<!-- Status Filter Tabs -->
-<div style="margin-bottom:16px;border-bottom:1px solid #ddd;display:flex;gap:0;flex-wrap:wrap;">
-    @foreach([
+@php
+    $statusTabs = [
         "all" => __('common.form.all'),
         "unpaid" => __('admin.invoices.filter_unpaid'),
-        {{-- Was missing: an invoice moves here when the customer files a
-             transfer notification, and it showed under no tab at all - an
-             invoice waiting for approval must be in plain sight. --}}
+        // An invoice waiting for transfer notification approval must be in plain sight.
         "payment_pending" => __('admin.invoices.filter_payment_pending'),
         "paid" => __('admin.invoices.filter_paid'),
         "overdue" => __('admin.invoices.filter_overdue'),
         "cancelled" => __('admin.invoices.filter_cancelled'),
         "draft" => __('admin.invoices.filter_draft'),
     ] + (\App\Support\AutoCharge::enabled()
-        {{-- Not a status. The invoices whose automatic card payment was sent
-             and whose outcome could not be established, which is where the
-             dashboard count links to. Offered only where the shop collects by
-             card: a tab for something that cannot happen is worse than no
-             tab. --}}
         ? [\App\Http\Controllers\Admin\InvoiceController::CHARGE_REVIEW_FILTER => __('admin.invoices.filter_charge_review')]
-        : []) as $val => $label)
-    @php $isActive = (request("status","unpaid") === $val); @endphp
-    <a href="{{ route("admin.invoices.index", ["status" => $val]) }}"
-       style="display:inline-block;padding:8px 16px;font-size:13px;text-decoration:none;color:{{ $isActive ? "#1a4d80" : "#666" }};font-weight:{{ $isActive ? "700" : "400" }};border-bottom:{{ $isActive ? "3px solid #1a4d80" : "3px solid transparent" }};margin-bottom:-1px;">
-        {{ $label }}
-    </a>
+        : []);
+    $activeStatus = (string) request("status", "unpaid");
+    $exportCsvUrl = \Illuminate\Support\Facades\Route::has('admin.invoices.export')
+        ? route('admin.invoices.export', request()->query())
+        : (\Illuminate\Support\Facades\Route::has('admin.invoices.export')
+            ? route('admin.invoices.export', request()->query())
+            : request()->fullUrlWithQuery(['export' => 'csv']));
+@endphp
+
+<ul class="admin-tabs" role="tablist">
+    <li class="active">
+        <a href="#invoices-search-tab" class="active" onclick="var el=document.getElementById('invoices-search-pane');if(el){el.style.display=el.style.display==='none'?'block':'none';}return false;">
+            {{ __('Search/Filter') }}
+        </a>
+    </li>
+    @foreach($statusTabs as $val => $label)
+        @php $isActive = ($activeStatus === $val); @endphp
+        <li class="{{ $isActive ? 'active' : '' }}">
+            <a href="{{ route('admin.invoices.index', ['status' => $val]) }}" class="{{ $isActive ? 'active' : '' }}">{{ $label }}</a>
+        </li>
     @endforeach
+</ul>
+
+<div class="tab-content admin-tabs" id="invoices-search-pane">
+    <div class="tab-pane active">
+        <form method="GET" action="{{ route('admin.invoices.index') }}">
+            <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                <tr>
+                    <td width="15%" class="fieldlabel">{{ __('common.table.invoice_num') }}</td>
+                    <td width="35%" class="fieldarea">
+                        <input type="text" name="invoice_num" value="{{ request('invoice_num') }}" class="form-control input-200" placeholder="{{ __('common.table.invoice_num') }}">
+                    </td>
+                    <td width="15%" class="fieldlabel">{{ __('common.table.status') }}</td>
+                    <td width="35%" class="fieldarea">
+                        <select name="status" class="form-control select-inline">
+                            @foreach($statusTabs as $val => $label)
+                                <option value="{{ $val }}" @selected($activeStatus === $val)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fieldlabel">{{ __('common.table.client') }}</td>
+                    <td class="fieldarea">
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control input-250" placeholder="{{ __('common.table.client') }}">
+                    </td>
+                    <td class="fieldlabel">{{ __('common.table.due_date') }}</td>
+                    <td class="fieldarea">
+                        <input type="date" name="due_date" value="{{ request('due_date') }}" class="form-control input-150">
+                    </td>
+                </tr>
+            </table>
+            <div class="btn-container">
+                <button type="submit" class="btn btn-default">{{ __('common.actions.search') }}</button>
+            </div>
+        </form>
+    </div>
 </div>
 
-<!-- Table -->
-<form id="bulk-form" method="POST" action="{{ route("admin.bulk.invoice-action") }}">
+<form id="bulk-form" method="POST" action="{{ route('admin.bulk.invoice-action') }}">
     @csrf
     <input type="hidden" name="action" id="bulk-action" value="">
 
-    <div class="card">
-        <div style="padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <strong style="font-size:12px;color:#777;margin-right:6px;">{{ __('admin.invoices.bulk_actions') }}:</strong>
+    <div class="context-btn-container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:10px 0;">
+        <div style="font-size:12px;color:#555;">
+            <strong>{{ $invoices->total() }}</strong> {{ __('Records Found') }}, {{ __('Page') }} {{ $invoices->currentPage() }} {{ __('of') }} {{ max(1, $invoices->lastPage()) }}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:12px;color:#666;margin-right:2px;">{{ __('admin.invoices.bulk_actions') }}:</span>
             <button type="submit" class="btn btn-success btn-sm" data-action="paid">{{ __('admin.invoices.mark_paid_btn') }}</button>
             <button type="submit" class="btn btn-danger btn-sm" data-action="cancel">{{ __('common.actions.cancel') }}</button>
             <button type="submit" class="btn btn-default btn-sm" data-action="send">{{ __('admin.invoices.send') }}</button>
             <button type="submit" class="btn btn-warning btn-sm" data-action="remind">{{ __('admin.invoices.remind') }}</button>
+            <a href="{{ $exportCsvUrl }}" class="btn btn-default btn-sm">{{ __('Export CSV') }}</a>
+            <a href="{{ route('admin.invoices.create') }}" class="btn btn-primary btn-sm">+ {{ __('admin.invoices.create_invoice') }}</a>
         </div>
-        <table class="data-table">
+    </div>
+
+    <div class="tablebg">
+        <table class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3">
             <thead>
                 <tr>
-                    <th style="width:30px;"><input type="checkbox" id="select-all"></th>
+                    <th width="20"><input type="checkbox" id="select-all" aria-label="{{ __('admin.bulk.select_all') }}"></th>
                     <th>{{ __('common.table.invoice_num') }}</th>
                     <th>{{ __('common.table.client') }}</th>
                     <th>{{ __('common.table.date') }}</th>
                     <th>{{ __('common.table.due_date') }}</th>
                     <th style="text-align:right;">{{ __('common.table.total') }}</th>
+                    <th>{{ __('common.table.payment_method') }}</th>
                     <th>{{ __('common.table.status') }}</th>
-                    <th>{{ __('common.table.actions') }}</th>
+                    <th width="70">{{ __('common.table.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($invoices as $invoice)
-                @php
-                $badgeClass = match(strtolower($invoice->status ?? "")) {
-                    "active", "paid"     => "badge-paid",
-                    "pending", "payment_pending" => "badge-pending",
-                    "unpaid"             => "badge-unpaid",
-                    "overdue"            => "badge-overdue",
-                    "suspended"          => "badge-suspended",
-                    "terminated"         => "badge-terminated",
-                    "cancelled"          => "badge-cancelled",
-                    "fraud"              => "badge-fraud",
-                    "draft"              => "badge-draft",
-                    "refunded"           => "badge-refunded",
-                    default              => "badge-cancelled",
-                };
-                $statusKey = strtolower($invoice->status ?? "");
-                $statusLabel = $statusKey === "overdue"
-                    ? __('common.status.unpaid') . '/' . __('common.status.overdue')
-                    : (__('common.status.' . $statusKey) !== 'common.status.' . $statusKey
-                        ? __('common.status.' . $statusKey)
-                        : status_label($invoice->status ?? ""));
-                $badgeStyle = $statusKey === "overdue"
-                    ? "background:#fff3cd !important;color:#856404 !important;"
-                    : "";
-                @endphp
-                <tr>
-                    <td><input type="checkbox" name="invoice_ids[]" value="{{ $invoice->id }}" class="row-checkbox"></td>
-                    <td><a href="{{ route("admin.invoices.show", $invoice) }}" style="color:#337ab7;text-decoration:none;font-family:monospace;">#{{ $invoice->invoice_num ?? $invoice->id }}</a></td>
-                    <td>
-                        @if($invoice->client)
-                        <a href="{{ route("admin.clients.show", $invoice->client_id) }}" style="color:#337ab7;text-decoration:none;">{{ $invoice->client->full_name }}</a>
-                        @else N/A @endif
-                    </td>
-                    <td style="color:#666;">{{ $invoice->date?->format(date_fmt()) ?? "-" }}</td>
-                    <td style="color:#666;">{{ $invoice->due_date?->format(date_fmt()) ?? "-" }}</td>
-                    <td style="text-align:right;font-weight:500;">{{ dual_money_fmt($invoice->total, $invoice) }}</td>
-                    <td><span class="badge {{ $badgeClass }}" style="{{ $badgeStyle }}">{{ $statusLabel }}</span></td>
-                    <td>
-                        <a href="{{ route("admin.invoices.show", $invoice) }}" class="btn btn-default btn-xs">{{ __('common.actions.view') }}</a>
-                    </td>
-                </tr>
+                    @php
+                        $statusKey = strtolower($invoice->status ?? "");
+                        $badgeClass = match($statusKey) {
+                            "active", "paid"             => "badge-paid",
+                            "pending", "payment_pending" => "badge-pending",
+                            "unpaid"                     => "badge-unpaid",
+                            "overdue"                    => "badge-overdue",
+                            "suspended"                  => "badge-suspended",
+                            "terminated"                 => "badge-terminated",
+                            "cancelled"                  => "badge-cancelled",
+                            "fraud"                      => "badge-fraud",
+                            "draft"                      => "badge-draft",
+                            "refunded"                   => "badge-refunded",
+                            default                      => "badge-cancelled",
+                        };
+                        $statusLabel = $statusKey === "overdue"
+                            ? __('common.status.unpaid') . '/' . __('common.status.overdue')
+                            : (__('common.status.' . $statusKey) !== 'common.status.' . $statusKey
+                                ? __('common.status.' . $statusKey)
+                                : status_label($invoice->status ?? ""));
+                        $badgeStyle = $statusKey === "overdue"
+                            ? "background:#fff3cd !important;color:#856404 !important;"
+                            : "";
+                    @endphp
+                    <tr>
+                        <td style="text-align:center;">
+                            <input type="checkbox" name="invoice_ids[]" value="{{ $invoice->id }}" class="row-checkbox" aria-label="{{ '#' . ($invoice->invoice_num ?? $invoice->id) }}">
+                        </td>
+                        <td>
+                            <a href="{{ route('admin.invoices.show', $invoice) }}" style="font-family:monospace;">#{{ $invoice->invoice_num ?? $invoice->id }}</a>
+                        </td>
+                        <td>
+                            @if($invoice->client)
+                                <a href="{{ route('admin.clients.show', $invoice->client_id) }}">{{ $invoice->client->full_name }}</a>
+                            @else
+                                {{ __('N/A') }}
+                            @endif
+                        </td>
+                        <td>{{ $invoice->date?->format(date_fmt()) ?? "-" }}</td>
+                        <td>{{ $invoice->due_date?->format(date_fmt()) ?? "-" }}</td>
+                        <td style="text-align:right;font-weight:600;">{{ dual_money_fmt($invoice->total, $invoice) }}</td>
+                        <td>{{ $invoice->payment_method ? payment_method_label((string) $invoice->payment_method) : "-" }}</td>
+                        <td><span class="badge {{ $badgeClass }} whmcs-status {{ $statusKey }}" style="{{ $badgeStyle }}">{{ $statusLabel }}</span></td>
+                        <td style="text-align:center;">
+                            <a href="{{ route('admin.invoices.show', $invoice) }}" class="btn btn-default btn-xs">{{ __('common.actions.view') }}</a>
+                        </td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="8" style="text-align:center;padding:32px;color:#999;">{{ __('admin.invoices.no_invoices') }}</td>
-                </tr>
+                    <tr>
+                        <td colspan="9" style="text-align:center;padding:24px;color:#888;">{{ __('admin.invoices.no_invoices') }}</td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
-        <div style="padding:10px 16px;border-top:1px solid #e5e7eb;">
-            {{ $invoices->withQueryString()->links() }}
-        </div>
+    </div>
+
+    <div style="margin-top:10px;">
+        {{ $invoices->withQueryString()->links() }}
     </div>
 </form>
 

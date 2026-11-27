@@ -2,101 +2,126 @@
 @section('title', __('client.account_users.title'))
 @section('content')
 
-<div class="pn-page-header">
-    <h1>{{ __('client.account_users.title') }}</h1>
-</div>
-<p style="color:var(--muted); font-size:13px; margin:-6px 0 16px;">{{ __('client.account_users.intro') }}</p>
-
 @if($errors->any())
-<div class="alert alert-warning alert-danger"><ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+    <div class="alert alert-danger">
+        <ul class="mb-0 pl-3">
+            @foreach($errors->all() as $e)
+                <li>{{ $e }}</li>
+            @endforeach
+        </ul>
+    </div>
 @endif
 
-<div class="card" style="margin-bottom:16px;">
-    <div class="card-header">{{ __('client.account_users.logins') }}</div>
-    <div class="card-body" style="padding:0;">
-        <table class="table table-list">
-            <thead><tr><th>{{ __('common.form.email') }}</th><th>{{ __('client.account_users.permissions') }}</th><th></th></tr></thead>
-            <tbody>
-                @foreach($logins as $login)
-                @php($granted = \App\Support\ClientPermissions::granted($login, $client) ?? [])
-                <tr>
-                    <td>
-                        <div style="font-weight:500; font-size:13px;">{{ trim($login->first_name.' '.$login->last_name) ?: $login->email }}</div>
-                        <div style="font-size:12px; color:var(--muted);">{{ $login->email }}</div>
-                    </td>
-                    <td style="font-size:12px;">
-                        @if($login->pivot->owner)
-                        <strong>{{ __('client.account_users.owner') }}</strong>
-                        @else
-                        <form method="POST" action="{{ route('client.account.users.update', $login) }}" style="margin:0;">
-                            @csrf @method('PUT')
-                            <div style="display:flex; flex-wrap:wrap; gap:4px 12px;">
-                                @foreach($permissionNames as $perm)
-                                <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" name="permissions[]" value="{{ $perm }}" @checked(in_array($perm, $granted, true))> {{ __('client.account_users.perm_'.$perm) }}</label>
-                                @endforeach
-                            </div>
-                            <button type="submit" class="btn btn-outline btn-xs" style="margin-top:6px;">{{ __('common.actions.save_changes') }}</button>
-                        </form>
-                        @endif
-                    </td>
-                    <td style="text-align:right;">
-                        @if(! $login->pivot->owner && $login->id !== auth()->id())
-                        <form method="POST" action="{{ route('client.account.users.destroy', $login) }}" style="margin:0;" onsubmit="return pnConfirm(event, @js(__('client.account_users.confirm_remove')))">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-xs">{{ __('client.account_users.remove') }}</button>
-                        </form>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+<div class="card mb-4">
+    <div class="card-body">
+        <h3 class="card-title">{{ __('client.account_users.logins') }}</h3>
+        <p class="text-muted">{{ __('client.account_users.intro') }}</p>
+
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>{{ __('common.form.email') }}</th>
+                        <th>{{ __('client.account_users.permissions') }}</th>
+                        <th class="text-right"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($logins as $login)
+                        @php($granted = \App\Support\ClientPermissions::granted($login, $client) ?? [])
+                        <tr>
+                            <td>
+                                <div class="font-weight-bold">{{ trim($login->first_name.' '.$login->last_name) ?: $login->email }}</div>
+                                <small class="text-muted">{{ $login->email }}</small>
+                            </td>
+                            <td>
+                                @if($login->pivot->owner)
+                                    <span class="badge badge-info">{{ __('client.account_users.owner') }}</span>
+                                @else
+                                    <form method="POST" action="{{ route('client.account.users.update', $login) }}">
+                                        @csrf
+                                        @method('PUT')
+                                        <div>
+                                            @foreach($permissionNames as $perm)
+                                                <label class="form-check form-check-inline mr-3 mb-1">
+                                                    <input type="checkbox" class="form-check-input" name="permissions[]" value="{{ $perm }}" @checked(in_array($perm, $granted, true))>
+                                                    <span class="form-check-label small">{{ __('client.account_users.perm_'.$perm) }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                        <button type="submit" class="btn btn-default btn-sm mt-2">{{ __('common.actions.save_changes') }}</button>
+                                    </form>
+                                @endif
+                            </td>
+                            <td class="text-right">
+                                @if(! $login->pivot->owner && $login->id !== auth()->id())
+                                    <form method="POST" action="{{ route('client.account.users.destroy', $login) }}"
+                                          onsubmit="return pnConfirm(event, @js(__('client.account_users.confirm_remove')))">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm">{{ __('client.account_users.remove') }}</button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 @if($invites->isNotEmpty())
-<div class="card" style="margin-bottom:16px;">
-    <div class="card-header">{{ __('client.account_users.pending') }}</div>
-    <div class="card-body" style="padding:0;">
-        <table class="table table-list">
-            <tbody>
-                @foreach($invites as $invite)
-                <tr>
-                    <td style="font-size:13px;">{{ $invite->email }}</td>
-                    <td style="font-size:12px; color:var(--muted);">{{ __('client.account_users.sent_on', ['date' => $invite->created_at->format(date_fmt())]) }}</td>
-                    <td style="text-align:right;">
-                        <form method="POST" action="{{ route('client.account.users.invites.destroy', $invite) }}" style="margin:0;">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-outline btn-xs">{{ __('client.account_users.cancel_invite') }}</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title">{{ __('client.account_users.pending') }}</h3>
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <tbody>
+                        @foreach($invites as $invite)
+                            <tr>
+                                <td>{{ $invite->email }}</td>
+                                <td class="text-muted small">{{ __('client.account_users.sent_on', ['date' => $invite->created_at->format(date_fmt())]) }}</td>
+                                <td class="text-right">
+                                    <form method="POST" action="{{ route('client.account.users.invites.destroy', $invite) }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-default btn-sm">{{ __('client.account_users.cancel_invite') }}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</div>
 @endif
 
 <div class="card">
-    <div class="card-header">{{ __('client.account_users.invite') }}</div>
     <div class="card-body">
+        <h3 class="card-title">{{ __('client.account_users.invite') }}</h3>
         <form method="POST" action="{{ route('client.account.users.invite') }}">
             @csrf
             <div class="form-group">
-                <label class="form-label">{{ __('common.form.email') }}<span style="color:#c43c35;">*</span></label>
-                <input type="email" name="email" value="{{ old('email') }}" required class="form-control" style="max-width:420px;">
+                <label for="invite-user-email">{{ __('common.form.email') }} <span class="text-danger">*</span></label>
+                <input type="email" id="invite-user-email" name="email" value="{{ old('email') }}" required class="form-control">
             </div>
             <div class="form-group">
-                <label class="form-label">{{ __('client.account_users.permissions') }}</label>
-                <div style="display:flex; flex-wrap:wrap; gap:6px 14px; font-size:13px;">
-                    @foreach($permissionNames as $perm)
-                    <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" name="permissions[]" value="{{ $perm }}" @checked(in_array($perm, old('permissions', $permissionNames), true))> {{ __('client.account_users.perm_'.$perm) }}</label>
-                    @endforeach
+                <label class="d-block">{{ __('client.account_users.permissions') }}</label>
+                <div class="card bg-light">
+                    <div class="card-body py-2 px-3">
+                        @foreach($permissionNames as $perm)
+                            <label class="form-check form-check-inline mr-3 my-1">
+                                <input type="checkbox" class="form-check-input" name="permissions[]" value="{{ $perm }}" @checked(in_array($perm, old('permissions', $permissionNames), true))>
+                                <span class="form-check-label">{{ __('client.account_users.perm_'.$perm) }}</span>
+                            </label>
+                        @endforeach
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">{{ __('client.account_users.send_invite') }}</button>
-            <div style="font-size:12px; color:var(--muted); margin-top:8px;">{{ __('client.account_users.invite_hint', ['days' => \App\Models\UserInvite::VALID_DAYS]) }}</div>
+            <button type="submit" class="btn btn-primary">{{ __('client.account_users.send_invite') }}</button>
+            <small class="form-text text-muted mt-2">{{ __('client.account_users.invite_hint', ['days' => \App\Models\UserInvite::VALID_DAYS]) }}</small>
         </form>
     </div>
 </div>

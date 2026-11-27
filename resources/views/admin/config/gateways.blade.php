@@ -2,95 +2,91 @@
 @section('title', __('admin.gateways.title'))
 @section('content')
 
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>{{ __('admin.gateways.title') }}</h1>
-</div>
+<h1>{{ __('admin.gateways.title') }}</h1>
+<div class="infobox">{{ __('admin.gateways.description') }}</div>
 
-<p style="color:#666;font-size:13px;margin-bottom:15px;">{{ __('admin.gateways.description') }}</p>
+<style>
+    .gw-card { border: 1px solid #dcdcdc; background: #fff; margin-bottom: 10px; border-radius: 3px; }
+    .gw-card summary { cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #eef2f7; list-style: none; font-size: 13px; }
+    .gw-card summary::-webkit-details-marker { display: none; }
+    .gw-card[open] .gw-chevron { transform: rotate(90deg); }
+</style>
 
-{{-- Each gateway asks for the settings its own module reads. The list used to
-     be written out here by hand, with field names that did not match, so
-     PayPal was asked for an email address it never reads and Authorize.net for
-     an api_login it does not know. --}}
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:15px;align-items:start;">
 @foreach($gateways as $gw)
-    <details class="card gw-card" style="overflow:hidden;">
-        <summary style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 16px;list-style:none;">
-            <span class="gw-chevron" style="display:inline-block;transition:transform .2s;color:#999;">&#9656;</span>
-            <span style="flex:1;font-weight:600;">{{ $gw->label }}</span>
+    <details class="gw-card" @if($gw->active) open @endif>
+        <summary>
+            <span class="gw-chevron" style="display:inline-block;transition:transform .2s;color:#1a4d80;">&#9656;</span>
+            <span style="flex:1;font-weight:700;color:#1a4d80;">{{ $gw->label }}</span>
             @if($gw->active && $gw->missing)
-            <span class="badge badge-pending" title="{{ __('admin.gateways.missing_settings', ['fields' => implode(', ', $gw->missing)]) }}">{{ __('admin.gateways.not_offered') }}</span>
+            <span class="whmcs-status suspended" title="{{ __('admin.gateways.missing_settings', ['fields' => implode(', ', $gw->missing)]) }}">{{ __('admin.gateways.not_offered') }}</span>
             @else
-            <span class="badge {{ $gw->active ? 'badge-active' : 'badge-cancelled' }}">{{ $gw->active ? __('common.status.active') : __('common.status.inactive') }}</span>
+            <span class="whmcs-status {{ $gw->active ? 'active badge-active' : 'terminated' }}">{{ $gw->active ? __('common.status.active') : __('common.status.inactive') }}</span>
             @endif
         </summary>
-        <div style="padding:0 16px 16px;border-top:1px solid #e5e7eb;">
+        <div style="padding:12px 14px;border-top:1px solid #dcdcdc;">
             @if($gw->active && $gw->missing)
-            {{-- Ticked active, yet left out of checkout and the invoice page
-                 until its keys are in: said here rather than discovered by a
-                 customer who cannot find the gateway. --}}
-            <div class="alert alert-warning" style="margin:12px 0 0;font-size:12.5px;">{{ __('admin.gateways.missing_settings', ['fields' => implode(', ', $gw->missing)]) }}</div>
+            <div class="alert alert-warning" style="margin:0 0 12px;font-size:12.5px;">{{ __('admin.gateways.missing_settings', ['fields' => implode(', ', $gw->missing)]) }}</div>
             @endif
             <form method="POST" action="{{ route('admin.config.gateways.settings.update', $gw->name) }}">
                 @csrf
-                <div class="form-group">
-                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-                        <input type="checkbox" name="active" value="1" {{ $gw->active ? 'checked' : '' }}> {{ __('admin.gateways.enable_gateway') }}
-                    </label>
+                <table class="form" width="100%" border="0" cellspacing="2" cellpadding="3">
+                    <tr>
+                        <td class="fieldlabel" width="24%">{{ __('admin.gateways.enable_gateway') }}</td>
+                        <td class="fieldarea">
+                            <label style="font-weight:400;margin:0;cursor:pointer;">
+                                <input type="checkbox" name="active" value="1" {{ $gw->active ? 'checked' : '' }}> {{ __('admin.gateways.enable_gateway') }}
+                            </label>
+                        </td>
+                    </tr>
+
+                    @forelse($gw->fields as $field)
+                        @php
+                            $key = $field['name'];
+                            $value = $gw->values[$key] ?? ($field['default'] ?? '');
+                            $type = $field['type'] ?? 'text';
+                        @endphp
+                        <tr>
+                            <td class="fieldlabel">{{ $field['label'] ?? ucfirst(str_replace('_', ' ', $key)) }}</td>
+                            <td class="fieldarea">
+                                @if($type === 'password')
+                                    <input type="password" name="settings[{{ $key }}]" value="" class="form-control" style="max-width:420px;" autocomplete="new-password" placeholder="{{ (string) $value !== '' ? __('admin.settings.smtp_password_keep') : '' }}">
+                                @elseif($type === 'textarea')
+                                    <textarea name="settings[{{ $key }}]" rows="3" class="form-control" style="max-width:520px;">{{ $value }}</textarea>
+                                @elseif($type === 'yesno')
+                                    <select name="settings[{{ $key }}]" class="form-control" style="max-width:180px;">
+                                        <option value="0" {{ (string) $value === '0' ? 'selected' : '' }}>{{ __('common.no') }}</option>
+                                        <option value="1" {{ (string) $value === '1' ? 'selected' : '' }}>{{ __('common.yes') }}</option>
+                                    </select>
+                                @elseif($type === 'select')
+                                    <select name="settings[{{ $key }}]" class="form-control" style="max-width:320px;">
+                                        @foreach(($field['options'] ?? []) as $optValue => $optLabel)
+                                        <option value="{{ $optValue }}" {{ (string) $value === (string) $optValue ? 'selected' : '' }}>{{ $optLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <input type="text" name="settings[{{ $key }}]" value="{{ $value }}" class="form-control" style="max-width:420px;">
+                                @endif
+                                @if(! empty($field['description']))
+                                <div style="font-size:11px;color:#666;margin-top:3px;">{{ $field['description'] }}</div>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td class="fieldlabel">{{ __('admin.registrars.config_json') }}</td>
+                            <td class="fieldarea"><textarea name="settings_json" rows="4" class="form-control" style="max-width:520px;" placeholder='{"key":"value"}'></textarea></td>
+                        </tr>
+                    @endforelse
+                </table>
+
+                <div class="btn-container" style="margin-bottom:0;">
+                    <button type="submit" class="btn btn-primary btn-sm">{{ __('admin.gateways.save_settings') }}</button>
                 </div>
-
-                @forelse($gw->fields as $field)
-                    @php
-                        $key = $field['name'];
-                        $value = $gw->values[$key] ?? ($field['default'] ?? '');
-                        $type = $field['type'] ?? 'text';
-                    @endphp
-                    <div class="form-group">
-                        <label class="form-label">{{ $field['label'] ?? ucfirst(str_replace('_', ' ', $key)) }}</label>
-                        @if($type === 'password')
-                            {{-- A stored secret never travels back to the browser. It used to be
-                                 printed into value=, which put the live key in the page source of
-                                 every visit. The field now ships empty and a blank submission means
-                                 "keep what is saved" - the same contract the general settings screen
-                                 already uses for SMTPPassword. --}}
-                            <input type="password" name="settings[{{ $key }}]" value="" class="form-control" autocomplete="new-password" placeholder="{{ (string) $value !== '' ? __('admin.settings.smtp_password_keep') : '' }}">
-                        @elseif($type === 'textarea')
-                            <textarea name="settings[{{ $key }}]" rows="3" class="form-control">{{ $value }}</textarea>
-                        @elseif($type === 'yesno')
-                            <select name="settings[{{ $key }}]" class="form-control">
-                                <option value="0" {{ (string) $value === '0' ? 'selected' : '' }}>{{ __('common.no') }}</option>
-                                <option value="1" {{ (string) $value === '1' ? 'selected' : '' }}>{{ __('common.yes') }}</option>
-                            </select>
-                        @elseif($type === 'select')
-                            <select name="settings[{{ $key }}]" class="form-control">
-                                @foreach(($field['options'] ?? []) as $optValue => $optLabel)
-                                <option value="{{ $optValue }}" {{ (string) $value === (string) $optValue ? 'selected' : '' }}>{{ $optLabel }}</option>
-                                @endforeach
-                            </select>
-                        @else
-                            <input type="text" name="settings[{{ $key }}]" value="{{ $value }}" class="form-control">
-                        @endif
-                        @if(! empty($field['description']))
-                        <small style="display:block;color:#666;margin-top:4px;">{{ $field['description'] }}</small>
-                        @endif
-                    </div>
-                @empty
-                    <div class="form-group">
-                        <label class="form-label">{{ __('admin.registrars.config_json') }}</label>
-                        <textarea name="settings_json" rows="4" class="form-control" placeholder='{"key":"value"}'></textarea>
-                    </div>
-                @endforelse
-
-                <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">{{ __('admin.gateways.save_settings') }}</button>
             </form>
 
             @if($gw->vaults_cards)
-                {{-- This gateway can keep a customer's card, which is the only
-                     thing automatic payment can charge. The switch for it lives
-                     on the general settings screen, so the operator configuring
-                     Stripe would otherwise have no way of knowing it exists. --}}
-                <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#666;">
-                    <span class="badge {{ $autoChargeOn ? 'badge-active' : 'badge-cancelled' }}">
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;font-size:12px;color:#666;">
+                    <span class="whmcs-status {{ $autoChargeOn ? 'active badge-active' : 'terminated' }}">
                         {{ $autoChargeOn ? __('common.status.active') : __('common.status.inactive') }}
                     </span>
                     {{ __('admin.gateways.auto_charge_note') }}
@@ -100,10 +96,4 @@
         </div>
     </details>
 @endforeach
-</div>
-
-<style>
-    .gw-card summary::-webkit-details-marker { display: none; }
-    .gw-card[open] .gw-chevron { transform: rotate(90deg); }
-</style>
 @endsection

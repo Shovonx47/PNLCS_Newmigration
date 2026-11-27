@@ -1,4 +1,4 @@
-@extends('client.layouts.app')
+@extends('client.layouts.twentyone')
 @section('title', 'Reseller Portal')
 
 @section('content')
@@ -8,300 +8,328 @@
     $gatewaysByKey = $reseller->gateways->keyBy('gateway');
 @endphp
 
-<div class="pn-page-header">
-    <div>
-        <h1 class="pn-page-title">Reseller Portal</h1>
-        <p class="pn-page-subtitle">
-            {{ $reseller->company_name ?: 'Reseller Workspace' }}
-            &middot; Tier: <strong>{{ $reseller->group?->name ?: 'Standard' }}</strong>
-            @if($reseller->cname) &middot; Hostname: <code>{{ $reseller->cname }}</code>@endif
-        </p>
+<div class="d-flex align-items-center justify-content-between flex-wrap mb-3">
+    <div class="text-muted small">
+        <strong>{{ $reseller->company_name ?: 'Reseller Workspace' }}</strong>
+        &middot; {{ 'Tier:' }} <strong>{{ $reseller->group?->name ?: 'Standard' }}</strong>
+        @if($reseller->cname) &middot; {{ 'Hostname:' }} <code>{{ $reseller->cname }}</code>@endif
     </div>
-    <a href="{{ route('client.home') }}" class="btn btn-outline">&larr; Dashboard</a>
+    <a href="{{ route('client.home') }}" class="btn btn-default btn-sm">&laquo; {{ 'Dashboard' }}</a>
 </div>
 
-@if($errors->any())
-    <div class="pn-alert pn-alert-error" style="margin-bottom:16px;">
-        <ul style="margin:0;padding-left:18px;">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;">
-    <div class="pn-card" style="padding:16px 20px;">
-        <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;font-weight:700;">End Clients</div>
-        <div style="font-size:24px;font-weight:800;margin-top:4px;">{{ $metrics['end_clients'] }}</div>
-    </div>
-    <div class="pn-card" style="padding:16px 20px;">
-        <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;font-weight:700;">Reseller Balance</div>
-        <div style="font-size:24px;font-weight:800;margin-top:4px;color:var(--primary);">{{ money_fmt((float) $reseller->balance) }}</div>
-    </div>
-    <div class="pn-card" style="padding:16px 20px;">
-        <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;font-weight:700;">Total End-Client Sales</div>
-        <div style="font-size:24px;font-weight:800;margin-top:4px;">{{ money_fmt($metrics['total_sales']) }}</div>
-    </div>
-    <div class="pn-card" style="padding:16px 20px;">
-        <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;font-weight:700;">Pending Commissions</div>
-        <div style="font-size:24px;font-weight:800;margin-top:4px;">{{ money_fmt($metrics['pending_payouts']) }}</div>
+<div class="tiles clearfix mb-4">
+    <div class="row">
+        <div class="col-sm-3 col-6 tile">
+            <a href="#">
+                <div class="icon"><i class="fas fa-users"></i></div>
+                <div class="stat">{{ $metrics['end_clients'] }}</div>
+                <div class="title">{{ 'End Clients' }}</div>
+                <div class="highlight bg-color-blue"></div>
+            </a>
+        </div>
+        <div class="col-sm-3 col-6 tile">
+            <a href="#">
+                <div class="icon"><i class="fas fa-wallet"></i></div>
+                <div class="stat">{{ money_fmt((float) $reseller->balance) }}</div>
+                <div class="title">{{ 'Reseller Balance' }}</div>
+                <div class="highlight bg-color-green"></div>
+            </a>
+        </div>
+        <div class="col-sm-3 col-6 tile">
+            <a href="#">
+                <div class="icon"><i class="fas fa-chart-line"></i></div>
+                <div class="stat">{{ money_fmt($metrics['total_sales']) }}</div>
+                <div class="title">{{ 'Total End-Client Sales' }}</div>
+                <div class="highlight bg-color-gold"></div>
+            </a>
+        </div>
+        <div class="col-sm-3 col-6 tile">
+            <a href="#">
+                <div class="icon"><i class="fas fa-coins"></i></div>
+                <div class="stat">{{ money_fmt($metrics['pending_payouts']) }}</div>
+                <div class="title">{{ 'Pending Commissions' }}</div>
+                <div class="highlight bg-color-red"></div>
+            </a>
+        </div>
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin-bottom:20px;">
-    <div class="pn-card" style="padding:20px 24px;">
-        <div class="pn-section-title" style="margin:0 0 12px;">White-Label Branding &amp; Contact</div>
-        <form method="POST" action="{{ route('client.reseller.branding') }}">
-            @csrf
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
-                <div class="form-group">
-                    <label class="form-label">Company / Brand Name</label>
-                    <input type="text" name="company_name" value="{{ old('company_name', $reseller->company_name) }}" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Support Email</label>
-                    <input type="email" name="email_address" value="{{ old('email_address', $reseller->email_address) }}" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">White-Label CNAME</label>
-                    <input type="text" name="cname" value="{{ old('cname', $reseller->cname) }}" class="form-control" placeholder="billing.yourbrand.com">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">PayPal Payout Email</label>
-                    <input type="email" name="paypal_email" value="{{ old('paypal_email', $reseller->paypal_email) }}" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Logo URL</label>
-                    <input type="url" name="logo_url" value="{{ old('logo_url', $reseller->logo_url) }}" class="form-control" placeholder="https://...">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Accent Hex Color</label>
-                    <input type="text" name="theme_color" value="{{ old('theme_color', $branding['theme_color'] ?? '#2563eb') }}" class="form-control" placeholder="#2563eb">
-                </div>
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-paint-brush fa-fw"></i>&nbsp;{{ 'White-Label Branding & Contact' }}</h5>
             </div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('client.reseller.branding') }}">
+                    @csrf
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'Company / Brand Name' }}</label>
+                            <input type="text" name="company_name" value="{{ old('company_name', $reseller->company_name) }}" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'Support Email' }}</label>
+                            <input type="email" name="email_address" value="{{ old('email_address', $reseller->email_address) }}" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'White-Label CNAME' }}</label>
+                            <input type="text" name="cname" value="{{ old('cname', $reseller->cname) }}" class="form-control" placeholder="{{ 'billing.yourbrand.com' }}">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'PayPal Payout Email' }}</label>
+                            <input type="email" name="paypal_email" value="{{ old('paypal_email', $reseller->paypal_email) }}" class="form-control">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'Logo URL' }}</label>
+                            <input type="url" name="logo_url" value="{{ old('logo_url', $reseller->logo_url) }}" class="form-control" placeholder="{{ 'https://...' }}">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'Accent Hex Color' }}</label>
+                            <input type="text" name="theme_color" value="{{ old('theme_color', $branding['theme_color'] ?? '#2563eb') }}" class="form-control" placeholder="{{ '#2563eb' }}">
+                        </div>
+                    </div>
 
-            <div class="form-group" style="margin-top:10px;">
-                <label class="form-label">Email Signature</label>
-                <textarea name="email_signature" rows="2" class="form-control">{{ old('email_signature', $branding['email_signature'] ?? '') }}</textarea>
-            </div>
+                    <div class="form-group">
+                        <label>{{ 'Email Signature' }}</label>
+                        <textarea name="email_signature" rows="2" class="form-control">{{ old('email_signature', $branding['email_signature'] ?? '') }}</textarea>
+                    </div>
 
-            @if($reseller->group?->allow_own_smtp)
-            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Custom Outbound SMTP (Encrypted)</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-                    <div class="form-group">
-                        <label class="form-label">SMTP Host</label>
-                        <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? '') }}" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Port</label>
-                        <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 587) }}" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? '') }}" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">SMTP Password</label>
-                        <input type="password" name="smtp_password" class="form-control" autocomplete="new-password" placeholder="{{ filled($smtp['password'] ?? '') ? '•••••••• (leave blank to keep)' : 'Enter password' }}">
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            <div style="margin-top:14px;">
-                <button type="submit" class="btn btn-primary">Save Branding</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="pn-card" style="padding:20px 24px;">
-        <div class="pn-section-title" style="margin:0 0 12px;">End-Client Payment Gateways</div>
-        <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">
-            Gateways configured here are used automatically when your assigned end clients choose Reseller Gateway at invoice checkout.
-        </p>
-
-        @foreach(['banktransfer' => 'Bank Transfer / bKash Manual', 'piprapay' => 'PipraPay Merchant', 'paypal' => 'PayPal Checkout'] as $gwKey => $gwLabel)
-        @php
-            $gw = $gatewaysByKey->get($gwKey);
-            $gwCfg = is_array($gw?->settings) ? $gw->settings : [];
-        @endphp
-        <details style="border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;" @if($gw?->enabled) open @endif>
-            <summary style="cursor:pointer;font-weight:600;display:flex;justify-content:space-between;align-items:center;">
-                <span>{{ $gwLabel }}</span>
-                <span class="badge {{ $gw?->enabled ? 'badge-active' : 'badge-cancelled' }}">{{ $gw?->enabled ? 'Enabled' : 'Disabled' }}</span>
-            </summary>
-            <form method="POST" action="{{ route('client.reseller.gateway.save') }}" style="margin-top:12px;">
-                @csrf
-                <input type="hidden" name="gateway" value="{{ $gwKey }}">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div class="form-group">
-                        <label class="form-label">Display Name</label>
-                        <input type="text" name="display_name" value="{{ $gwCfg['display_name'] ?? $gwLabel }}" class="form-control">
-                    </div>
-                    <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:6px;">
-                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                            <input type="checkbox" name="enabled" value="1" @checked((bool) ($gw?->enabled))>
-                            Enable for end clients
-                        </label>
-                    </div>
-                    @if($gwKey === 'banktransfer')
-                    <div class="form-group" style="grid-column:1/-1;">
-                        <label class="form-label">Payment Instructions</label>
-                        <textarea name="instructions" rows="2" class="form-control">{{ $gwCfg['instructions'] ?? '' }}</textarea>
-                    </div>
-                    @elseif($gwKey === 'piprapay')
-                    <div class="form-group">
-                        <label class="form-label">PipraPay Base URL</label>
-                        <input type="url" name="base_url" value="{{ $gwCfg['base_url'] ?? '' }}" class="form-control" placeholder="https://pay.yourbrand.com">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">API Key</label>
-                        <input type="password" name="api_key" class="form-control" autocomplete="new-password" placeholder="{{ filled($gwCfg['api_key'] ?? '') ? '•••••••• (leave blank to keep)' : 'Enter API key' }}">
-                    </div>
-                    @elseif($gwKey === 'paypal')
-                    <div class="form-group" style="grid-column:1/-1;">
-                        <label class="form-label">PayPal Business Email</label>
-                        <input type="email" name="paypal_email" value="{{ $gwCfg['paypal_email'] ?? '' }}" class="form-control">
+                    @if($reseller->group?->allow_own_smtp)
+                    <hr>
+                    <h6 class="text-muted text-uppercase small font-weight-bold mb-3">{{ 'Custom Outbound SMTP (Encrypted)' }}</h6>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'SMTP Host' }}</label>
+                            <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? '') }}" class="form-control">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'Port' }}</label>
+                            <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 587) }}" class="form-control">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'Username' }}</label>
+                            <input type="text" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? '') }}" class="form-control">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>{{ 'SMTP Password' }}</label>
+                            <input type="password" name="smtp_password" class="form-control" autocomplete="new-password" placeholder="{{ filled($smtp['password'] ?? '') ? '•••••••• (leave blank to keep)' : 'Enter password' }}">
+                        </div>
                     </div>
                     @endif
+
+                    <button type="submit" class="btn btn-primary">{{ 'Save Branding' }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-credit-card fa-fw"></i>&nbsp;{{ 'End-Client Payment Gateways' }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    {{ 'Gateways configured here are used automatically when your assigned end clients choose Reseller Gateway at invoice checkout.' }}
+                </p>
+
+                @foreach(['banktransfer' => 'Bank Transfer / bKash Manual', 'piprapay' => 'PipraPay Merchant', 'paypal' => 'PayPal Checkout'] as $gwKey => $gwLabel)
+                @php
+                    $gw = $gatewaysByKey->get($gwKey);
+                    $gwCfg = is_array($gw?->settings) ? $gw->settings : [];
+                @endphp
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>{{ $gwLabel }}</strong>
+                        <span class="label {{ $gw?->enabled ? 'label-success' : 'label-default' }}">{{ $gw?->enabled ? 'Enabled' : 'Disabled' }}</span>
+                    </div>
+                    <div class="card-body py-3">
+                        <form method="POST" action="{{ route('client.reseller.gateway.save') }}">
+                            @csrf
+                            <input type="hidden" name="gateway" value="{{ $gwKey }}">
+                            <div class="row">
+                                <div class="col-md-7 form-group mb-2">
+                                    <label class="small">{{ 'Display Name' }}</label>
+                                    <input type="text" name="display_name" value="{{ $gwCfg['display_name'] ?? $gwLabel }}" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-5 form-group mb-2 d-flex align-items-end">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="gw-en-{{ $gwKey }}" name="enabled" value="1" @checked((bool) ($gw?->enabled))>
+                                        <label class="form-check-label small" for="gw-en-{{ $gwKey }}">{{ 'Enable for end clients' }}</label>
+                                    </div>
+                                </div>
+                                @if($gwKey === 'banktransfer')
+                                <div class="col-12 form-group mb-2">
+                                    <label class="small">{{ 'Payment Instructions' }}</label>
+                                    <textarea name="instructions" rows="2" class="form-control form-control-sm">{{ $gwCfg['instructions'] ?? '' }}</textarea>
+                                </div>
+                                @elseif($gwKey === 'piprapay')
+                                <div class="col-md-6 form-group mb-2">
+                                    <label class="small">{{ 'PipraPay Base URL' }}</label>
+                                    <input type="url" name="base_url" value="{{ $gwCfg['base_url'] ?? '' }}" class="form-control form-control-sm" placeholder="{{ 'https://pay.yourbrand.com' }}">
+                                </div>
+                                <div class="col-md-6 form-group mb-2">
+                                    <label class="small">{{ 'API Key' }}</label>
+                                    <input type="password" name="api_key" class="form-control form-control-sm" autocomplete="new-password" placeholder="{{ filled($gwCfg['api_key'] ?? '') ? '••••••••' : 'Enter API key' }}">
+                                </div>
+                                @elseif($gwKey === 'paypal')
+                                <div class="col-12 form-group mb-2">
+                                    <label class="small">{{ 'PayPal Business Email' }}</label>
+                                    <input type="email" name="paypal_email" value="{{ $gwCfg['paypal_email'] ?? '' }}" class="form-control form-control-sm">
+                                </div>
+                                @endif
+                            </div>
+                            <button type="submit" class="btn btn-default btn-sm mt-1">{{ 'Save ' . $gwLabel }}</button>
+                        </form>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-outline btn-sm" style="margin-top:8px;">Save {{ $gwLabel }}</button>
-            </form>
-        </details>
-        @endforeach
+                @endforeach
+            </div>
+        </div>
     </div>
 </div>
 
 @if($reseller->group?->allow_promos)
-<div class="pn-card" style="padding:20px 24px;margin-bottom:20px;">
-    <div class="pn-section-title" style="margin:0 0 12px;">Reseller Promo Codes</div>
-    <form method="POST" action="{{ route('client.reseller.promos.store') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
-        @csrf
-        <div>
-            <label class="form-label">Promo Code</label>
-            <input type="text" name="code" class="form-control" required placeholder="PARTNER20" style="text-transform:uppercase;">
-        </div>
-        <div>
-            <label class="form-label">Type</label>
-            <select name="type" class="form-control" required>
-                <option value="percent">Percent (%)</option>
-                <option value="fixed">Fixed Discount</option>
-            </select>
-        </div>
-        <div>
-            <label class="form-label">Value</label>
-            <input type="number" step="0.01" min="0.01" name="value" class="form-control" required>
-        </div>
-        <div>
-            <label class="form-label">Max Uses (0 = unlimited)</label>
-            <input type="number" min="0" name="max_uses" value="0" class="form-control">
-        </div>
-        <div>
-            <label class="form-label">Expires At</label>
-            <input type="date" name="expires_at" class="form-control">
-        </div>
-        <button type="submit" class="btn btn-primary">Create Promo</button>
-    </form>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-tags fa-fw"></i>&nbsp;{{ 'Reseller Promo Codes' }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ route('client.reseller.promos.store') }}" class="mb-3">
+            @csrf
+            <div class="form-row align-items-end">
+                <div class="col-md-3 form-group mb-2">
+                    <label class="small">{{ 'Promo Code' }}</label>
+                    <input type="text" name="code" class="form-control text-uppercase" required placeholder="{{ 'PARTNER20' }}">
+                </div>
+                <div class="col-md-2 form-group mb-2">
+                    <label class="small">{{ 'Type' }}</label>
+                    <select name="type" class="form-control" required>
+                        <option value="percent">{{ 'Percent (%)' }}</option>
+                        <option value="fixed">{{ 'Fixed Discount' }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2 form-group mb-2">
+                    <label class="small">{{ 'Value' }}</label>
+                    <input type="number" step="0.01" min="0.01" name="value" class="form-control" required>
+                </div>
+                <div class="col-md-2 form-group mb-2">
+                    <label class="small">{{ 'Max Uses' }}</label>
+                    <input type="number" min="0" name="max_uses" value="0" class="form-control">
+                </div>
+                <div class="col-md-2 form-group mb-2">
+                    <label class="small">{{ 'Expires At' }}</label>
+                    <input type="date" name="expires_at" class="form-control">
+                </div>
+                <div class="col-md-1 form-group mb-2">
+                    <button type="submit" class="btn btn-primary btn-block">{{ 'Add' }}</button>
+                </div>
+            </div>
+        </form>
 
-    @if($reseller->promos->isEmpty())
-        <div style="color:var(--muted);font-size:13px;">No promo codes created yet.</div>
-    @else
-        <table class="pn-table">
-            <thead>
-                <tr><th>Code</th><th>Discount</th><th>Uses</th><th>Expires</th><th style="text-align:right;">Action</th></tr>
-            </thead>
-            <tbody>
-                @foreach($reseller->promos as $promo)
-                <tr>
-                    <td><code>{{ $promo->code }}</code></td>
-                    <td>{{ $promo->type === 'percent' ? number_format((float) $promo->value, 1).'%' : money_fmt((float) $promo->value) }}</td>
-                    <td>{{ $promo->uses }} / {{ $promo->max_uses ?: '∞' }}</td>
-                    <td>{{ $promo->expires_at?->format('Y-m-d') ?: 'Never' }}</td>
-                    <td style="text-align:right;">
-                        <form method="POST"
-                              action="{{ route('client.reseller.promos.destroy', $promo) }}"
-                              onsubmit="return pnConfirm(event, @js('Delete promo code '.$promo->code.'?'));">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-outline btn-sm">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
+        @if($reseller->promos->isEmpty())
+            <p class="text-muted mb-0">{{ 'No promo codes created yet.' }}</p>
+        @else
+            <div class="table-responsive">
+                <table class="table table-list mb-0">
+                    <thead>
+                        <tr><th>{{ 'Code' }}</th><th>{{ 'Discount' }}</th><th>{{ 'Uses' }}</th><th>{{ 'Expires' }}</th><th class="text-right">{{ 'Action' }}</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach($reseller->promos as $promo)
+                        <tr>
+                            <td><code>{{ $promo->code }}</code></td>
+                            <td>{{ $promo->type === 'percent' ? number_format((float) $promo->value, 1).'%' : money_fmt((float) $promo->value) }}</td>
+                            <td>{{ $promo->uses }} / {{ $promo->max_uses ?: '∞' }}</td>
+                            <td>{{ $promo->expires_at?->format('Y-m-d') ?: 'Never' }}</td>
+                            <td class="text-right">
+                                <form method="POST" action="{{ route('client.reseller.promos.destroy', $promo) }}" class="d-inline" onsubmit="return pnConfirm(event, @js('Delete promo code '.$promo->code.'?'));">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm">{{ 'Delete' }}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
 </div>
 @endif
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;">
-    <div class="pn-card" style="padding:20px 24px;">
-        <div class="pn-section-title" style="margin:0 0 12px;">End Clients &amp; Managed Services</div>
-        @if($services->isEmpty())
-            <div style="color:var(--muted);font-size:13px;">No end-client services found yet.</div>
-        @else
-            <table class="pn-table">
-                <thead><tr><th>Service</th><th>Client</th><th>Status</th><th style="text-align:right;">Control</th></tr></thead>
-                <tbody>
-                    @foreach($services as $svc)
-                    <tr>
-                        <td>
-                            <strong>{{ $svc->product?->name ?: 'Service #'.$svc->id }}</strong>
-                            @if($svc->domain)<div style="font-size:11.5px;color:var(--muted);">{{ $svc->domain }}</div>@endif
-                        </td>
-                        <td>{{ trim(($svc->client?->first_name ?? '').' '.($svc->client?->last_name ?? '')) }}</td>
-                        <td><span class="badge {{ strtolower((string) $svc->status) === 'active' ? 'badge-active' : 'badge-pending' }}">{{ $svc->status }}</span></td>
-                        <td style="text-align:right;">
-                            @if($reseller->group?->allow_suspend)
-                                @if(strtolower((string) $svc->status) === 'active')
-                                    <form method="POST"
-                                          action="{{ route('client.reseller.services.suspend', $svc) }}"
-                                          onsubmit="return pnConfirm(event, @js('Suspend end-client service #'.$svc->id.'?'));">
-                                        @csrf
-                                        <button type="submit" class="btn btn-outline btn-sm">Suspend</button>
-                                    </form>
-                                @elseif(strtolower((string) $svc->status) === 'suspended')
-                                    <form method="POST"
-                                          action="{{ route('client.reseller.services.unsuspend', $svc) }}"
-                                          onsubmit="return pnConfirm(event, @js('Reactivate end-client service #'.$svc->id.'?'));">
-                                        @csrf
-                                        <button type="submit" class="btn btn-primary btn-sm">Unsuspend</button>
-                                    </form>
-                                @endif
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-server fa-fw"></i>&nbsp;{{ 'End Clients & Managed Services' }}</h5>
+            </div>
+            @if($services->isEmpty())
+                <div class="card-body text-muted">{{ 'No end-client services found yet.' }}</div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-list mb-0">
+                        <thead><tr><th>{{ 'Service' }}</th><th>{{ 'Client' }}</th><th>{{ 'Status' }}</th><th class="text-right">{{ 'Control' }}</th></tr></thead>
+                        <tbody>
+                            @foreach($services as $svc)
+                            <tr>
+                                <td>
+                                    <strong>{{ $svc->product?->name ?: 'Service #'.$svc->id }}</strong>
+                                    @if($svc->domain)<div class="small text-muted">{{ $svc->domain }}</div>@endif
+                                </td>
+                                <td>{{ trim(($svc->client?->first_name ?? '').' '.($svc->client?->last_name ?? '')) }}</td>
+                                <td><span class="label {{ strtolower((string) $svc->status) === 'active' ? 'label-success' : 'label-warning' }}">{{ $svc->status }}</span></td>
+                                <td class="text-right">
+                                    @if($reseller->group?->allow_suspend)
+                                        @if(strtolower((string) $svc->status) === 'active')
+                                            <form method="POST" action="{{ route('client.reseller.services.suspend', $svc) }}" class="d-inline" onsubmit="return pnConfirm(event, @js('Suspend end-client service #'.$svc->id.'?'));">
+                                                @csrf
+                                                <button type="submit" class="btn btn-default btn-sm">{{ 'Suspend' }}</button>
+                                            </form>
+                                        @elseif(strtolower((string) $svc->status) === 'suspended')
+                                            <form method="POST" action="{{ route('client.reseller.services.unsuspend', $svc) }}" class="d-inline" onsubmit="return pnConfirm(event, @js('Reactivate end-client service #'.$svc->id.'?'));">
+                                                @csrf
+                                                <button type="submit" class="btn btn-primary btn-sm">{{ 'Unsuspend' }}</button>
+                                            </form>
+                                        @endif
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 
-    <div class="pn-card" style="padding:20px 24px;">
-        <div class="pn-section-title" style="margin:0 0 12px;">Recent Commission Payouts</div>
-        @if($payouts->isEmpty())
-            <div style="color:var(--muted);font-size:13px;">No commissions recorded yet.</div>
-        @else
-            <table class="pn-table">
-                <thead><tr><th>Date</th><th>End Client</th><th>Amount</th><th>Status</th></tr></thead>
-                <tbody>
-                    @foreach($payouts as $payout)
-                    <tr>
-                        <td>{{ $payout->created_at?->format('Y-m-d') }}</td>
-                        <td>{{ $payout->client ? trim($payout->client->first_name.' '.$payout->client->last_name) : '—' }}</td>
-                        <td><strong>{{ money_fmt((float) $payout->amount) }}</strong></td>
-                        <td>
-                            <span class="badge {{ $payout->status === 'paid' ? 'badge-active' : 'badge-pending' }}">
-                                {{ ucfirst($payout->status) }}
-                            </span>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-money-check-alt fa-fw"></i>&nbsp;{{ 'Recent Commission Payouts' }}</h5>
+            </div>
+            @if($payouts->isEmpty())
+                <div class="card-body text-muted">{{ 'No commissions recorded yet.' }}</div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-list mb-0">
+                        <thead><tr><th>{{ 'Date' }}</th><th>{{ 'End Client' }}</th><th>{{ 'Amount' }}</th><th>{{ 'Status' }}</th></tr></thead>
+                        <tbody>
+                            @foreach($payouts as $payout)
+                            <tr>
+                                <td>{{ $payout->created_at?->format('Y-m-d') }}</td>
+                                <td>{{ $payout->client ? trim($payout->client->first_name.' '.$payout->client->last_name) : '—' }}</td>
+                                <td><strong>{{ money_fmt((float) $payout->amount) }}</strong></td>
+                                <td><span class="label {{ $payout->status === 'paid' ? 'label-success' : 'label-warning' }}">{{ ucfirst($payout->status) }}</span></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 </div>
 @endsection

@@ -6,7 +6,7 @@
     ];
     $fmtBdt = fn ($v) => '৳' . number_format((float) $v, 2);
 @endphp
-<div id="customTopStatsBar" style="text-align:center;background-color:#112239;padding:6px 8px;border-bottom:1px solid #0b1829;width:100%;white-space:nowrap;overflow-x:auto;z-index:9999;position:relative;">
+<div id="customTopStatsBar" style="text-align:center;background-color:#112239;padding:5px 6px;border-bottom:1px solid #0b1829;width:100%;white-space:nowrap;overflow-x:auto;z-index:9999;position:relative;">
     <a href="{{ url('/admin/clients') }}" style="display:inline-block;margin:0 2px;padding:3px 8px;background-color:#34495e;color:#fff;border-radius:4px;text-decoration:none;font-size:11px;font-weight:600;">
         {{ $stats['new_clients_today'] }} New Clients
     </a>

@@ -91,7 +91,7 @@ class DashboardController extends Controller
                     $q->select(DB::raw(1))
                         ->from('services')
                         ->whereColumn('services.client_id', 'clients.id')
-                        ->whereDate('services.reg_date', '<', $todayStr);
+                        ->whereDate('services.registration_date', '<', $todayStr);
                 })
                 ->count();
             if ($newClients > 50 && Order::whereDate('created_at', $today)->where('status', 'pending')->count() < 10) {
@@ -142,7 +142,7 @@ class DashboardController extends Controller
                 ->orderByDesc('total_sold')
                 ->first();
 
-            $topProdName = $topProduct ? (string) $topProduct->name : 'N/A';
+            $topProdName = $topProduct ? (string) $topProduct->name : 'No sales yet';
             $topProdSales = $topProduct ? (int) $topProduct->total_sold : 0;
             if (mb_strlen($topProdName) > 18) {
                 $topProdName = mb_substr($topProdName, 0, 16) . '..';
@@ -193,7 +193,7 @@ class DashboardController extends Controller
         } catch (\Throwable) {
             return [
                 'newClients' => 0, 'orders' => 0, 'tickets' => 0, 'paidToday' => 0,
-                'topProdName' => 'N/A', 'topProdSales' => 0,
+                'topProdName' => 'No sales yet', 'topProdSales' => 0,
                 'due' => '৳0.00', 'overdue' => '৳0.00', 'income' => '৳0.00',
                 'renewCount' => 0, 'renewAmount' => '৳0.00', 'addFunds' => '৳0.00', 'totalCredit' => '৳0.00',
                 'rcgSuccessC' => 0, 'rcgSuccessA' => '৳0.00',
