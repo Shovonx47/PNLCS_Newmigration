@@ -23,6 +23,7 @@ class ItalkRechargeServiceProvider extends ServiceProvider
                 Route::delete('accounts/{account}', [RechargeAdminController::class, 'destroyAccount'])->name('accounts.destroy');
                 Route::post('recharge', [RechargeAdminController::class, 'rechargeNow'])->name('recharge')->middleware('throttle:20,1');
                 Route::post('logs/{log}/retry', [RechargeAdminController::class, 'retryLog'])->name('logs.retry')->middleware('throttle:10,1');
+                Route::post('logs/{log}/resolve', [RechargeAdminController::class, 'resolveLog'])->name('logs.resolve');
             });
     }
 }

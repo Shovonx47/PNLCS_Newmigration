@@ -72,6 +72,16 @@ if (! function_exists('payment_method_label')) {
             return $method;
         }
 
+        try {
+            $custom = \App\Models\GatewaySettings::where('gateway', $method)
+                ->where('setting', 'display_name')
+                ->value('value');
+            if (is_string($custom) && trim($custom) !== '') {
+                return trim($custom);
+            }
+        } catch (Throwable) {
+        }
+
         $key = 'messages.payment_method.'.$method;
 
         if (Lang::has($key)) {

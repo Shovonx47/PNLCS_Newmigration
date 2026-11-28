@@ -95,13 +95,12 @@ class InvoicePdfService
     }
 
 
-    public function generate(Invoice $invoice): \Barryvdh\DomPDF\PDF
+    public function renderHtml(Invoice $invoice): string
     {
         $invoice->load('client', 'items', 'ksefInvoice');
 
         $company = $invoice->sellerDetails();
         $ksef = $this->ksefInfo($invoice);
-
         $template = $this->customTemplate($invoice);
 
         // Every label — the items table, the VAT summary, the status and
@@ -109,22 +108,23 @@ class InvoicePdfService
         // at issue time, not in whatever locale the admin happened to be in.
         return $this->withInvoiceLocale($invoice, function () use ($invoice, $company, $ksef, $template) {
             if ($template !== null) {
-                // The uploaded template is a plain HTML document whose
-                // {placeholders} are replaced here. It is data, never code.
-                $html = $this->merge(
+                return $this->merge(
                     (string) file_get_contents($template),
                     $this->placeholderVars($invoice, $company, $ksef)
                 );
-
-                return Pdf::loadHTML($html)->setPaper('a4');
             }
 
-            return Pdf::loadView('pdf.invoice', [
+            return view('pdf.invoice', [
                 'invoice' => $invoice,
                 'company' => $company,
                 'ksef' => $ksef,
-            ])->setPaper('a4');
+            ])->render();
         });
+    }
+
+    public function generate(Invoice $invoice): \Barryvdh\DomPDF\PDF
+    {
+        return Pdf::loadHTML($this->renderHtml($invoice))->setPaper('a4');
     }
 
     /**

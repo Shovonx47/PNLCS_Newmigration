@@ -57,6 +57,16 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $request->session()->forget('admin_password_confirmed_at');
 
+            try {
+                \App\Models\AdminLog::create([
+                    'admin_username' => (string) ($admin->username ?: $admin->email),
+                    'login_time' => now(),
+                    'ip_address' => $request->ip(),
+                    'session_id' => $request->session()->getId(),
+                ]);
+            } catch (\Throwable) {
+            }
+
             // Check 2FA
             if ($admin->second_factor_type && $admin->second_factor_secret) {
                 // Start from unverified: regenerate() above carries the session
@@ -240,6 +250,16 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        try {
+            $sid = $request->session()->getId();
+            if ($sid !== '') {
+                \App\Models\AdminLog::where('session_id', $sid)
+                    ->whereNull('logout_time')
+                    ->update(['logout_time' => now()]);
+            }
+        } catch (\Throwable) {
+        }
+
         Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

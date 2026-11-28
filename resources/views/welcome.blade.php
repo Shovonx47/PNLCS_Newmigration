@@ -13,7 +13,7 @@
     $dynHeroTitle = '';
     if ($heroSection && $heroSection->is_enabled) {
         try {
-            $dynHeroTitle = trim((string) \App\Models\DynamicTranslation::where('locale', app()->getLocale())
+            $dynHeroTitle = trim((string) \App\Models\DynamicTranslation::where('language', app()->getLocale())
                 ->where('group', 'sections')
                 ->where('key', 'hero.title')
                 ->value('value'));

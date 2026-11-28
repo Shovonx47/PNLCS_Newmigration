@@ -6,7 +6,7 @@
     <h1>{{ __('admin.domain_searches.title') }}</h1>
     <div style="display:flex;gap:6px;">
         @foreach([7, 30, 90] as $d)
-        <a href="{{ route('admin.domains.searches', ['days' => $d]) }}" class="btn btn-{{ $d === $days ? 'primary' : 'default' }} btn-sm">{{ __('admin.domain_searches.last_days', ['days' => $d]) }}</a>
+        <a href="{{ route(request()->routeIs('admin.logs.whois') ? 'admin.logs.whois' : 'admin.domains.searches', ['days' => $d]) }}" class="btn btn-{{ $d === $days ? 'primary' : 'default' }} btn-sm">{{ __('admin.domain_searches.last_days', ['days' => $d]) }}</a>
         @endforeach
     </div>
 </div>

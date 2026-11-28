@@ -195,10 +195,12 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     });
     Route::middleware('admin.permission:view_invoices')->group(function () {
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+        Route::get('invoices/{invoice}/view', [InvoiceController::class, 'preview'])->name('invoices.view');
         Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
     });
 
     Route::middleware('admin.permission:manage_invoices')->group(function () {
+        Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
         Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
         // The human end of needs_review: an operator who has checked the
         // gateway lets automatic collection have this invoice back.
@@ -695,6 +697,11 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
         Route::middleware('admin.permission:view_reports')->group(function () {
             Route::get('transactions', [ConfigController::class, 'transactions'])->name('transactions');
         });
+        Route::middleware('admin.permission:manage_invoices')->group(function () {
+            Route::post('transactions', [ConfigController::class, 'storeTransaction'])->name('transactions.store');
+            Route::put('transactions/{transaction}', [ConfigController::class, 'updateTransaction'])->name('transactions.update');
+            Route::delete('transactions/{transaction}', [ConfigController::class, 'destroyTransaction'])->name('transactions.destroy');
+        });
 
         Route::middleware('admin.permission:manage_settings')->group(function () {
             Route::get('automation', [ConfigController::class, 'automation'])->name('automation');
@@ -766,9 +773,12 @@ Route::middleware(['admin.auth', 'admin.2fa'])->prefix('admin')->name('admin.')-
     // Logs — view_activity_log
     Route::middleware('admin.permission:view_activity_log')->group(function () {
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+        Route::get('logs/admin', [LogController::class, 'adminLog'])->name('logs.admin');
         Route::get('logs/gateway', [LogController::class, 'gateway'])->name('logs.gateway');
         Route::get('logs/module', [LogController::class, 'module'])->name('logs.module');
         Route::get('logs/email', [LogController::class, 'email'])->name('logs.email');
+        Route::get('logs/ticket-mail', [LogController::class, 'ticketMail'])->name('logs.ticket-mail');
+        Route::get('logs/whois', [DomainSearchLogController::class, 'index'])->name('logs.whois');
     });
 
     // API Documentation — no permission required

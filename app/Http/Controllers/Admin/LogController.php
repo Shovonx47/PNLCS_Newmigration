@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\AdminLog;
 use App\Models\Email;
 use App\Models\GatewayLog;
 use App\Models\ModuleLog;
+use App\Models\TicketMailLog;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -102,5 +104,55 @@ class LogController extends Controller
         $logs = $query->orderBy('id', 'desc')->paginate(50);
 
         return view('admin.logs.email', compact('logs'));
+    }
+
+    /**
+     * Admin login & session log.
+     */
+    public function adminLog(Request $request): View
+    {
+        $query = AdminLog::query();
+
+        if ($request->filled('username')) {
+            $query->where('admin_username', 'like', '%'.trim((string) $request->input('username')).'%');
+        }
+        if ($request->filled('ip')) {
+            $query->where('ip_address', 'like', '%'.trim((string) $request->input('ip')).'%');
+        }
+        if ($request->filled('date')) {
+            $query->whereDate('login_time', trim((string) $request->input('date')));
+        }
+
+        $logs = $query->orderBy('id', 'desc')->paginate(50)->withQueryString();
+
+        return view('admin.logs.admin', compact('logs'));
+    }
+
+    /**
+     * Ticket mail import log.
+     */
+    public function ticketMail(Request $request): View
+    {
+        $query = TicketMailLog::query();
+
+        if ($request->filled('status')) {
+            $query->where('status', 'like', '%'.trim((string) $request->input('status')).'%');
+        }
+        if ($request->filled('search')) {
+            $term = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($term) {
+                $q->where('subject', 'like', "%{$term}%")
+                    ->orWhere('email', 'like', "%{$term}%")
+                    ->orWhere('name', 'like', "%{$term}%")
+                    ->orWhere('to', 'like', "%{$term}%");
+            });
+        }
+        if ($request->filled('date')) {
+            $query->whereRaw('DATE(COALESCE(date, created_at)) = ?', [trim((string) $request->input('date'))]);
+        }
+
+        $logs = $query->orderBy('id', 'desc')->paginate(50)->withQueryString();
+
+        return view('admin.logs.ticket-mail', compact('logs'));
     }
 }

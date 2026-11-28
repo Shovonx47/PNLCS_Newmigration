@@ -1,272 +1,261 @@
 @extends('admin.layouts.app')
-@section('title', 'IPTSP Recharge')
+@section('title', 'Multi-Provider Auto Recharge')
 
 @section('content')
+<style>
+    .iptsp-wrap h1.iptsp-page-title {
+        font-size: 26px;
+        font-weight: 400;
+        color: #333;
+        margin: 0 0 18px 0;
+    }
+    .providers-container {
+        background: #fff;
+        border: 1px solid #e6e8ec;
+        border-radius: 6px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        padding: 20px;
+    }
+    .providers-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #eef0f3;
+    }
+    .providers-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 400;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-iptsp-add {
+        background: #3498db;
+        color: #fff !important;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-iptsp-add:hover { background: #2980b9; }
+    .btn-iptsp-pending {
+        background: #f39c12;
+        color: #fff !important;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 6px;
+    }
+    .btn-iptsp-pending:hover { background: #e67e22; }
+    .table-providers {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+    }
+    .table-providers th {
+        text-align: left;
+        padding: 11px 10px;
+        background: #f8f9fa;
+        color: #34495e;
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+        font-size: 13px;
+    }
+    .table-providers td {
+        padding: 11px 10px;
+        border-bottom: 1px solid #f0f2f5;
+        vertical-align: middle;
+    }
+    .table-providers tr:hover td { background: #fafbfc; }
+    .provider-logo-sm {
+        height: 28px;
+        width: 28px;
+        object-fit: contain;
+        border-radius: 4px;
+        background: #f8f9fa;
+        padding: 2px;
+        border: 1px solid #e5e7eb;
+    }
+    .provider-logo-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 28px;
+        width: 28px;
+        border-radius: 4px;
+        background: #f3f6f9;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        font-size: 13px;
+    }
+    .iptsp-type-pill {
+        display: inline-block;
+        padding: 2px 7px;
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 3px;
+        color: #fff;
+        background: #5bc0de;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .iptsp-status-badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .iptsp-status-active { background: #e8f5e9; color: #2e7d32; }
+    .iptsp-status-inactive { background: #fbe9e7; color: #c62828; }
+    .log-stat-badge {
+        display: block;
+        padding: 3px 9px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 3px;
+        white-space: nowrap;
+    }
+    .log-stat-badge:last-child { margin-bottom: 0; }
+    .stat-pending-badge { background: #fff3cd; color: #856404; }
+    .stat-success-badge { background: #d4edda; color: #155724; }
+    .stat-failed-badge { background: #f8d7da; color: #721c24; }
+    .iptsp-action-btns { white-space: nowrap; }
+    .iptsp-action-btns a {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-right: 5px;
+        padding: 5px 11px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #fff !important;
+        text-decoration: none !important;
+    }
+    .iptsp-action-btns a:hover { opacity: 0.88; }
+    .btn-iptsp-edit { background: #3498db; }
+    .btn-iptsp-history { background: #2ecc71; padding: 6px 10px !important; }
+    .iptsp-empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #95a5a6;
+    }
+</style>
 
-<div class="page-header">
-    <h1>IPTSP Recharge</h1>
-</div>
+<div class="iptsp-wrap">
+    <h1 class="iptsp-page-title">Multi-Provider Auto Recharge</h1>
 
-<p style="color:#666;font-size:13px;margin-bottom:15px;">
-    Multi-provider IP number top-ups. Credentials are encrypted at rest and never shown back.
-    A paid top-up invoice runs the recharge automatically when a matching PIN account exists.
-</p>
+    <div class="providers-container">
+        <div class="providers-header">
+            <h2><i class="fas fa-cubes" style="color:#3498db;"></i> Recharge Providers</h2>
+            <div>
+                <a href="{{ route('admin.extensions.iptsp-recharge.index', ['action' => 'add']) }}" class="btn-iptsp-add">
+                    <i class="fas fa-plus"></i> Add New
+                </a>
+                <a href="{{ route('admin.extensions.iptsp-recharge.index', ['action' => 'pending']) }}" class="btn-iptsp-pending">
+                    <i class="far fa-clock"></i> Manage Pending
+                </a>
+            </div>
+        </div>
 
-{{-- Providers --}}
-<div class="card" style="margin-bottom:15px;">
-    <div class="card-header"><strong>Providers</strong></div>
-    <div class="card-body">
         @if($providers->isEmpty())
-        <div style="color:#999;font-size:13px;margin-bottom:12px;">No providers yet.</div>
+            <div class="iptsp-empty-state">
+                <i class="fas fa-inbox" style="font-size:38px;margin-bottom:10px;display:block;"></i>
+                <p style="margin:0;">No providers configured yet. Click "Add New" to get started.</p>
+            </div>
         @else
-        <table class="data-table" style="margin-bottom:16px;">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Driver</th>
-                    <th>Base URL</th>
-                    <th>Username</th>
-                    <th>Secret</th>
-                    <th>Status</th>
-                    <th style="text-align:right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($providers as $provider)
-                <tr>
-                    <td>{{ $provider->name }}</td>
-                    <td>{{ $apiTypes[$provider->api_type] ?? $provider->api_type }}</td>
-                    <td style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;word-break:break-all;">{{ $provider->base_url }}{{ $provider->base_path }}</td>
-                    <td>{{ $provider->username }}</td>
-                    <td>{{ $provider->password ? 'stored' : '—' }}</td>
-                    <td><span class="badge {{ $provider->isActive() ? 'badge-active' : 'badge-cancelled' }}">{{ ucfirst($provider->status) }}</span></td>
-                    <td style="text-align:right;white-space:nowrap;">
-                        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.providers.update', $provider) }}" style="display:inline;">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="name" value="{{ $provider->name }}">
-                            <input type="hidden" name="base_url" value="{{ $provider->base_url }}">
-                            <input type="hidden" name="base_path" value="{{ $provider->base_path }}">
-                            <input type="hidden" name="api_type" value="{{ $provider->api_type }}">
-                            <input type="hidden" name="username" value="{{ $provider->username }}">
-                            <input type="hidden" name="status" value="{{ $provider->isActive() ? 'inactive' : 'active' }}">
-                            <button type="submit" class="btn btn-default btn-xs">{{ $provider->isActive() ? 'Disable' : 'Enable' }}</button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.providers.destroy', $provider) }}" style="display:inline;" onsubmit="return pnConfirm(event, @js('Remove this provider? Its PIN accounts are disabled and the log is kept.'))">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-xs">Remove</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-        @endif
+            <div style="overflow-x:auto;">
+                <table class="table-providers">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Logo</th>
+                            <th>Name</th>
+                            <th>Base URL</th>
+                            <th>Type</th>
+                            <th>Username</th>
+                            <th>Status</th>
+                            <th style="min-width:190px;">📊 Stats (Count &amp; Total BDT)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($providers as $provider)
+                            @php
+                                $st = $statsByProvider[$provider->id] ?? [];
+                                $pCnt = (int) ($st['pending']['count'] ?? 0);
+                                $pAmt = (float) ($st['pending']['amount'] ?? 0);
+                                $sCnt = (int) ($st['success']['count'] ?? 0);
+                                $sAmt = (float) ($st['success']['amount'] ?? 0);
+                                $fCnt = (int) ($st['failed']['count'] ?? 0);
+                                $fAmt = (float) ($st['failed']['amount'] ?? 0);
 
-        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.providers.store') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;">
-            @csrf
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Name</label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. CODE 09644" required>
+                                $isScraper = strtolower((string) $provider->integration_type) === 'scraper'
+                                    || strtolower((string) $provider->api_type) === 'italk';
+                                $typeLabel = $isScraper ? 'SCRAPER' : 'REST API';
+                                $displayUrl = rtrim((string) $provider->base_url, '/')
+                                    .(($provider->base_path && $provider->base_path !== '/') && ! $isScraper ? $provider->base_path : '');
+                            @endphp
+                            <tr>
+                                <td>{{ $provider->id }}</td>
+                                <td>
+                                    @if(! empty($provider->logo_url))
+                                        <img src="{{ asset($provider->logo_url) }}" alt="{{ $provider->name }}" class="provider-logo-sm">
+                                    @else
+                                        <span class="provider-logo-fallback" title="{{ $provider->name }}">
+                                            <i class="far fa-image"></i>
+                                        </span>
+                                    @endif
+                                </td>
+                                <td><strong>{{ $provider->name }}</strong></td>
+                                <td><span style="font-size:13px;color:#7f8c8d;">{{ $displayUrl }}</span></td>
+                                <td><span class="iptsp-type-pill">{{ $typeLabel }}</span></td>
+                                <td>{{ $provider->username }}</td>
+                                <td>
+                                    <span class="iptsp-status-badge {{ $provider->isActive() ? 'iptsp-status-active' : 'iptsp-status-inactive' }}">
+                                        {{ ucfirst($provider->status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="log-stat-badge stat-pending-badge">&#9203; Pending: {{ $pCnt }} (৳{{ number_format($pAmt, 2) }})</span>
+                                    <span class="log-stat-badge stat-success-badge">&#9989; Success: {{ $sCnt }} (৳{{ number_format($sAmt, 2) }})</span>
+                                    <span class="log-stat-badge stat-failed-badge">&#10060; Failed: {{ $fCnt }} (৳{{ number_format($fAmt, 2) }})</span>
+                                </td>
+                                <td class="iptsp-action-btns">
+                                    <a href="{{ route('admin.extensions.iptsp-recharge.index', ['action' => 'edit', 'id' => $provider->id]) }}"
+                                       class="btn-iptsp-edit">
+                                        <i class="far fa-edit"></i> Edit
+                                    </a>
+                                    <a href="{{ route('admin.extensions.iptsp-recharge.index', ['action' => 'history', 'id' => $provider->id]) }}"
+                                       class="btn-iptsp-history"
+                                       title="History &amp; PINs">
+                                        <i class="fas fa-history"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Base URL (https)</label>
-                <input type="url" name="base_url" class="form-control" placeholder="https://sip.italk.com.bd" required>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Base path</label>
-                <input type="text" name="base_path" class="form-control" placeholder="/iconiptsp/">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Driver</label>
-                <select name="api_type" class="form-control">
-                    @foreach($apiTypes as $key => $label)
-                    <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Username</label>
-                <input type="text" name="username" class="form-control" required>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Password</label>
-                <input type="password" name="password" class="form-control" required autocomplete="new-password">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">API key (optional)</label>
-                <input type="password" name="api_key" class="form-control" autocomplete="new-password">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Status</label>
-                <select name="status" class="form-control">
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm">Add provider</button>
-        </form>
-    </div>
-</div>
-
-{{-- Client PIN accounts --}}
-<div class="card" style="margin-bottom:15px;">
-    <div class="card-header"><strong>Client PIN accounts</strong></div>
-    <div class="card-body">
-        @if($accounts->isEmpty())
-        <div style="color:#999;font-size:13px;margin-bottom:12px;">No client PIN accounts yet.</div>
-        @else
-        <table class="data-table" style="margin-bottom:16px;">
-            <thead>
-                <tr>
-                    <th>Customer</th>
-                    <th>Provider</th>
-                    <th>PIN</th>
-                    <th>Total recharged</th>
-                    <th>Last recharge</th>
-                    <th>Status</th>
-                    <th style="text-align:right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($accounts as $account)
-                <tr>
-                    <td>{{ $account->client ? trim($account->client->first_name.' '.$account->client->last_name) : '#'.$account->client_id }}</td>
-                    <td>{{ $account->provider?->name ?? '—' }}</td>
-                    <td style="font-family:ui-monospace,Menlo,monospace;">{{ $account->pin_number }}</td>
-                    <td>৳{{ number_format((float) $account->total_recharged, 2) }}</td>
-                    <td style="font-size:12px;color:#666;">{{ $account->last_recharge?->format('d M Y, H:i') ?? 'never' }}</td>
-                    <td><span class="badge {{ $account->status === 'active' ? 'badge-active' : 'badge-cancelled' }}">{{ ucfirst($account->status) }}</span></td>
-                    <td style="text-align:right;">
-                        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.accounts.destroy', $account) }}" style="display:inline;" onsubmit="return pnConfirm(event, @js('Remove this client PIN account?'))">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-xs">Remove</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-        @endif
-
-        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.accounts.store') }}" style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:10px;align-items:end;">
-            @csrf
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Customer</label>
-                <select name="client_id" class="form-control" required>
-                    <option value="">Select a customer…</option>
-                    @foreach($clients as $client)
-                    <option value="{{ $client->id }}">{{ trim($client->first_name.' '.$client->last_name) }}{{ $client->company_name ? ' ('.$client->company_name.')' : '' }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Provider</label>
-                <select name="provider_id" class="form-control" required>
-                    @foreach($providers as $provider)
-                    <option value="{{ $provider->id }}">{{ $provider->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">PIN / IP number</label>
-                <input type="text" name="pin_number" class="form-control" placeholder="096XXXXXXXX" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm">Save PIN</button>
-        </form>
-    </div>
-</div>
-
-{{-- Manual top-up --}}
-<div class="card" style="margin-bottom:15px;">
-    <div class="card-header"><strong>Manual top-up</strong></div>
-    <div class="card-body">
-        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.recharge') }}" style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:10px;align-items:end;">
-            @csrf
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Customer</label>
-                <select name="client_id" class="form-control" required>
-                    <option value="">Select a customer…</option>
-                    @foreach($clients as $client)
-                    <option value="{{ $client->id }}">{{ trim($client->first_name.' '.$client->last_name) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Provider</label>
-                <select name="provider_id" class="form-control" required>
-                    @foreach($providers as $provider)
-                    <option value="{{ $provider->id }}">{{ $provider->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">PIN / IP number</label>
-                <input type="text" name="pin_number" class="form-control" required>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:12px;font-weight:600;">Amount (BDT)</label>
-                <input type="number" name="amount" step="0.01" min="1" max="{{ (int) $maxAmount }}" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm" onclick="return pnConfirm(event, @js('Send this top-up to the provider now?'))">Recharge</button>
-        </form>
-        <p style="font-size:12px;color:#666;margin:8px 0 0;">A single top-up is capped at ৳{{ number_format($maxAmount, 2) }}. Every attempt is written to the log below before the provider is called.</p>
-    </div>
-</div>
-
-{{-- Audit log --}}
-<div class="card">
-    <div class="card-header"><strong>Recharge log</strong></div>
-    <div class="card-body">
-        @if($logs->isEmpty())
-        <div style="color:#999;font-size:13px;">No recharge attempts yet.</div>
-        @else
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Customer</th>
-                    <th>Provider</th>
-                    <th>PIN</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Attempts</th>
-                    <th>Last attempt</th>
-                    <th style="text-align:right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($logs as $log)
-                <tr>
-                    <td>{{ $log->id }}</td>
-                    <td>{{ $log->client ? trim($log->client->first_name.' '.$log->client->last_name) : '#'.$log->client_id }}</td>
-                    <td>{{ $log->provider?->name ?? '—' }}</td>
-                    <td style="font-family:ui-monospace,Menlo,monospace;">{{ $log->pin_number ?? '—' }}</td>
-                    <td>৳{{ number_format((float) $log->amount, 2) }}</td>
-                    <td>
-                        <span class="badge {{ $log->status === 'success' ? 'badge-active' : ($log->status === 'failed' ? 'badge-cancelled' : 'badge-pending') }}">{{ ucfirst($log->status) }}</span>
-                        @if($log->api_response)
-                        <div style="font-size:11px;color:#666;max-width:320px;word-break:break-word;">{{ \Illuminate\Support\Str::limit($log->api_response, 160) }}</div>
-                        @endif
-                    </td>
-                    <td>{{ $log->attempts }}</td>
-                    <td style="font-size:12px;color:#666;">{{ $log->last_attempt_at?->format('d M Y, H:i') ?? '—' }}</td>
-                    <td style="text-align:right;">
-                        @if($log->status !== 'success')
-                        <form method="POST" action="{{ route('admin.extensions.iptsp-recharge.logs.retry', $log) }}" style="display:inline;">
-                            @csrf
-                            <button type="submit" class="btn btn-default btn-xs">Retry</button>
-                        </form>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
         @endif
     </div>
 </div>
-
 @endsection

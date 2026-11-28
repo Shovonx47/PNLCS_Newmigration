@@ -117,18 +117,18 @@ class BulkActionController extends Controller
     }
 
     /**
-     * Run one action across the selected invoices: mark paid, cancel, email
-     * or send a payment reminder.
+     * Run one action across the selected invoices: mark paid, unpaid, cancel,
+     * duplicate, email, remind, or delete.
      */
     public function bulkInvoiceAction(Request $request, InvoiceService $invoiceService)
     {
         $validated = $request->validate([
             'invoice_ids' => 'required|array|min:1',
             'invoice_ids.*' => 'exists:invoices,id',
-            'action' => 'required|in:paid,cancel,send,remind',
+            'action' => 'required|in:paid,unpaid,cancel,duplicate,send,remind,delete',
         ]);
 
-        $invoices = Invoice::with('client')->whereIn('id', $validated['invoice_ids'])->get();
+        $invoices = Invoice::with(['client', 'items'])->whereIn('id', $validated['invoice_ids'])->get();
         $action = $validated['action'];
         $processed = 0;
 
@@ -146,9 +146,12 @@ class BulkActionController extends Controller
         try {
             return match ($action) {
                 'paid' => $this->bulkPaid($invoice),
+                'unpaid' => $this->bulkUnpaid($invoice, $invoiceService),
                 'cancel' => $this->bulkCancel($invoice, $invoiceService),
+                'duplicate' => $this->bulkDuplicate($invoice, $invoiceService),
                 'send' => $this->bulkSend($invoice),
                 'remind' => $this->bulkRemind($invoice),
+                'delete' => $this->bulkDelete($invoice, $invoiceService),
                 default => false,
             };
         } catch (\Throwable $e) {
@@ -169,6 +172,17 @@ class BulkActionController extends Controller
         return true;
     }
 
+    private function bulkUnpaid(Invoice $invoice, InvoiceService $invoiceService): bool
+    {
+        if (strtolower((string) $invoice->status) === 'unpaid') {
+            return false;
+        }
+
+        $invoiceService->markUnpaid($invoice);
+
+        return true;
+    }
+
     private function bulkCancel(Invoice $invoice, InvoiceService $invoiceService): bool
     {
         if (strtolower((string) $invoice->status) === 'paid') {
@@ -176,6 +190,13 @@ class BulkActionController extends Controller
         }
 
         $invoiceService->cancelInvoice($invoice);
+
+        return true;
+    }
+
+    private function bulkDuplicate(Invoice $invoice, InvoiceService $invoiceService): bool
+    {
+        $invoiceService->duplicateInvoice($invoice);
 
         return true;
     }
@@ -202,6 +223,23 @@ class BulkActionController extends Controller
             : 0;
 
         Mail::to($invoice->client->billingEmail())->queue(new PaymentReminderMail($invoice, $daysOffset));
+
+        return true;
+    }
+
+    private function bulkDelete(Invoice $invoice, InvoiceService $invoiceService): bool
+    {
+        $num = $invoice->invoice_num ?? $invoice->id;
+        $clientId = $invoice->client_id;
+        $id = $invoice->id;
+        $invoiceService->deleteInvoice($invoice);
+
+        \App\Models\ActivityLog::log(
+            "Invoice #{$num} deleted",
+            auth('admin')->user()?->full_name ?? 'Admin',
+            $clientId,
+            $id
+        );
 
         return true;
     }

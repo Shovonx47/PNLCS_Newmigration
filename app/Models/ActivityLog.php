@@ -16,6 +16,11 @@ class ActivityLog extends Model
         return ['date' => 'datetime'];
     }
 
+    public function client()
+    {
+        return $this->belongsTo(Client::class, 'client_id');
+    }
+
     public static function log(string $description, ?string $user = null, ?int $clientId = null, ?int $invoiceId = null): void
     {
         static::create([

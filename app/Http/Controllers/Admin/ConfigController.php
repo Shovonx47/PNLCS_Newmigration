@@ -1486,15 +1486,245 @@ class ConfigController extends Controller
 
     // ===== TRANSACTIONS =====
 
-    public function transactions()
+    public function transactions(Request $request)
     {
-        return view('admin.config.transactions', [
-            'transactions' => Transaction::with('client')->orderBy('id', 'desc')->paginate(25),
-            // Credit staff added or took by hand (#307), with the reason and who did it. Kept out of the
-            // transactions above: no money moved, so it is not income.
-            'adjustments' => Credit::with(['client', 'admin'])->whereNotNull('admin_id')
-                ->orderBy('id', 'desc')->paginate(25, ['*'], 'adjustments_page'),
+        $hasSearchFields = collect($request->only([
+            'client', 'gateway', 'description', 'transaction_id', 'amount', 'date_from', 'date_to',
+        ]))->contains(fn ($v) => trim((string) $v) !== '');
+
+        $within = (string) $request->input('within', $hasSearchFields ? 'all' : '30');
+
+        $query = Transaction::query()->with(['client.group', 'invoice']);
+
+        if ($within !== 'all') {
+            if ($within === '7') {
+                $query->whereDate('date', '>=', now()->subDays(7)->toDateString());
+            } elseif ($within === 'month') {
+                $query->whereDate('date', '>=', now()->startOfMonth()->toDateString());
+            } elseif ($within === '365') {
+                $query->whereDate('date', '>=', now()->subDays(365)->toDateString());
+            } else {
+                $within = '30';
+                $query->whereDate('date', '>=', now()->subDays(30)->toDateString());
+            }
+        }
+
+        if ($request->filled('client')) {
+            $term = trim((string) $request->input('client'));
+            $query->whereHas('client', function ($c) use ($term) {
+                $c->where('first_name', 'like', "%{$term}%")
+                    ->orWhere('last_name', 'like', "%{$term}%")
+                    ->orWhere('company_name', 'like', "%{$term}%")
+                    ->orWhere('email', 'like', "%{$term}%");
+            });
+        }
+
+        if ($request->filled('gateway')) {
+            $query->where('gateway', trim((string) $request->input('gateway')));
+        }
+
+        if ($request->filled('description')) {
+            $desc = trim((string) $request->input('description'));
+            $query->where(function ($q) use ($desc) {
+                $q->where('description', 'like', "%{$desc}%")
+                    ->orWhereHas('invoice', fn ($iq) => $iq->where('invoice_num', 'like', "%{$desc}%"));
+            });
+        }
+
+        if ($request->filled('transaction_id')) {
+            $query->where('transaction_id', 'like', '%'.trim((string) $request->input('transaction_id')).'%');
+        }
+
+        if ($request->filled('amount') && is_numeric($request->input('amount'))) {
+            $amt = (float) $request->input('amount');
+            $query->where(function ($q) use ($amt) {
+                $q->where('amount_in', $amt)
+                    ->orWhere('amount_out', $amt)
+                    ->orWhere('fees', $amt);
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', trim((string) $request->input('date_from')));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', trim((string) $request->input('date_to')));
+        }
+
+        $transactions = $query->orderByDesc('date')->orderByDesc('id')->paginate(50)->withQueryString();
+
+        // Credit staff added or took by hand (#307), with the reason and who did it. Kept out of the
+        // transactions above: no money moved, so it is not income.
+        $adjustments = Credit::with(['client', 'admin'])->whereNotNull('admin_id')
+            ->orderBy('id', 'desc')->paginate(25, ['*'], 'adjustments_page')->withQueryString();
+
+        // 30-day revenue series (daily points over last 30 days ending today) & prior 30-day comparison
+        $endDate = now()->startOfDay();
+        $startDate = $endDate->copy()->subDays(29);
+        $prevStart = $endDate->copy()->subDays(59);
+        $prevEnd = $endDate->copy()->subDays(30);
+
+        $dailyRows = Transaction::revenue()
+            ->whereDate('date', '>=', $startDate->toDateString())
+            ->whereDate('date', '<=', $endDate->toDateString())
+            ->selectRaw('DATE(date) as tx_day, SUM(amount_in - fees - amount_out) as net_rev, SUM(amount_in) as total_in, SUM(fees) as total_fees, SUM(amount_out) as total_out')
+            ->groupBy('tx_day')
+            ->get()
+            ->keyBy('tx_day');
+
+        $prevTotals = Transaction::revenue()
+            ->whereDate('date', '>=', $prevStart->toDateString())
+            ->whereDate('date', '<=', $prevEnd->toDateString())
+            ->selectRaw('COALESCE(SUM(amount_in), 0) as total_in, COALESCE(SUM(fees), 0) as total_fees, COALESCE(SUM(amount_out), 0) as total_out')
+            ->first();
+
+        $chartPoints = [];
+        $income30 = 0.0;
+        $fees30 = 0.0;
+        $out30 = 0.0;
+
+        for ($i = 0; $i < 30; $i++) {
+            $dayStr = $startDate->copy()->addDays($i)->toDateString();
+            $row = $dailyRows->get($dayStr);
+            $net = (float) ($row->net_rev ?? 0);
+            $chartPoints[] = ['date' => $dayStr, 'value' => max(0.0, $net)];
+            $income30 += (float) ($row->total_in ?? 0);
+            $fees30 += (float) ($row->total_fees ?? 0);
+            $out30 += (float) ($row->total_out ?? 0);
+        }
+
+        $calcPct = function (float $curr, float $prev): array {
+            if ($prev <= 0.0) {
+                return ['pct' => $curr > 0 ? 100 : 0, 'up' => true];
+            }
+            $raw = round((($curr - $prev) / abs($prev)) * 100);
+
+            return ['pct' => abs((int) $raw), 'up' => $raw >= 0];
+        };
+
+        $kpiStats = [
+            'income' => ['value' => $income30] + $calcPct($income30, (float) ($prevTotals->total_in ?? 0)),
+            'fees' => ['value' => $fees30] + $calcPct($fees30, (float) ($prevTotals->total_fees ?? 0)),
+            'expenditure' => ['value' => $out30] + $calcPct($out30, (float) ($prevTotals->total_out ?? 0)),
+        ];
+
+        $gateways = [];
+        foreach (app(\App\Services\Module\ModuleRegistry::class)->usableGateways() as $gw) {
+            $gateways[$gw] = payment_method_label((string) $gw);
+        }
+        foreach (Transaction::whereNotNull('gateway')->where('gateway', '!=', '')->distinct()->pluck('gateway') as $gw) {
+            $gw = trim((string) $gw);
+            if ($gw !== '' && ! isset($gateways[$gw])) {
+                $gateways[$gw] = payment_method_label($gw);
+            }
+        }
+        asort($gateways);
+
+        $clients = Client::orderBy('first_name')->limit(500)->get(['id', 'first_name', 'last_name', 'email']);
+        $defaultCurrencyCode = strtoupper((string) (Currency::getDefault()?->code ?? 'USD'));
+        $hasActiveFilters = $hasSearchFields || $request->has('within');
+
+        return view('admin.config.transactions', compact(
+            'transactions',
+            'adjustments',
+            'chartPoints',
+            'kpiStats',
+            'gateways',
+            'clients',
+            'defaultCurrencyCode',
+            'within',
+            'hasActiveFilters'
+        ));
+    }
+
+    public function storeTransaction(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'nullable|integer|exists:clients,id',
+            'date' => 'required|date',
+            'gateway' => 'nullable|string|max:100',
+            'description' => 'required|string|max:255',
+            'transaction_id' => 'nullable|string|max:255',
+            'invoice_id' => 'nullable|integer|exists:invoices,id',
+            'amount_in' => 'nullable|numeric|min:0',
+            'fees' => 'nullable|numeric|min:0',
+            'amount_out' => 'nullable|numeric|min:0',
         ]);
+
+        $tx = Transaction::create([
+            'client_id' => $validated['client_id'] ?? null,
+            'date' => $validated['date'],
+            'gateway' => $validated['gateway'] ?? null,
+            'description' => $validated['description'],
+            'transaction_id' => $validated['transaction_id'] ?? null,
+            'invoice_id' => $validated['invoice_id'] ?? null,
+            'amount_in' => (float) ($validated['amount_in'] ?? 0),
+            'fees' => (float) ($validated['fees'] ?? 0),
+            'amount_out' => (float) ($validated['amount_out'] ?? 0),
+        ]);
+
+        ActivityLog::log(
+            "Added transaction #{$tx->id}: {$tx->description}",
+            auth('admin')->user()?->full_name ?? 'Admin',
+            $tx->client_id,
+            $tx->invoice_id
+        );
+
+        return redirect()->route('admin.config.transactions')->with('success', __('admin.messages.transaction_added'));
+    }
+
+    public function updateTransaction(Request $request, Transaction $transaction)
+    {
+        $validated = $request->validate([
+            'client_id' => 'nullable|integer|exists:clients,id',
+            'date' => 'required|date',
+            'gateway' => 'nullable|string|max:100',
+            'description' => 'required|string|max:255',
+            'transaction_id' => 'nullable|string|max:255',
+            'invoice_id' => 'nullable|integer|exists:invoices,id',
+            'amount_in' => 'nullable|numeric|min:0',
+            'fees' => 'nullable|numeric|min:0',
+            'amount_out' => 'nullable|numeric|min:0',
+        ]);
+
+        $transaction->update([
+            'client_id' => $validated['client_id'] ?? null,
+            'date' => $validated['date'],
+            'gateway' => $validated['gateway'] ?? null,
+            'description' => $validated['description'],
+            'transaction_id' => $validated['transaction_id'] ?? null,
+            'invoice_id' => $validated['invoice_id'] ?? null,
+            'amount_in' => (float) ($validated['amount_in'] ?? 0),
+            'fees' => (float) ($validated['fees'] ?? 0),
+            'amount_out' => (float) ($validated['amount_out'] ?? 0),
+        ]);
+
+        ActivityLog::log(
+            "Updated transaction #{$transaction->id}",
+            auth('admin')->user()?->full_name ?? 'Admin',
+            $transaction->client_id,
+            $transaction->invoice_id
+        );
+
+        return redirect()->route('admin.config.transactions')->with('success', __('admin.messages.transaction_updated'));
+    }
+
+    public function destroyTransaction(Transaction $transaction)
+    {
+        $id = $transaction->id;
+        $clientId = $transaction->client_id;
+        $invoiceId = $transaction->invoice_id;
+        $transaction->delete();
+
+        ActivityLog::log(
+            "Deleted transaction #{$id}",
+            auth('admin')->user()?->full_name ?? 'Admin',
+            $clientId,
+            $invoiceId
+        );
+
+        return redirect()->route('admin.config.transactions')->with('success', __('admin.messages.transaction_deleted'));
     }
 
     // ===== TODO =====
@@ -1523,11 +1753,67 @@ class ConfigController extends Controller
 
     // ===== ACTIVITY LOG =====
 
-    public function activityLog()
+    public function activityLog(Request $request)
     {
-        return view('admin.config.activity-log', [
-            'logs' => ActivityLog::orderBy('id', 'desc')->paginate(50),
-        ]);
+        $query = ActivityLog::with('client');
+
+        if ($request->filled('date')) {
+            $rawDate = trim((string) $request->input('date'));
+            $parsed = null;
+            foreach (['Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y'] as $fmt) {
+                try {
+                    $parsed = \Carbon\Carbon::createFromFormat($fmt, $rawDate)->toDateString();
+                    break;
+                } catch (\Throwable) {
+                }
+            }
+            if (! $parsed) {
+                try {
+                    $parsed = \Carbon\Carbon::parse($rawDate)->toDateString();
+                } catch (\Throwable) {
+                }
+            }
+            if ($parsed) {
+                $query->whereRaw('DATE(COALESCE(date, created_at)) = ?', [$parsed]);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where('description', 'like', "%{$search}%");
+        }
+
+        if ($request->filled('user')) {
+            $userFilter = trim((string) $request->input('user'));
+            if (strtolower($userFilter) === 'system/automated') {
+                $query->where(function ($q) {
+                    $q->whereNull('user')
+                        ->orWhere('user', '')
+                        ->orWhereIn('user', ['System', 'System/Automated', 'system']);
+                });
+            } else {
+                $query->where('user', 'like', "%{$userFilter}%");
+            }
+        }
+
+        if ($request->filled('ip')) {
+            $ip = trim((string) $request->input('ip'));
+            $query->where('ip_address', 'like', "%{$ip}%");
+        }
+
+        $logs = $query->orderBy('id', 'desc')->paginate(50)->withQueryString();
+
+        $users = ActivityLog::query()
+            ->whereNotNull('user')
+            ->where('user', '!=', '')
+            ->distinct()
+            ->orderBy('user')
+            ->pluck('user');
+
+        $hasActiveFilters = collect($request->only(['date', 'search', 'user', 'ip']))
+            ->contains(fn ($v) => trim((string) $v) !== '');
+
+        return view('admin.config.activity-log', compact('logs', 'users', 'hasActiveFilters'));
     }
 
     // ===== SYSTEM =====

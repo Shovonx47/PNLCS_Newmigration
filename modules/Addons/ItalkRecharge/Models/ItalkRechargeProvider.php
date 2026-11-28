@@ -15,7 +15,7 @@ class ItalkRechargeProvider extends Model
 
     protected $fillable = [
         'name', 'base_url', 'base_path', 'integration_type', 'api_type',
-        'username', 'password', 'api_key', 'status', 'sort_order',
+        'username', 'password', 'api_key', 'logo_url', 'status', 'sort_order',
     ];
 
     protected $hidden = ['password', 'api_key'];

@@ -22,8 +22,11 @@ use App\Services\InvoiceService;
 use App\Services\Module\ModuleRegistry;
 use App\Services\PaymentService;
 use App\Support\AutoCharge;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -42,10 +45,16 @@ class InvoiceController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Invoice::with('client')->excludeSettledProformas();
+        $query = Invoice::query()
+            ->with(['client.group', 'client.currency', 'chargeAttempt'])
+            ->select('invoices.*')
+            ->excludeSettledProformas();
 
         // The list opens on the Unpaid view (which includes overdue invoices).
-        $status = (string) $request->input('status', 'unpaid');
+        $rawStatus = trim((string) $request->input('status', 'unpaid'));
+        $status = strtolower(str_replace(' ', '-', $rawStatus));
+        $activeStatus = $status === '' ? 'all' : $status;
+        $todayDate = now()->toDateString();
 
         // "All" is asked for by name. An empty status cannot carry it: the
         // URL generator leaves it out, so a link to it opened on Unpaid.
@@ -54,12 +63,20 @@ class InvoiceController extends Controller
         }
 
         if ($status === 'unpaid') {
-            $query->whereIn('status', ['unpaid', 'overdue']);
+            $query->whereIn(DB::raw('LOWER(invoices.status)'), ['unpaid', 'overdue']);
+        } elseif ($status === 'overdue') {
+            $query->where(function ($q) use ($todayDate) {
+                $q->whereRaw('LOWER(invoices.status) = ?', ['overdue'])
+                    ->orWhere(function ($sq) use ($todayDate) {
+                        $sq->whereRaw('LOWER(invoices.status) = ?', ['unpaid'])
+                            ->whereDate('invoices.due_date', '<', $todayDate);
+                    });
+            });
         } elseif (in_array($status, ['payment-pending', 'payment_pending'], true)) {
             $pendingIds = \App\Models\PaymentNotification::where('status', 'pending')->pluck('invoice_id');
             $query->where(function ($q) use ($pendingIds) {
-                $q->whereIn('status', ['payment_pending', 'payment-pending'])
-                    ->orWhereIn('id', $pendingIds);
+                $q->whereIn(DB::raw('LOWER(invoices.status)'), ['payment_pending', 'payment-pending'])
+                    ->orWhereIn('invoices.id', $pendingIds);
             });
         } elseif ($status === self::CHARGE_REVIEW_FILTER) {
             // Not an invoice status: the invoices whose automatic card payment
@@ -70,21 +87,252 @@ class InvoiceController extends Controller
             // this view.
             $query->whereHas('chargeAttempt', fn ($q) => $q->needsReview());
         } elseif ($status !== '') {
-            $query->where('status', $status);
+            $query->whereRaw('LOWER(invoices.status) = ?', [strtolower($status)]);
         }
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('invoice_num', 'like', "%{$request->search}%")
-                    ->orWhereHas('client', fn ($c) => $c->where('first_name', 'like', "%{$request->search}%")
-                        ->orWhere('last_name', 'like', "%{$request->search}%")
-                    );
+        $invoiceNumFilter = trim((string) $request->input('invoice_num', ''));
+        if ($invoiceNumFilter !== '') {
+            $query->where(function ($q) use ($invoiceNumFilter) {
+                $q->where('invoices.invoice_num', 'like', "%{$invoiceNumFilter}%");
+                if (ctype_digit($invoiceNumFilter)) {
+                    $q->orWhere('invoices.id', (int) $invoiceNumFilter)
+                        ->orWhere('invoices.invoice_num', 'INV-WHMCS-'.$invoiceNumFilter);
+                }
             });
         }
 
-        $invoices = $query->orderBy('created_at', 'desc')->paginate(25);
+        $searchTerm = trim((string) $request->input('search', $request->input('client_name', '')));
+        $searchField = trim((string) $request->input('search_field', ''));
+        if ($searchTerm !== '') {
+            if ($searchField === 'Invoice #') {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('invoices.invoice_num', 'like', "%{$searchTerm}%");
+                    if (ctype_digit($searchTerm)) {
+                        $q->orWhere('invoices.id', (int) $searchTerm)
+                            ->orWhere('invoices.invoice_num', 'INV-WHMCS-'.$searchTerm);
+                    }
+                });
+            } elseif ($searchField === 'Client Name') {
+                $this->applyClientSearch($query, $searchTerm);
+            } else {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('invoices.invoice_num', 'like', "%{$searchTerm}%");
+                    if (ctype_digit($searchTerm)) {
+                        $q->orWhere('invoices.id', (int) $searchTerm);
+                    }
+                    $q->orWhereHas('client', fn ($c) => $this->applyClientTextWhere($c, $searchTerm));
+                });
+            }
+        }
 
-        return view('admin.invoices.index', compact('invoices'));
+        if ($request->filled('payment_method')) {
+            $query->where('invoices.payment_method', $request->input('payment_method'));
+        }
+
+        if ($request->filled('line_item')) {
+            $lineItem = trim((string) $request->input('line_item'));
+            $query->whereHas('items', fn ($q) => $q->where('description', 'like', "%{$lineItem}%"));
+        }
+
+        if (($invDate = $this->parseFilterDate($request->input('invoice_date'))) !== null) {
+            $query->whereDate('invoices.date', $invDate);
+        }
+        if (($dueDate = $this->parseFilterDate($request->input('due_date'))) !== null) {
+            $query->whereDate('invoices.due_date', $dueDate);
+        }
+        if (($paidDate = $this->parseFilterDate($request->input('date_paid'))) !== null) {
+            $query->whereDate('invoices.date_paid', $paidDate);
+        }
+
+        if ($request->filled('total_from') && is_numeric($request->input('total_from'))) {
+            $query->where('invoices.total', '>=', (float) $request->input('total_from'));
+        }
+        if ($request->filled('total_to') && is_numeric($request->input('total_to'))) {
+            $query->where('invoices.total', '<=', (float) $request->input('total_to'));
+        }
+
+        // Allowlisted column sorting (defaults to Due Date descending, matching WHMCS)
+        $sort = strtolower((string) $request->input('sort', 'due_date'));
+        $dir = strtolower((string) $request->input('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        match ($sort) {
+            'id', 'invoice_num' => $query->orderBy('invoices.invoice_num', $dir)->orderBy('invoices.id', $dir),
+            'client_name' => $query->leftJoin('clients as inv_sort_client', 'inv_sort_client.id', '=', 'invoices.client_id')
+                ->orderBy('inv_sort_client.first_name', $dir)
+                ->orderBy('inv_sort_client.last_name', $dir)
+                ->orderBy('invoices.id', 'desc'),
+            'date' => $query->orderBy('invoices.date', $dir)->orderBy('invoices.id', 'desc'),
+            'last_capture' => $query->leftJoin('invoice_charge_attempts as inv_sort_attempt', 'inv_sort_attempt.invoice_id', '=', 'invoices.id')
+                ->orderBy('inv_sort_attempt.updated_at', $dir)
+                ->orderBy('invoices.id', 'desc'),
+            'total' => $query->orderBy('invoices.total', $dir)->orderBy('invoices.id', 'desc'),
+            'payment_method' => $query->orderBy('invoices.payment_method', $dir)->orderBy('invoices.id', 'desc'),
+            'status' => $query->orderBy('invoices.status', $dir)->orderBy('invoices.id', 'desc'),
+            default => $query->orderBy('invoices.due_date', $dir)->orderBy('invoices.id', $dir),
+        };
+
+        $allowedSorts = ['id', 'invoice_num', 'client_name', 'date', 'due_date', 'last_capture', 'total', 'payment_method', 'status'];
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'due_date';
+        }
+
+        $invoices = $query->paginate(50)->withQueryString();
+        $currencyTotals = $this->computeCurrencyTotals();
+        $paymentMethods = $this->availablePaymentMethods();
+
+        $hasActiveFilters = $request->hasAny([
+            'invoice_num', 'search', 'client_name', 'payment_method',
+            'line_item', 'invoice_date', 'due_date', 'date_paid',
+            'total_from', 'total_to',
+        ]) && collect($request->only([
+            'invoice_num', 'search', 'client_name', 'payment_method',
+            'line_item', 'invoice_date', 'due_date', 'date_paid',
+            'total_from', 'total_to',
+        ]))->contains(fn ($v) => trim((string) $v) !== '');
+
+        return view('admin.invoices.index', compact(
+            'invoices',
+            'activeStatus',
+            'currencyTotals',
+            'paymentMethods',
+            'sort',
+            'dir',
+            'hasActiveFilters'
+        ));
+    }
+
+    /**
+     * Format money cleanly in WHMCS invoices table style (comma grouping, suffix).
+     */
+    public static function formatWhmcsMoney(float $amount, ?string $currencyCode = null, bool $roundWhole = false): string
+    {
+        static $currencyCache = [];
+
+        $default = Currency::getDefault();
+        $code = strtoupper(trim((string) ($currencyCode ?: ($default->code ?? 'USD'))));
+
+        if (! array_key_exists($code, $currencyCache)) {
+            $currencyCache[$code] = Currency::where('code', $code)->first() ?? $default;
+        }
+        $currency = $currencyCache[$code];
+
+        if ($code === 'BDT') {
+            $val = $roundWhole ? round($amount) : $amount;
+            $hasDecimals = ! $roundWhole && abs($val - round($val)) >= 0.005;
+
+            return ($hasDecimals ? number_format($val, 2, '.', ',') : number_format($val, 0, '.', ',')).'Tk';
+        }
+
+        $val = $roundWhole ? round($amount) : $amount;
+        if ($currency) {
+            return $currency->formatAmount((float) $val);
+        }
+
+        return number_format((float) $val, 2).' '.$code;
+    }
+
+    private function applyClientSearch($query, string $term): void
+    {
+        $query->whereHas('client', fn ($c) => $this->applyClientTextWhere($c, $term));
+    }
+
+    private function applyClientTextWhere($clientQuery, string $term): void
+    {
+        $clientQuery->where(function ($c) use ($term) {
+            $c->where('first_name', 'like', "%{$term}%")
+                ->orWhere('last_name', 'like', "%{$term}%")
+                ->orWhere('company_name', 'like', "%{$term}%")
+                ->orWhere('email', 'like', "%{$term}%")
+                ->orWhereRaw("CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) LIKE ?", ["%{$term}%"]);
+        });
+    }
+
+    private function parseFilterDate(mixed $raw): ?string
+    {
+        $value = trim((string) $raw);
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y'] as $fmt) {
+            try {
+                return Carbon::createFromFormat($fmt, $value)->toDateString();
+            } catch (\Throwable) {
+            }
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Summarize Paid, Unpaid (not yet past due), and Overdue totals per currency.
+     *
+     * @return list<array{code: string, paid: float, unpaid: float, overdue: float}>
+     */
+    private function computeCurrencyTotals(): array
+    {
+        $defaultCode = strtoupper((string) (Currency::getDefault()?->code ?? 'USD'));
+        $todayDate = now()->toDateString();
+
+        $rows = Invoice::query()
+            ->excludeSettledProformas()
+            ->selectRaw("UPPER(COALESCE(NULLIF(TRIM(source_currency), ''), ?)) as curr_code", [$defaultCode])
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'paid' THEN total ELSE 0 END) as paid_sum")
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'unpaid' AND (due_date IS NULL OR DATE(due_date) >= ?) THEN (CASE WHEN total - credit > 0 THEN total - credit ELSE 0 END) ELSE 0 END) as unpaid_sum", [$todayDate])
+            ->selectRaw("SUM(CASE WHEN LOWER(status) = 'overdue' OR (LOWER(status) = 'unpaid' AND DATE(due_date) < ?) THEN (CASE WHEN total - credit > 0 THEN total - credit ELSE 0 END) ELSE 0 END) as overdue_sum", [$todayDate])
+            ->groupBy('curr_code')
+            ->get();
+
+        $list = $rows->map(fn ($r) => [
+            'code' => (string) $r->curr_code,
+            'paid' => (float) ($r->paid_sum ?? 0),
+            'unpaid' => (float) ($r->unpaid_sum ?? 0),
+            'overdue' => (float) ($r->overdue_sum ?? 0),
+        ])->sortBy(fn ($r) => $r['code'] === $defaultCode ? '0' : '1_'.$r['code'])->values()->all();
+
+        if ($list === []) {
+            $list[] = [
+                'code' => $defaultCode,
+                'paid' => 0.0,
+                'unpaid' => 0.0,
+                'overdue' => 0.0,
+            ];
+        }
+
+        return $list;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function availablePaymentMethods(): array
+    {
+        $methods = [];
+
+        foreach (app(ModuleRegistry::class)->usableGateways() as $gw) {
+            $methods[$gw] = payment_method_label((string) $gw);
+        }
+
+        $used = Invoice::query()
+            ->whereNotNull('payment_method')
+            ->where('payment_method', '!=', '')
+            ->distinct()
+            ->pluck('payment_method');
+
+        foreach ($used as $gw) {
+            $gw = trim((string) $gw);
+            if ($gw !== '' && ! isset($methods[$gw])) {
+                $methods[$gw] = payment_method_label($gw);
+            }
+        }
+
+        asort($methods);
+
+        return $methods;
     }
 
     public function offlineCc(Request $request): View
@@ -714,10 +962,39 @@ class InvoiceController extends Controller
     }
 
     /**
+     * Render a printable HTML view of the invoice for admins ("View" button).
+     */
+    public function preview(Invoice $invoice, InvoicePdfService $pdfService): Response
+    {
+        return response($pdfService->renderHtml($invoice));
+    }
+
+    /**
      * Download invoice as PDF.
      */
     public function downloadPdf(Invoice $invoice, InvoicePdfService $pdfService)
     {
         return $pdfService->download($invoice);
+    }
+
+    /**
+     * Permanently delete an invoice.
+     */
+    public function destroy(Invoice $invoice): RedirectResponse
+    {
+        $num = $invoice->invoice_num ?? $invoice->id;
+        $clientId = $invoice->client_id;
+        $invoiceId = $invoice->id;
+
+        $this->invoiceService->deleteInvoice($invoice);
+
+        ActivityLog::log(
+            "Invoice #{$num} deleted",
+            $this->adminName(),
+            $clientId,
+            $invoiceId
+        );
+
+        return back()->with('success', __('admin.messages.invoice_deleted', ['num' => $num]));
     }
 }

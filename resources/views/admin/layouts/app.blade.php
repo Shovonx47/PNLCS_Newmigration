@@ -672,13 +672,13 @@
                     <i class="fas fa-cube"></i>{{ 'Addons' }}<span class="caret"></span>
                 </a>
                 <ul class="dropdown-menu addons-menu">
-                    <li><a href="{{ url('/admin/addons/bdpbx-accounting') }}" class="addon-hl" style="font-weight:700;color:#0284c7;background:#f0f9ff;"><i class="fas fa-phone-square" style="width:16px;margin-right:6px;"></i>{{ 'BDPBX Multi-Server Daily Accounting' }}</a></li>
-                    <li><a href="{{ url('/admin/addons/softcents-voice') }}" class="addon-hl" style="font-weight:700;color:#059669;background:#f0fdf4;"><i class="fas fa-phone-volume" style="width:16px;margin-right:6px;"></i>{{ 'Softcents Voice SMS Gateway' }}</a></li>
-                    <li><a href="{{ url('/admin/addons/telegram-bot') }}" class="addon-hl" style="font-weight:700;color:#0369a1;background:#e0f2fe;"><i class="fab fa-telegram-plane" style="width:16px;margin-right:6px;"></i>{{ 'Softcents Telegram Notifier (A-Z)' }}</a></li>
+                    <li><a href="{{ url('/admin/extensions/bdpbx-accounting') }}" class="addon-hl" style="font-weight:700;color:#0284c7;background:#f0f9ff;"><i class="fas fa-phone-square" style="width:16px;margin-right:6px;"></i>{{ 'BDPBX Multi-Server Daily Accounting' }}</a></li>
+                    <li><a href="{{ url('/admin/extensions/softcents-voice') }}" class="addon-hl" style="font-weight:700;color:#059669;background:#f0fdf4;"><i class="fas fa-phone-volume" style="width:16px;margin-right:6px;"></i>{{ 'Softcents Voice SMS Gateway' }}</a></li>
+                    <li><a href="{{ url('/admin/extensions/telegram-bot') }}" class="addon-hl" style="font-weight:700;color:#0369a1;background:#e0f2fe;"><i class="fab fa-telegram-plane" style="width:16px;margin-right:6px;"></i>{{ 'Softcents Telegram Notifier (A-Z)' }}</a></li>
                     @if(!empty($addonMenuItems))
                         <li class="divider"></li>
                         @php
-                            $pinnedAddonPaths = ['/admin/addons/bdpbx-accounting', '/admin/addons/softcents-voice', '/admin/addons/telegram-bot'];
+                            $pinnedAddonPaths = ['/admin/extensions/bdpbx-accounting', '/admin/extensions/softcents-voice', '/admin/extensions/telegram-bot'];
                         @endphp
                         @foreach($addonMenuItems as $item)
                             @php
@@ -1013,16 +1013,19 @@
         </ul>
 
         <div class="sidebar-header"><i class="fas fa-file-invoice"></i> {{ 'Invoices' }}</div>
+        @php
+            $sbInvStatus = $routeName === 'admin.invoices.index' ? strtolower((string) request()->get('status', 'unpaid')) : '';
+        @endphp
         <ul class="menu">
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'all']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'all') class="active" @endif>{{ 'List All Invoices' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'paid']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'paid') class="active" @endif>{{ '- Paid' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'draft']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'draft') class="active" @endif>{{ '- Draft' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'unpaid']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status', 'unpaid') === 'unpaid' && !request()->has('status')) class="active" @elseif($routeName === 'admin.invoices.index' && request()->get('status') === 'unpaid') class="active" @endif>{{ '- Unpaid' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'overdue']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'overdue') class="active" @endif>{{ '- Overdue' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'cancelled']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'cancelled') class="active" @endif>{{ '- Cancelled' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'refunded']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'refunded') class="active" @endif>{{ '- Refunded' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'collections']) }}" @if($routeName === 'admin.invoices.index' && request()->get('status') === 'collections') class="active" @endif>{{ '- Collections' }}</a></li>
-            <li><a href="{{ route('admin.invoices.index', ['status' => 'payment-pending']) }}" @if(($routeName === 'admin.invoices.index' && request()->get('status') === 'payment-pending') || $routeName === 'admin.payment-notifications.index') class="active" @endif>{{ '- Payment Pending' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'all']) }}" @if($sbInvStatus === 'all') class="active" @endif>{{ 'List All Invoices' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'paid']) }}" @if($sbInvStatus === 'paid') class="active" @endif>{{ '- Paid' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'draft']) }}" @if($sbInvStatus === 'draft') class="active" @endif>{{ '- Draft' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'unpaid']) }}" @if($sbInvStatus === 'unpaid') class="active" @endif>{{ '- Unpaid' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'overdue']) }}" @if($sbInvStatus === 'overdue') class="active" @endif>{{ '- Overdue' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'cancelled']) }}" @if($sbInvStatus === 'cancelled') class="active" @endif>{{ '- Cancelled' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'refunded']) }}" @if($sbInvStatus === 'refunded') class="active" @endif>{{ '- Refunded' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'collections']) }}" @if($sbInvStatus === 'collections') class="active" @endif>{{ '- Collections' }}</a></li>
+            <li><a href="{{ route('admin.invoices.index', ['status' => 'payment-pending']) }}" @if(in_array($sbInvStatus, ['payment-pending', 'payment_pending'], true) || $routeName === 'admin.payment-notifications.index') class="active" @endif>{{ '- Payment Pending' }}</a></li>
         </ul>
 
         <div class="sidebar-header"><i class="fas fa-user-clock"></i> {{ 'Billable Items' }}</div>
@@ -1102,6 +1105,23 @@
             <li><a href="{{ route('admin.reports.index') }}" class="active">{{ __('admin.sidebar.reports_overview') }}</a></li>
         </ul>
 
+    {{-- ── Logs Sidebar (Exact WHMCS Blend Current Time + Logs structure) ── --}}
+    @elseif($routeName === 'admin.config.activity-log' || $segment === 'logs' || str_starts_with($routeName, 'admin.logs.'))
+        <div class="sidebar-header"><i class="far fa-clock"></i> {{ __('admin.logs.current_time') }}</div>
+        <div style="padding:4px 10px 8px;font-size:12px;color:#333;">
+            {{ now()->timezone(display_tz())->format(datetime_fmt()) }}
+        </div>
+
+        <div class="sidebar-header"><i class="fas fa-file-alt"></i> {{ __('admin.sidebar.logs') }}</div>
+        <ul class="menu">
+            <li><a href="{{ route('admin.config.activity-log') }}" @if(in_array($routeName, ['admin.config.activity-log', 'admin.logs.index'], true)) class="active" @endif>{{ __('admin.logs.activity_log') }}</a></li>
+            <li><a href="{{ route('admin.logs.admin') }}" @if($routeName === 'admin.logs.admin') class="active" @endif>{{ __('admin.logs.admin_log') }}</a></li>
+            <li><a href="{{ route('admin.logs.module') }}" @if($routeName === 'admin.logs.module') class="active" @endif>{{ __('admin.logs.module_log') }}</a></li>
+            <li><a href="{{ route('admin.logs.email') }}" @if($routeName === 'admin.logs.email') class="active" @endif>{{ __('admin.logs.email_message_log') }}</a></li>
+            <li><a href="{{ route('admin.logs.ticket-mail') }}" @if($routeName === 'admin.logs.ticket-mail') class="active" @endif>{{ __('admin.logs.ticket_mail_import_log') }}</a></li>
+            <li><a href="{{ route('admin.logs.whois') }}" @if($routeName === 'admin.logs.whois') class="active" @endif>{{ __('admin.logs.whois_lookup_log') }}</a></li>
+        </ul>
+
     {{-- ── Config / Setup Sidebar (Exact WHMCS Blend 6-section structure) ── --}}
     @elseif($segment === 'config' || $segment === 'settings' || $segment === 'products')
         <div class="sidebar-header"><i class="fas fa-wrench"></i> {{ 'Configuration' }}</div>
@@ -1166,17 +1186,44 @@
             <li><a href="{{ route('admin.config.database-backups') }}" @if(str_starts_with($routeName, 'admin.config.database-backups')) class="active" @endif>{{ 'Database Backups' }}</a></li>
         </ul>
 
-    {{-- ── Logs Sidebar ── --}}
-    @elseif($segment === 'logs')
-        <div class="sidebar-header"><i class="fas fa-file-signature"></i> {{ __('admin.sidebar.logs') }}</div>
+    {{-- ── Addons / Extensions Sidebar (Exact WHMCS Blend Addons list) ── --}}
+    @elseif($segment === 'addons' || $segment === 'extensions')
+        <div class="sidebar-header"><i class="fas fa-cube"></i> {{ 'Addons' }}</div>
         <ul class="menu">
-            <li><a href="{{ route('admin.logs.index') }}" @if($routeName === 'admin.logs.index') class="active" @endif>{{ __('admin.nav.system_logs') }}</a></li>
-            <li><a href="{{ route('admin.logs.gateway') }}" @if($routeName === 'admin.logs.gateway') class="active" @endif>{{ __('admin.sidebar.gateway_logs') }}</a></li>
-            <li><a href="{{ route('admin.logs.module') }}" @if($routeName === 'admin.logs.module') class="active" @endif>{{ __('admin.sidebar.module_logs') }}</a></li>
-            <li><a href="{{ route('admin.logs.email') }}" @if($routeName === 'admin.logs.email') class="active" @endif>{{ __('admin.sidebar.email_logs') }}</a></li>
+            <li><a href="{{ url('/admin/extensions/bdpbx-accounting') }}" @if(request()->is('admin/extensions/bdpbx-accounting*')) class="active" @endif>{{ 'BDPBX Daily Accounting' }}</a></li>
+            <li><a href="{{ url('/admin/extensions/softcents-voice') }}" @if(request()->is('admin/extensions/softcents-voice*')) class="active" @endif>{{ 'Softcents Voice SMS Gateway' }}</a></li>
+            <li><a href="{{ url('/admin/extensions/telegram-bot') }}" @if(request()->is('admin/extensions/telegram-bot*')) class="active" @endif>{{ 'Softcents Telegram Bot (A-Z)' }}</a></li>
+            @php
+                $pinnedAddonPathsSidebar = ['/admin/extensions/bdpbx-accounting', '/admin/extensions/softcents-voice', '/admin/extensions/telegram-bot'];
+                $currentAddonPath = '/'.ltrim(request()->path(), '/');
+            @endphp
+            @foreach($addonMenuItems ?? [] as $item)
+                @php
+                    $itemPath = parse_url($item['url'], PHP_URL_PATH) ?: $item['url'];
+                @endphp
+                @continue(in_array($itemPath, $pinnedAddonPathsSidebar, true))
+                @php
+                    $displayLabel = $item['url'] === '/admin/extensions/iptsp-recharge'
+                        ? 'Multi-Provider Auto Recharge'
+                        : $item['label'];
+                    $isAddonActive = $currentAddonPath === rtrim((string) $itemPath, '/');
+                @endphp
+                <li>
+                    <a href="{{ $item['url'] }}" @if($isAddonActive) class="active" @endif>{{ $displayLabel }}</a>
+                </li>
+                @foreach($item['children'] ?? [] as $child)
+                    @continue($child['url'] === $item['url'])
+                    @php
+                        $childPath = parse_url($child['url'], PHP_URL_PATH) ?: $child['url'];
+                    @endphp
+                    <li>
+                        <a href="{{ $child['url'] }}" @if($currentAddonPath === rtrim((string) $childPath, '/')) class="active" @endif style="padding-left:18px;">- {{ $child['label'] }}</a>
+                    </li>
+                @endforeach
+            @endforeach
         </ul>
 
-    {{-- ── Default Sidebar (fallback for Addons & Misc Pages) ── --}}
+    {{-- ── Default Sidebar (fallback for Misc Pages) ── --}}
     @else
         <div class="sidebar-header"><i class="fas fa-star"></i> {{ __('admin.sidebar.quick_links') }}</div>
         <ul class="menu">

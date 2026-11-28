@@ -567,3 +567,293 @@ h2.ticket-subject {
     margin: 3px 0 2px;
 }
 
+/* ── WHMCS Invoices Summary, Action Buttons & Pagination ── */
+.whmcs-invoice-totals-bar {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 9px 14px;
+    margin: 0 0 14px 0;
+    text-align: center;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: #333;
+}
+.whmcs-invoice-totals-bar .whmcs-curr-block {
+    display: inline-block;
+    margin: 0 10px;
+}
+.whmcs-invoice-totals-bar .whmcs-curr-code {
+    margin-right: 4px;
+    color: #333;
+}
+
+table.datatable th.sortable a {
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+table.datatable th .whmcs-sort-caret {
+    font-size: 9px;
+    opacity: 0.9;
+}
+
+.whmcs-client-group-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-decoration: none;
+    line-height: 1.3;
+}
+.whmcs-client-group-tag:hover {
+    opacity: 0.9;
+    text-decoration: underline;
+}
+
+.whmcs-inv-actions {
+    white-space: nowrap;
+    text-align: center;
+}
+.whmcs-btn-group {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+.whmcs-row-btn {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #333 !important;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    text-decoration: none !important;
+    cursor: pointer;
+    margin-left: -1px;
+}
+.whmcs-row-btn:first-child {
+    margin-left: 0;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+.whmcs-row-btn:last-child {
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+.whmcs-row-btn:hover {
+    background-color: #e6e6e6;
+    border-color: #adadad;
+}
+.whmcs-row-btn-danger {
+    color: #fff !important;
+    background-color: #d9534f;
+    border-color: #d43f3a;
+}
+.whmcs-row-btn-danger:hover {
+    background-color: #c9302c;
+    border-color: #ac2925;
+}
+
+.whmcs-with-selected-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 10px 0 10px;
+    font-size: 12px;
+    color: #333;
+}
+.whmcs-with-selected-bar .btn-sm {
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    border-radius: 3px !important;
+}
+.whmcs-with-selected-bar .btn-default {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    color: #333;
+}
+.whmcs-with-selected-bar .btn-default:hover {
+    background-color: #e6e6e6;
+}
+.whmcs-with-selected-bar .btn-success {
+    background-color: #5cb85c;
+    border-color: #4cae4c;
+    color: #fff;
+}
+.whmcs-with-selected-bar .btn-danger {
+    background-color: #d9534f;
+    border-color: #d43f3a;
+    color: #fff;
+}
+
+.whmcs-pagination-wrap {
+    text-align: center;
+    margin: 10px 0 4px;
+}
+ul.whmcs-pagination {
+    display: inline-flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 3px;
+}
+ul.whmcs-pagination > li > a,
+ul.whmcs-pagination > li > span {
+    display: inline-block;
+    padding: 5px 10px;
+    margin-left: -1px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #337ab7;
+    text-decoration: none;
+    background-color: #fff;
+    border: 1px solid #ddd;
+}
+ul.whmcs-pagination > li:first-child > a,
+ul.whmcs-pagination > li:first-child > span {
+    margin-left: 0;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+ul.whmcs-pagination > li:last-child > a,
+ul.whmcs-pagination > li:last-child > span {
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+ul.whmcs-pagination > li > a:hover {
+    background-color: #eee;
+    border-color: #ddd;
+    color: #23527c;
+}
+ul.whmcs-pagination > li.active > span {
+    background-color: #1A4D80;
+    border-color: #1A4D80;
+    color: #fff;
+    font-weight: 700;
+}
+ul.whmcs-pagination > li.disabled > span {
+    color: #999;
+    background-color: #fff;
+    cursor: default;
+}
+
+/* ── WHMCS Transactions Revenue Chart, KPIs, Action Icons & Split Pager ── */
+.whmcs-tx-overview {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    margin: 12px 0 14px;
+}
+.whmcs-tx-chart-box {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    padding: 10px 14px 8px;
+    display: flex;
+    align-items: center;
+}
+.whmcs-tx-kpis {
+    width: 265px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+}
+.whmcs-tx-kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #fff;
+    padding: 4px 6px;
+}
+.whmcs-tx-kpi-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 4px;
+    background-color: #6b6b6b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+.whmcs-tx-kpi-label {
+    font-size: 12px;
+    color: #777;
+    line-height: 1.25;
+}
+.whmcs-tx-kpi-value {
+    font-size: 21px;
+    font-weight: 400;
+    color: #333;
+    line-height: 1.2;
+    margin: 2px 0;
+}
+.whmcs-tx-kpi-delta {
+    font-size: 11px;
+    font-weight: 600;
+}
+.whmcs-tx-kpi-delta.up {
+    color: #5b8c2a;
+}
+.whmcs-tx-kpi-delta.down {
+    color: #cc0000;
+}
+@media (max-width: 960px) {
+    .whmcs-tx-overview { flex-direction: column; }
+    .whmcs-tx-kpis { width: 100%; flex-direction: row; flex-wrap: wrap; }
+    .whmcs-tx-kpi-card { flex: 1 1 200px; }
+}
+
+.whmcs-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    font-size: 14px;
+    vertical-align: middle;
+}
+.whmcs-icon-btn.edit { color: #3b6ea5; }
+.whmcs-icon-btn.edit:hover { color: #1A4D80; }
+.whmcs-icon-btn.del { color: #d9534f; }
+.whmcs-icon-btn.del:hover { color: #a92b27; }
+
+.whmcs-tx-split-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px 0 8px;
+}
+.whmcs-tx-split-pager a,
+.whmcs-tx-split-pager span {
+    display: inline-block;
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #337ab7;
+    text-decoration: none;
+}
+.whmcs-tx-split-pager a:hover {
+    background: #eee;
+}
+.whmcs-tx-split-pager span.disabled {
+    color: #999;
+    cursor: default;
+}
+
+
+

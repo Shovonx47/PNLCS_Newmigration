@@ -9,12 +9,17 @@ use App\Events\InvoicePaid;
 use App\Models\Client;
 use App\Models\Credit;
 use App\Models\Invoice;
+use App\Models\InvoiceChargeAttempt;
 use App\Models\InvoiceItem;
+use App\Models\KsefInvoice;
+use App\Models\Order;
+use App\Models\PaymentNotification;
 use App\Models\Setting;
 use App\Models\TaxRule;
 use App\Models\Transaction;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Modules\Gateways\BankTransfer\BankTransferModule;
 
 class InvoiceService
@@ -773,5 +778,101 @@ class InvoiceService
             ->orderByDesc('is_default')
             ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * Revert an invoice to unpaid status without discarding historical transactions.
+     */
+    public function markUnpaid(Invoice $invoice): Invoice
+    {
+        if (strtolower((string) $invoice->status) === InvoiceStatus::Unpaid->value) {
+            return $invoice;
+        }
+
+        $invoice->update([
+            'status' => InvoiceStatus::Unpaid->value,
+            'date_paid' => null,
+        ]);
+
+        return $invoice->fresh();
+    }
+
+    /**
+     * Create an unpaid copy of an existing invoice with its line items under a new sequence number.
+     */
+    public function duplicateInvoice(Invoice $invoice): Invoice
+    {
+        $invoice->loadMissing(['client', 'items']);
+
+        $client = $invoice->client;
+        if (! $client) {
+            throw new \RuntimeException("Cannot duplicate invoice #{$invoice->id} without an owning client.");
+        }
+
+        $items = $invoice->items->map(fn (InvoiceItem $item): array => [
+            'type' => $item->type ?: 'Other',
+            'rel_id' => $item->rel_id,
+            'description' => (string) $item->description,
+            'qty' => max(1, (int) ($item->qty ?: 1)),
+            'amount' => (float) $item->amount,
+            'taxed' => (bool) $item->taxed,
+            'tax_rate' => $item->tax_rate !== null ? (float) $item->tax_rate : null,
+            'tax_label' => $item->tax_label,
+            'tax_rule_id' => $item->tax_rule_id,
+            'unit' => $item->unit,
+            'due_date' => $item->due_date?->toDateString(),
+        ])->all();
+
+        if ($items === [] && (float) $invoice->total > 0) {
+            $items[] = [
+                'type' => 'Other',
+                'description' => 'Invoice #'.($invoice->invoice_num ?: $invoice->id),
+                'qty' => 1,
+                'amount' => (float) ($invoice->subtotal > 0 ? $invoice->subtotal : $invoice->total),
+                'tax_rate' => 0.0,
+            ];
+        }
+
+        return $this->createInvoice($client, $items, [
+            'date' => now()->toDateString(),
+            'due_date' => $invoice->due_date?->toDateString() ?? now()->addDays((int) Setting::get('InvoiceDueDays', 14))->toDateString(),
+            'status' => InvoiceStatus::Unpaid->value,
+            'type' => $invoice->type ?: $this->defaultType(),
+            'payment_method' => $invoice->payment_method ?: $client->billingPaymentMethod(),
+            'notes' => $invoice->notes,
+            'tax_mode' => $invoice->tax_mode,
+        ]);
+    }
+
+    /**
+     * Permanently remove an invoice and detach nullable references cleanly.
+     */
+    public function deleteInvoice(Invoice $invoice): void
+    {
+        DB::transaction(function () use ($invoice) {
+            Order::where('invoice_id', $invoice->id)->update(['invoice_id' => null]);
+            Transaction::where('invoice_id', $invoice->id)->update(['invoice_id' => null]);
+            Invoice::where('source_invoice_id', $invoice->id)->update(['source_invoice_id' => null]);
+
+            foreach (['reseller_invoices', 'reseller_commissions'] as $table) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, 'invoice_id')) {
+                    DB::table($table)->where('invoice_id', $invoice->id)->delete();
+                }
+            }
+            foreach (['italk_recharge_requests', 'recharge_requests', 'voice_invoices'] as $table) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, 'invoice_id')) {
+                    DB::table($table)->where('invoice_id', $invoice->id)->update(['invoice_id' => null]);
+                }
+            }
+
+            InvoiceChargeAttempt::where('invoice_id', $invoice->id)->delete();
+            PaymentNotification::where('invoice_id', $invoice->id)->delete();
+            if (Schema::hasTable('ksef_invoices')) {
+                KsefInvoice::where('invoice_id', $invoice->id)->delete();
+            }
+
+            $invoice->items()->delete();
+            $invoice->delete();
+        });
     }
 }
